@@ -1,0 +1,24 @@
+# API: Fold
+# Bug description: Runtime error in PyTorch v1.2.0 when calling torch.jit.trace on a model composed of the following layers:
+#                  torchvision.models.resnet50, nn.MaxPool2d(kernel_size=3) and nn.Linear(10, 10)
+import torch
+from torch import Tensor, nn
+import torch.nn as nn
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv = nn.Conv2d(1, 3, kernel_size=3)
+        self.maxpool_3x3 = nn.MaxPool2d(kernel_size=3)
+    
+    def forward(self, x: Tensor) -> Tensor:
+        out = self.conv(x)
+        out = self.maxpool_3x3(out)
+        return out
+
+model = Model()
+example_input1 = torch.randn(20, 1, 56, 56)
+example_input2 = torch.randn(20, 1, 28, 28)
+trace_model = torch.jit.trace(model, example_input1)
+traced_inference = torch.jit.trace(model, example_input2)
+

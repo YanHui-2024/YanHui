@@ -1,0 +1,24 @@
+# Title: [JIT] JIT frontend uses len(op_token) before checking for None
+"""
+Output:
+...
+
+", line 504, in build_UnaryOp                                                                                     
+    r = ctx.make_range(expr.lineno, expr.col_offset, expr.col_offset + len(op_token))                             
+TypeError: object of type 'NoneType' has no len()
+"""
+# Version: PyTorch version: 1.2.0
+# Labels: oncall: jit, triaged
+# PR Title: [JIT] JIT frontend uses len(op_token) before checking for None
+import torch as th                                                                                                
+                                                                                                                  
+class TestMod(th.nn.Module):                                                                                      
+    def __init__(self):                                                                                           
+        super().__init__()                                                                                        
+        self.register_buffer("bool_tensor", th.zeros(3,).bool())                                                  
+                                                                                                                  
+    def forward(self, x):                                                                                         
+        return x[~self.bool_tensor]                                                                               
+                                                                                                                  
+mod = TestMod()                                                                                                   
+smod = th.jit.script(mod)

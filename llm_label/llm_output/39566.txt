@@ -1,0 +1,2 @@
+ torch.jit._recursive.infer_type_store
+# Bug description: Unknown type annotation: 'typing.Final[float]' when using Python 3.8 and Torch JIT in PyTorch v1.5.0

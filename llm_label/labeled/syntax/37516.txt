@@ -1,0 +1,4 @@
+# API: isinstance and type(obj)
+# Bug description: isinstance complains on a Tensor inside of a dict
+#                  when using torch.jit in PyTorch v1.5.0
+isinstance(foo, Dict[str, Tensor])

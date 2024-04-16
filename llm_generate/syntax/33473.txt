@@ -1,0 +1,9 @@
+# API: JIT Support
+# Bug description: binary operators not supported in PyTorch version 1.4.0
+import torch as tc
+from torch import jit
+@jit.script
+def func(inp):
+    return inp<<1
+a = tc.tensor([3,4,5])
+func(a)

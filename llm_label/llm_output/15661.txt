@@ -1,0 +1,79 @@
+ List[Tensor]
+# Bug description: JIT can't recognize List[Tensor] as an acceptable input, while it works well when using eval() with JIT.
+
+# Title: TorchScript does not allow a custom class to take `int` for its first argument in `__init__`.
+"""
+Output:
+Traceback (most recent call last):
+  File "~/Desktop/jit_bugs_test/test1.py", line 23, in <module>
+    jit_test()
+  File "~/Desktop/jit_bugs_test/test1.py", line 9, in jit_test
+    @torch.jit.script
+  File "/opt/conda/lib/python3.6/site-packages/torch/jit/_frontend.py", line 783, in script
+    result = _compile(src)
+  File "~/miniconda3/envs/jit_test/lib/python3.6/ast.py", line 46, in __new__
+    return ast_node(*args)
+  File "/opt/conda/lib/python3.6/site-packages/torch/jit/_frontend.py", line 579, in _compile
+    code = compile(src, "", "single", **kwargs)
+  File "<string>", line 2, in <module>
+NameError: name 'MyModule' is not defined
+"""
+# Version: PyTorch version: 1.0.0
+# Labels: oncall: jit
+# PR Title: TorchScript does not allow a custom class to take `int` for its first argument in `__init__`.
+class MyModule(torch.jit.ScriptModule):
+    def __init__(self, val):
+        super().__init__()
+        self.val = val
+@torch.jit.script
+def jit_test():
+    x = MyModule(1)
+# API: JIT not recognizing a custom class taking `int` for its first argument in `__init__`.
+# Bug description: A `NameError` occurs when using JIT for the code above, where the first argument of `__init__` is an integer.
+
+# Title: TorchScript: error "has to be defined in the same scope" when there are nested classes / functions
+"""
+Output:
+---------------------------------------------------------------------------
+NameError                                 Traceback (most recent call last)
+<ipython-input-6-d4b903a2c8f7> in <module>()
+     22     @torch.jit.script
+     23     def jit_test():
+---> 24         x = Model(10)
+     25
+     26
+NameError: name 'Model' is not defined
+# API: Nested class/function in JIT Script Module
+# Bug description: Name error when using nested classes or functions with torch.jit.script in PyTorch v 1.0.0
+"""
+class Model(torch.nn.Module):
+    def __init__(self, arg_value):
+        super().__init__()
+        self.arg = arg_value
+@torch.jit.script
+def jit_test():
+    x = Model(10)
+# API: JIT not recognizing a nested class / function as an acceptable input argument for scripted module. 
+# Bug description: Name error when using a nested class or function as an argument to another nested class/function in the same file, while using torch.jit.script.
+
+# Title: torch.jit.trace doesn't work with autocast on Conv node.
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.12.1
+# Labels: oncall: jit, module: autocast (automatic mixed precision), module: amp (automated mixed precision)
+# PR Title: torch.jit.trace doesn't work with autocast on Conv node.
+import torch
+
+class MyModule(torch.nn.Module):
+    def __init__(self, arg_value):
+        super().__init__()
+        self.arg = arg_value
+
+x = torch.randn(10, 3, 20, 20) * 2
+m = MyModule(1)
+with torch.no_grad():
+    print("outside result: ", torch.jit.trace(m, x))
+# API: torch.nn.Conv2d + autocast(enabled=True, dtype=torch.float16)
+# Bug description: JIT will fail to compile a model that contains `autocast` in its computation graph when the nodes include Convolutional layers, as shown above.

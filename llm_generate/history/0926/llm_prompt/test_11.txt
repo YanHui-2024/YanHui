@@ -1,0 +1,78 @@
+# API: JIT Attribute type
+# Bug description: Jitted module can not access its properties of the correct type, which are defined as a torch.jit.Attribute on construction. The properties work properly during model execution but fail when inspecting a property as it is a JIT Attributes that is stored in the model graph and loaded back in again using the .script method.
+import torch
+from typing import Dict
+
+class AttributeModule(torch.nn.Module):
+    def __init__(self):
+        super(torch.nn.Module, self).__init__()
+        self.foo = torch.jit.Attribute(0.1, float)
+
+        # we should be able to use self.foo as a float here
+        assert 0.0 < self.foo
+
+        self.names_ages = torch.jit.Attribute({}, Dict[str, int])
+        self.names_ages["someone"] = 20
+        assert isinstance(self.names_ages["someone"], int)
+
+m = AttributeModule()
+
+
+# API: torch.onnx.export for pytorch trace model and onnx runtime.
+# Bug description: Sequence length and real_seq_length has different values/memory in tracemodel that causes problem with onnxruntime run.
+# Tracer vs Eager mode difference in tensor.shape
+import torch
+import onnxruntime
+
+class Model(torch.nn.Module):
+    def forward(self, hidden_states):
+        batch_size, seq_length = hidden_states.shape[:2]
+        real_seq_length = seq_length
+        real_seq_length += 2                                            => real_seq_length and seq_legth should have different values
+        return real_seq_length + seq_length
+
+
+# Call export
+
+# hidden_states is tensor of rank 2
+hidden_states = torch.randn(2, 3, 5)
+model = Model()
+
+import io
+onnx_io = io.BytesIO()
+tracemodel = torch.jit.trace(model, (hidden_states, ))
+torch.onnx.export(model, (hidden_states, ), onnx_io, verbose=True)
+
+# Call onnxruntime runtime and compare outputs on dynamic inputs
+ort_session = onnxruntime.InferenceSession(onnx_io.getvalue())
+
+print(model(hidden_states))
+print(tracemodel(hidden_states))
+print(ort_session.run(None, {
+                                ort_session.get_inputs()[0].name: hidden_states.numpy()
+                            }))
+
+
+# API: Hooks
+# Bug description: RuntimeError when calling torch.jit.trace in PyTorch v1.1.0
+if orig._backward_hooks or orig._forward_hooks or orig._forward_pre_hooks:
+    raise ValueError("Modules that have hooks assigned can't be compiled")
+
+
+# API: Sparse Tensors
+# Bug description: Torchscript Serialization of Sparse Tensors doesnt work
+import torch
+import io
+
+class SparseTensorModule(torch.nn.Module):
+	def __init__(self):
+		super().__init__()
+		self.a = torch.sparse.FloatTensor()
+
+	def forward(self):
+		pass
+
+torch.jit.save(torch.jit.script(SparseTensorModule()), io.BytesIO())
+
+
+# API:

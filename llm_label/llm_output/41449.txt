@@ -1,0 +1,56 @@
+ Dict in JIT Model
+# Bug description: a RuntimeError on model with dict
+#                  when using torch.jit.script in PyTorch v1.5.1
+
+# Title: Support default values on NamedTuple fields
+"""
+Output:
+Traceback (most recent call last):
+  File "test/tinytest.py", line 20, in <module>
+    scripted = torch.jit.script(M())
+RuntimeError: 
+Default values are currently not supported on NamedTuple fields in TorchScript. Fields with default values: [xy]:
+  File "test/tinytest.py", line 14, in forward
+    def forward(self, point: Point):
+                           ~~~~~ <--- HERE
+        return point
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+# PR Title: 
+from typing import NamedTuple, Dict, Tuple, Any
+from collections import namedtuple
+class Point(NamedTuple):
+    x: Optional[torch.Tensor] = None
+    y: Optional[torch.Tensor] = None
+class M(torch.nn.Module):
+    def __init__(self):
+        super(M, self).__init__()
+    def forward(self, point: Point) -> Point:
+        return point
+p = Point(x=torch.rand(3), y=torch.rand(3))
+scripted = torch.jit.script(M())
+# API: NamedTuple in JIT Model
+# Bug description: a RuntimeError on model accepting a custom type of NamedTuple
+#                  when using torch.jit.script in PyTorch v1.7.1
+
+# Title: [jit] unused args are kept in the graph
+"""
+Output:
+graph(%self : __torch__.test_jit_unused_args):
+    %5 : Tensor = prim::Constant[value=0.34986172000000004]()
+    return (%5)
+"""
+# Version: PyTorch version: 1.8.1
+# Labels: oncall: jit, module: bootcamp
+# PR Title: [jit] unused args are kept in the graph
+class MyModule(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return 0.34986172 * x
+scripted = torch.jit.script(MyModule())
+# API: Module in JIT Model
+# Bug description: a RuntimeError on model with an unused argument
+#                  when using torch.jit.script in PyTorch v1.8.1

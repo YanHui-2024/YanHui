@@ -1,0 +1,41 @@
+ JITed module
+# Bug description: Schema not found for node. File a bug report. in PyTorch version 1.0rc1
+
+# Title: Error in eager mode jit tracing with nested if-else statement and control flow. #76458
+"""
+Output:
+ERROR: Graphs differed across invocations!
+        Graph diff:
+                graph(%0 : int):
+                    %3 : Tensor = prim::Constant[value=-1]()
+                +   %2 : Float(requires_grad=True) = aten::sub(%3, %input.1) # /home/titaiwang/pytorch/torch/_masked/__init__.py:59:0
+                ?                    ^
+                - return (%2)
+                +   %4 : int[] = prim::Constant[value=[64, 1, 38, 38]]()
+                +   %3 : Float(requires_grad=True) = aten::sub(%3, %input.1) # /home/titaiwang/pytorch/torch/_masked/__init__.py:59:0
+                ?                    ^
+                +   return (%3)
+                ?                    ^
+        First diverging operator:
+        Node diff:
+                - %1 : int[] = prim::Constant[value=[64, 1, 38, 38]]()
+                ?                    ^
+                + %2 : Float(requires_grad=True) = aten::sub(%3, %input.1) # /home/titaiwang/pytorch/torch/_masked/__init__.py:59:0
+                ?                    ^
+"""
+# Version: PyTorch version: 1.7
+# Labels: oncall: jit, module: lite_interpreter (interpreter)
+# PR Title: Error in eager mode jit tracing with nested if-else statement and control flow. #76458
+from torch import nn
+class Model(nn.Module):
+    def __init__(self, x):
+        super().__init__()
+        self.x = x
+    def forward(self, y):
+        return y[None, :] if self.x < 1 else y[:, None].contiguous()
+m = Model(torch.tensor([2]))
+inp = torch.randn(64)
+with torch.no_grad():
+    out = m(inp)
+# API: JITed module with if-else and control flow, not working in eager mode
+# Bug description: error in eager mode jit tracing with nested if-else statement and control flow. #76458

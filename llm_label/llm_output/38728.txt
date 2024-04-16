@@ -1,0 +1,3 @@
+ torch.jit.ScriptModule (uncompiled) + torch.jit.Attribute (inherited)
+# Bug description: Unresolved forward refs in JIT compilation
+#                  when using @torch.jit.script in PyTorch v1.5.0

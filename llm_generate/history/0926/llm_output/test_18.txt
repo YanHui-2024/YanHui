@@ -1,0 +1,63 @@
+# API: torch.nn.utils.rnn._pad_packed_sequence_default
+# Bug description: PackSequence
+#                  padded sequence is different depending on the tracing state, resulting in a checker failure
+from torch.nn import utils as nnutils
+import numpy as np
+class ExperimentalLSTM(torch.nn.Module):
+    def __init__(self, input_dim, hidden_dim):
+        super().__init__()
+
+    def forward(self, packed: torch.nn.utils.rnn.PackedSequence):
+        # type: (PackedSequence)
+        # print("packed data\n{}".format(packed.data))
+        # padded = nnutils._pad_packed_sequence_default(input=packed, batch_first=False)
+        # return padded[0]
+        # padded is: PackedSequence, (PackedSequenceBatch, num_batches)
+        # packed: PackedSequence = packed.reshape(-1)
+        # print("packed reshaped\n{}".format(packed))
+        return packed
+lstm = ExperimentalLSTM(input_dim=2, hidden_dim=2)
+lstm = lstm.eval()
+batch_size = 2
+input = torch.arange(batch_size * 2 * 2).view(batch_size, 2, 2).float()
+packed = torch.nn.utils.rnn.pack_padded_sequence(
+    input=input, lengths=torch.tensor([1, 2]), enforce_sorted=False
+)
+# print("packed reshaped\n{}".format(packed))
+script_lstm = torch.jit.script(lstm)
+script_out = script_lstm(packed)
+torch._C._jit_set_inline_everything_mode(False)
+# print("script result\n{}".format(script_out))
+print("\n")
+eager_out = lstm(packed)
+print("eager result\n{}".format(eager_out.data))
+
+
+# API: torch.nn.utils.rnn._LSTMCellBase
+# Bug description: LSTMCellBase
+#                  The forward functions are different depending on the tracing state, resulting in a checker failure
+class ExperimentalLSTM(torch.nn.Module):
+    def __init__(self, input_dim, hidden_dim):
+        super().__init__()
+
+    # type: ignore (third-party code)
+    @staticmethod
+    def forward(inputs, h0, c0, weights=None):
+        # print("weights\n{}".format(weights))
+        # c1, h1 = LSTMCellBase.apply()
+        return [torch.empty([2], 3), torch.empty([5, 4], 6)]
+
+lstm = ExperimentalLSTM(input_dim=2, hidden_dim=2)
+lstm = lstm.eval()
+batch_size = 2
+input = torch.arange(batch_size * 2).view(-1, batch_size)
+packed = torch.nn.utils.rnn.pack_padded_sequence(
+    input=input, lengths=torch.tensor([1, 2]), enforce_sorted=False
+)
+# print("weights\n{}".format(weights))
+script_lstm = torch.jit.trace(lstm, (packed, packed, packed), check_trace=True)
+torch._C._jit_set_inline_everything_mode(False)
+# print("script result\n{}".format(script_out))
+print("\n")
+eager_out = lstm(packed, packed, packed, weights=None)
+print("eager result\n{}".format(eager_out[0]))

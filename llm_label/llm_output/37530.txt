@@ -1,0 +1,116 @@
+ Class-based tensor in JIT Model
+# Bug description: A crash in the torch.jit.script on a class with tensor property when trying to access that property
+#                  in __repr__ method of this class
+# Related issues: https://github.com/pytorch/pytorch/issues/49722, https://github.com/pytorch/pytorch/issues/50418
+# Minimal Reproducible Code:
+# import torch
+
+# class Boxes():
+#     def __init__(self, tensor):
+#         self.tensor = tensor
+
+# class BBoxes(Boxes):
+#     @classmethod
+#     def cat(cls, box_lists: List):
+#         return cls(torch.cat([x.tensor for x in box_lists]))
+
+#     def __repr__(self) -> str:
+#         return self.tensor.__repr__()
+
+# if __name__ == "__main__":
+#     f_script = torch.jit.script(f)
+# Issue: https://github.com/pytorch/pytorch/issues/50418
+# Status: Fixed by #50423 (https://github.com/pytorch/pytorch/pull/50423)
+# Minimal Reproducible Code:
+import torch
+
+class Boxes():
+    def __init__(self, tensor):
+        self.tensor = tensor
+
+class BBoxes(Boxes):
+    @classmethod
+    def cat(cls, box_lists: List):
+        return cls(torch.cat([x.tensor for x in box_lists]))
+
+    def __repr__(self) -> str:
+        return self.tensor.__repr__()
+
+if __name__ == "__main__":
+    f_script = torch.jit.script(f)
+# Issue: https://github.com/pytorch/pytorch/issues/50418
+# Status: Fixed by #50423 (https://github.com/pytorch/pytorch/pull/50423)
+# Minimal Reproducible Code:
+import torch
+
+class Boxes():
+    def __init__(self, tensor):
+        self.tensor = tensor
+
+class BBoxes(Boxes):
+    @classmethod
+    def cat(cls, box_lists: List):
+        return cls(torch.cat([x.tensor for x in box_lists]))
+
+    def __repr__(self) -> str:
+        return self.tensor.__repr__()
+
+if __name__ == "__main__":
+    f_script = torch.jit.script(f)
+# Issue: https://github.com/pytorch/pytorch/issues/49722
+# Status: Fixed by #50336 (https://github.com/pytorch/pytorch/pull/50336) and #50418 (https://github.com/pytorch/pytorch/pull/50418)
+# Minimal Reproducible Code:
+import torch
+
+class Boxes():
+    def __init__(self, tensor):
+        self.tensor = tensor
+
+class BBoxes(Boxes):
+    @classmethod
+    def cat(cls, box_lists: List):
+        return cls(torch.cat([x.tensor for x in box_lists]))
+
+    def __repr__(self) -> str:
+        return self.tensor.__repr__()
+
+if __name__ == "__main__":
+    f_script = torch.jit.script(f)
+# Issue: https://github.com/pytorch/pytorch/issues/49722
+# Status: Fixed by #50336 (https://github.com/pytorch/pytorch/pull/50336) and #50418 (https://github.com/pytorch/pytorch/pull/50418)
+# Minimal Reproducible Code:
+import torch
+
+class Boxes():
+    def __init__(self, tensor):
+        self.tensor = tensor
+
+class BBoxes(Boxes):
+    @classmethod
+    def cat(cls, box_lists: List):
+        return cls(torch.cat([x.tensor for x in box_lists]))
+
+    def __repr__(self) -> str:
+        return self.tensor.__repr__()
+
+if __name__ == "__main__":
+    f_script = torch.jit.script(f)
+# Issue: https://github.com/pytorch/pytorch/issues/49722
+# Status: Fixed by #50336 (https://github.com/pytorch/pytorch/pull/50336) and #50418 (https://github.com/pytorch/pytorch/pull/50418)
+# Minimal Reproducible Code:
+import torch
+
+class Boxes():
+    def __init__(self, tensor):
+        self.tensor = tensor
+
+class BBoxes(Boxes):
+    @classmethod
+    def cat(cls, box_lists: List):
+        return cls(torch.cat([x.tensor for x in box_lists]))
+
+    def __repr__(self) -> str:
+        return self.tensor.__repr__()
+
+if __name__ == "__main__":
+    f_script = torch.jit.script(f)

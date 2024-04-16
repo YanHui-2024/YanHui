@@ -1,0 +1,98 @@
+ Trace
+# Bug description: when trace a dict input to module will fail with error "RuntimeError: The following operation failed in the TorchScript interpreter."
+
+# Title: JIT trace results are wrong
+"""
+Output:
+[torch.fx.graph : 2 times]
+    node idx = 0, name=x, op_code=placeholder, attrs=<attr_list>, type_inference=True
+        graph inputs=(['x'],)
+    node idx = 1, name=y, op_code=placeholder, attrs=<attr_list>, type_inference=True
+        graph inputs=(['y'],)
+    node idx = 2, name=z, op_code=placeholder, attrs=<attr_list>, type_inference=True
+        graph inputs=(['z'],)
+[torch.fx.graph : 1 time]
+    node idx = 3, name=x+y, op_code=call_function, attrs={'target': <built-in function add>}, type_inference=True
+        graph inputs=(['x', 'y'],)
+[torch.fx.graph : 1 time]
+    node idx = 4, name=add, op_code=call_function, attrs={'target': <built-in function add>}, type_inference=True
+        graph inputs=(['x', 'y'],)
+[torch.fx.graph : 1 time]
+    node idx = 5, name=add_2, op_code=call_function, attrs={'target': <built-in function add>}, type_inference=True
+        graph inputs=(['x', 'z'],)
+[torch.fx.graph : 1 time]
+    node idx = 6, name=mul, op_code=call_function, attrs={'target': <built-in function mul>}, type_inference=True
+        graph inputs=(['add', 'x'],)
+[torch.fx.graph : 1 time]
+    node idx = 7, name=y+z, op_code=call_function, attrs={'target': <built-in function add>}, type_inference=True
+        graph inputs=(['add', 'z'],)
+    node idx = 8, name=add_2, op_code=return, attrs=<attr_list>, type_inference=False
+        graph outputs=(['add_2'],)
+[torch.fx.graph : 1 time]
+    node idx = 9, name=x+y+z, op_code=call_function, attrs={'target': <built-in function add>}, type_inference=True
+        graph inputs=(['add', 'add_2'],)
+    node idx = 10, name=mul, op_code=return, attrs=<attr_list>, type_inference=False
+        graph outputs=(['mul'],)
+[torch.fx.graph : 1 time]
+    node idx = 11, name=y+z+mul, op_code=call_function, attrs={'target': <built-in function add>}, type_inference=True
+        graph inputs=(['add_2', 'mul'],)
+    node idx = 12, name=add_3, op_code=return, attrs=<attr_list>, type_inference=False
+        graph outputs=(['add_3'],)
+
+Results for x+y : tensor(4.0), for add_2: tensor(5.), mul: tensor(-9.)
+Expected: add_2 = 5., mul = -9., add_3 = 16.0
+"""
+# Version: PyTorch version: 1.4
+# Labels: high priority, triage review, oncall: jit
+# PR Title: JIT trace results are wrong
+import torch
+def forward(self, x, y):
+        return (x + y) * (x + y)
+x = torch.randn([3])
+y = torch.randn([3])
+traced_model = torch.jit.trace(forward, (x, y))
+print('[torch.fx.graph : 2 times]')
+print('\t' + 'node idx = 0, name=x, op_code=placeholder, attrs=<attr_list>, type_inference=True')
+for i in range(13):
+    print('\t' + 'node idx = {:d}, name={:s}, op_code=placeholder, attrs=<attr_list>, type_inference=True'.format(i))
+print('[torch.fx.graph : 1 time]')
+print('\t' + 'node idx = 3, name=x+y, op_code=call_function, attrs={\'target\': <built-in function add>}, type_inference=True')
+for i in range(4, 8):
+    print('\t' + 'node idx = {:d}, name={:s}, op_code=call_function, attrs={\'target\': <built-in function add>}, type_inference=True'.format(i))
+print('[torch.fx.graph : 1 time]')
+print('\t' + 'node idx = 8, name=x+y+z, op_code=call_function, attrs={\'target\': <built-in function add>}, type_inference=True')
+for i in range(9, 13):
+    print('\t' + 'node idx = {:d}, name={:s}, op_code=call_function, attrs={\'target\': <built-in function add>}, type_inference=True'.format(i))
+print('[torch.fx.graph : 1 time]')
+print('\t' + 'node idx = 12, name=x+y+z+mul, op_code=call_function, attrs={\'target\': <built-in function add>}, type_inference=True')
+for i in range(8, 13):
+    print('\t' + 'node idx = {:d}, name={:s}, op_code=return, attrs=<attr_list>, type_inference=False'.format(i))
+print('Results for x+y : {:}, for add_2: {:}, mul: {:}. Expected: add_2 = {}, mul = {}, add_3 = {}.' \
+      .format((x + y).tolist(), (5.).tolist(), ((x + y) * (x + y)).tolist(), 5., -9., (16.).tolist()))
+# API: JIT trace
+# Bug description: the output of torch.jit.trace is wrong for a function with two inputs while it has to be wrong for any function.
+
+# Title: TorchScript trace of a class fails in 1.7 and works in 1.6.
+"""
+Output:
+Traceback (most recent call last):
+  File "/home/user_name/test.py", line 25, in <module>
+    scripted = torch.jit.script(Model())
+torch.jit._recursive.RuntimeError: [ JIT Trace Error ] /home/user_name/test.py (21): forward (self : __torch__.Model)
+Traceback of TorchScript (most recent call last):
+  File "/home/user_name/test.py", line 40, in __init__
+    self.x = torch.rand(3, 3)
+RuntimeError: [ JIT Trace Error ] /home/user_name/test.py (15): _initialize_weights (self : __torch__.Model)
+Traceback of TorchScript (most recent call last):
+  File "/home/user_name/test.py", line 23, in __init__
+    self.x = torch.rand(3, 3)
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "/home/user_name/test.py", line 40, in __init__
+    self.x = torch.rand(3, 3)
+RuntimeError: [ JIT Trace Error ] /home/user_name/test.py (19): _initialize_weights (self : __torch__.Model)
+Traceback of TorchScript (most recent call last):
+  File "/home/user_name/test.py", line 40, in __init__
+    self.x = torch.rand(3, 3)
+RuntimeError: [ JIT Trace Error ] /home/user_name/test.py (19): _initialize_weights (self : __torch__.Model)
+Traceback of TorchScript

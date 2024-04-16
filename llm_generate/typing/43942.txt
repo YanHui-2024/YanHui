@@ -1,0 +1,5 @@
+# API: N/A
+# Bug description: Trace sanity check fails when using torch.jit.script in PyTorch v1.6.0
+class MyModule(torch.nn.Module):
+    def forward(self) -> Any:
+        return 'xx' if self.training else {}

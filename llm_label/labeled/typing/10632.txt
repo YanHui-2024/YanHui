@@ -1,0 +1,7 @@
+# API: dtype argument for tensor constructor
+# Bug description: The dtype argument on a tensor constructor (e.g. torch.ones or torch.zeros) fails to work in JIT. It compiles fine but when called it errors out with a 'arguments for call are not valid'.
+import torch
+
+@torch.jit.script
+def create_zeros():
+    return torch.zeros(1, 2, 3, dtype=torch.long)

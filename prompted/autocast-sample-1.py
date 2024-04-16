@@ -1,0 +1,19 @@
+import torch
+from typing import Optional
+
+def fn(inp: torch.Tensor, weight: torch.Tensor, bias: Optional[torch.Tensor] = None):
+    with torch.cuda.amp.autocast(enabled=True, dtype=torch.half):
+        return torch.nn.functional.linear(inp, weight, bias)
+
+fn_s = torch.jit.script(fn)
+
+inp = torch.rand((5, 3), dtype=torch.float).cuda()
+weight = torch.rand((3, 3), dtype=torch.float).cuda()
+bias = torch.rand((3), dtype=torch.float).cuda()
+
+print("bias is none")
+fn_s(inp, weight, None)
+
+print("bias is not none")
+fn_s(inp, weight, bias)
+

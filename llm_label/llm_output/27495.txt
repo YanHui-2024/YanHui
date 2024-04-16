@@ -1,0 +1,141 @@
+ builtin function attributes do not recursively compile
+# Bug description: JIT compilation of a module with an attribute that is a builtin function with a default argument fails when the argument is used within the attribute
+#                  when using torch.jit.script or torch.jit.trace in PyTorch v1.2.0
+
+# Title: Can not use _parent on scripted submodule that has been cloned and traced
+"""
+Output:
+Traceback (most recent call last):
+  File "test/tinytest.py", line 69, in <module>
+    test_scripting()
+  File "test/tinytest.py", line 35, in test_scripting
+    trace = torch.jit.trace(m, x)
+  File "/home/titaiwang/pytorch/torch/jit/_internal.py", line 1029, in trace
+    m._recompile()
+  File "test/tinytest.py", line 63, in _recompile
+    self.fc = torch.nn.Linear(784, 10)._parent
+AttributeError: 'torch.jit.RecursiveScriptModule' object has no attribute '_parent'
+"""
+# Version: PyTorch version: 1.2.0
+# Labels: oncall: jit
+# PR Title: Can not use _parent on scripted submodule that has been cloned and traced
+import torch
+from torch import nn, optim
+class M(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = nn.Linear(784, 10)
+
+    def forward(self, x):
+        return self.fc(x)
+def test_scripting():
+    m = M().to('cuda')
+    x = torch.randn((64, 1, 28, 28), device='cuda', dtype=torch.double)
+    m = nn.Sequential(M(), nn.ReLU())
+    sm = torch.jit.script(m)
+    trace = torch.jit.trace(sm, x)._parent
+    relu_traced = trace[1]._parent
+# API: JIT of Scripting model
+# Bug description: AttributeError on scripted submodule that has been cloned and traced
+#                  when using torch.jit.script or torch.jit.trace in PyTorch v1.2.0
+
+# Title: Tensor has no member named 'numel' after calling .to(dtype=torch.long) on it
+"""
+Output:
+Traceback (most recent call last):
+  File "test/tinytest.py", line 45, in <module>
+    test_scripting()
+  File "test/tinytest.py", line 29, in test_scripting
+    test_tracing(x)
+  File "test/tinytest.py", line 38, in test_tracing
+    sm = torch.jit.trace(m, x)._parent
+AttributeError: 'torch.jit.RecursiveScriptModule' object has no attribute '_parent'
+"""
+# Version: PyTorch version: 1.2.0
+# Labels: oncall: jit
+# PR Title: Tensor has no member named 'numel' after calling .to(dtype=torch.long) on it
+def test_scripting():
+    m = M().cuda()
+    x = torch.randn((64, 1, 28, 28), device='cuda', dtype=torch.double).to(dtype=torch.long)
+    sm = torch.jit.script(m)
+    trace = torch.jit.trace(sm, x)
+def test_tracing(x):
+    m = M().cuda()
+    sm = torch.jit.trace(m, x)._parent  # _parent fails on a cloned model
+# API: torch.to(dtype=torch.long) and .numel() after using it
+# Bug description: AttributeError on scripted submodule that has been cloned and traced
+#                  when using torch.jit.script or torch.jit.trace in PyTorch v1.2.0
+
+# Title: Cannot call functions defined in __init__ of a script model
+"""
+Output:
+Traceback (most recent call last):
+  File "test/tinytest.py", line 63, in _recompile
+    self.fc = torch.nn.Linear(784, 10)._parent
+AttributeError: 'torch.jit.RecursiveScriptModule' object has no attribute '_parent'
+"""
+# Version: PyTorch version: 1.2.0
+# Labels: oncall: jit
+# PR Title: Cannot call functions defined in __init__ of a script model
+class M(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = nn.Linear(784, 10)
+    def forward(self, x):
+        return self.fc(x)
+def test_scripting():
+    m = M().to('cuda')
+    sm = torch.jit.script(m)._recompile()
+# API: Cannot call functions defined in __init__ of a script model
+# Bug description: AttributeError on calling _recompile() on a cloned model
+#                  when using torch.jit.script or torch.jit.trace in PyTorch v1.2.0
+
+# Title: TypeError: cannot assign module as child
+"""
+Output:
+Traceback (most recent call last):
+  File "test/tinytest.py", line 58, in <module>
+    test_scripting()
+  File "test/tinytest.py", line 42, in test_scripting
+    trace = torch.jit.trace(m, x)._parent
+TypeError: Cannot assign module as child of nn.Sequential because an attribute 'fc' already exists.
+"""
+# Version: PyTorch version: 1.2.0
+# Labels: oncall: jit
+# PR Title: TypeError: cannot assign module as child
+class M(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = nn.Linear(784, 10)
+    def forward(self, x):
+        return self.fc(x)
+def test_scripting():
+    m = M()
+    sm = torch.jit.script(m).to('cuda')
+    x = torch.randn((64, 1, 28, 28), device='cuda', dtype=torch.double)
+    seq = nn.Sequential(sm)._recompile().to('cuda')
+# API: assigning a module as child of nn.Sequential and recompiling it
+# Bug description: TypeError on assigning a cloned module to a parameter of 
+#                  nn.Sequential and recompiling it
+#                  when using torch.jit.script or torch.jit.trace in PyTorch v1.2.0
+
+# Title: RuntimeError: "aten::view_as": Could not run 'CanonicalViewPrimSchema' with arguments from the 'ListConstruct(x, x)': Invalid range argument passed to view operation!
+"""
+Output:
+Traceback (most recent call last):
+  File "test/tinytest.py", line 71, in <module>
+    test_scripting()
+  File "test/tinytest.py", line 54, in test_scripting
+    sm = torch.jit.trace(m, x)
+RuntimeError: "aten::view_as": Could not run 'CanonicalViewPrimSchema' with arguments from the 'ListConstruct(x, x)': Invalid range argument passed to view operation! (aten::size)
+"""
+# Version: PyTorch version: 1.2.0
+# Labels: oncall: jit
+# PR Title: RuntimeError: "aten::view_as": Could not run 'CanonicalViewPrimSchema' with arguments from the 'ListConstruct(x, x)': Invalid range argument passed to view operation!
+import torch
+class M(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = nn.Linear(784, 10)
+    def forward(self, x):
+        return self.fc(x).view_as(x

@@ -1,0 +1,3 @@
+ del statement in @torch.jit.script
+# Bug description: UnsupportedNodeError when using del
+#                  del statements aren't supported in PyTorch v1.1.0

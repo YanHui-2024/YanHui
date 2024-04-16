@@ -1,0 +1,3 @@
+ List indexing with torchscript
+# Bug description: Torchscript compilation crashes when trying to index a list using two lists (instead of one integer).
+#                  It works in eager mode.

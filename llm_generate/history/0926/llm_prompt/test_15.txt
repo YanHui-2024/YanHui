@@ -1,0 +1,120 @@
+# API: torchvision
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.12.1
+model = torchvision.models.detection.keypoint_rcnn.keypointrcnn_resnet50_fpn(pretrained=True, min_size=200, max_size=300)
+model.eval()
+script_module = torch.jit.script(model)
+torch._C._freeze_module(script_module._c)
+
+
+# API: Scripting, training attribute
+# Bug description: training attribute is not passed on to scripted model
+"""
+## Test case 4
+# Title: JIT fails to resolve a custom type from torch._six with Python 3.7
+"""
+Output:
+ERROR: Failed due to exception: RuntimeError: Unable to resolve name 'OrderedDict' (type: 'type', location '__torch_jit__.core') in 'OrderedDict'
+File "<string>", line 1, in __call__ (src/OperatorRegistry.cpp:20)
+File "C:\Users\USER\Anaconda3\envs\cuda101\lib\site-packages\torch\jit\_recursive.py", line 458, in _to_tensor
+ret = type(value)(*args, **kwargs)
+TypeError: type argument expected tuple or list of tuples, got OrderedDict instead
+"""
+# Version: PyTorch version: 1.1.0
+# Labels: oncall: jit
+# PR Title: JIT fails to resolve a custom type from torch._six with Python 3.7
+import numpy as np
+from torch import nn
+import sys, os
+sys.path.insert(1,'/'.join([os.getcwd(), '..','..'])) # 2 directories up from current. This is a hack to allow ptsransformer to be imported
+sys.path.append('./')
+from ptsransformer import TransformerBlock, PTTransformer, PositionalEncoding
+#
+class Tst(nn.Module):
+def __init__(self):
+super().__init__()
+self.pos_enc = nn.Sequential(PositionalEncoding(512))  # This is causing issues. The PositionalEncoding type is registered in TransformerBlock, but it cannot be resolved for some reason...
+tamas@super-duper-compute-machine:~/JUPYTER_LAB$ ipython
+Python 3.7.3 (default, Mar 27 2019, 22:11:17) 
+Type 'copyright', 'credits' or 'license' for more information
+IPython 7.6.1 -- An enhanced Interactive Python. Type '?' for help.
+
+In [1]: import torch                                                                                                                              
+
+In [2]: torch.__version__                                                                                                                         
+Out[2]: '1.2.0'
+
+In [3]: class MyCell(torch.nn.Module): 
+   ...:     def __init__(self): 
+   ...:         super(MyCell, self).__init__() 
+   ...:         self.linear = torch.nn.Linear(4, 4) 
+   ...:  
+   ...:     def forward(self, x, h): 
+   ...:         new_h = torch.tanh(self.linear(x) + h) 
+   ...:         return new_h, new_h 
+   ...:  
+   ...: model = MyCell() 
+   ...: x, h = torch.rand(3, 4), torch.rand(3, 4) 
+   ...: scripted_model = torch.jit.script(model, (x, h))                                                                                          
+/home/tamas/anaconda3/envs/cuda/lib/python3.7/site-packages/torch/jit/__init__.py:1158: UserWarning: `optimize` is deprecated and has no effect. Use `with torch.jit.optimized_execution() instead
+  warnings.warn("`optimize` is deprecated and has no effect. Use `with torch.jit.optimized_execution() instead")
+
+In [4]: scripted_model.code                                                                                                                       
+Out[4]: 'def forward(self,\n    x: Tensor,\n    h: Tensor) -> Tuple[Tensor, Tensor]:\n  _0 = self.linear\n  _1 = _0.weight\n  _2 = _0.bias\n  if torch.eq(torch.dim(x), 2):\n    _3 = torch.__isnot__(_2, None)\n  else:\n    _3 = False\n  if _3:\n    bias = ops.prim.unchecked_unwrap_optional(_2)\n    ret = torch.addmm(bias, x, torch.t(_1), beta=1, alpha=1)\n  else:\n    output = torch.matmul(x, torch.t(_1))\n    if torch.__isnot__(_2, None):\n      bias0 = ops.prim.unchecked_unwrap_optional(_2)\n      output0 = torch.add_(output, bias0, alpha=1)\n    else:\n      output0 = output\n    ret = output0\n  new_h = torch.tanh(torch.add(ret, h, alpha=1))\n  return (new_h, new_h)\n'
+
+In [5]: scripted_model.training                                                                                                                   
+Out[5]: True
+
+In [6]: scripted_model.eval()                                                                                                                     
+Out[6]: 
+WeakScriptModuleProxy(
+  (linear): WeakScriptModuleProxy()
+)
+
+In [7]: scripted_model.training                                                                                                                   
+Out[7]: False
+
+In [8]: torch.jit.save(scripted_model, 'temp.pt')                                                                                                 
+
+In [9]: m = torch.jit.load('temp.pt')                                                                                                             
+
+In [10]: m.training                                                                                                                               
+Out[10]: True
+
+
+# API: torch.nn.Linear
+# Bug description: AttributeError when accessing in_features of a scripted model that has an nn.Linear component.
+#                  The attribute is available when the model is in eager mode, but not ScriptMode.
+import torch.nn as nn
+import torch.jit as jit
+
+class TestModule(jit.ScriptModule):
+  def __init__(self):
+    super().__init__()
+    self.linear = nn.Linear(16, 16)
+
+
+m = TestModule()
+print(m.linear.in_features)
+
+
+# API: expand and @script (shape analysis)
+# Bug description: N/A
+# before analysis
+y = rand(1,4)
+z = rand(4,4)
+x = exp(add(y, z)) # broadcasting add
+
+# using the result of shape analysis, we insert expand nodes and replace
+# broadcasting add with a non-broadcasting variant:
+
+# after
+y = rand(1,4)
+z = rand(4,4)
+x = exp(add_nobroadcast(expand_to(y, z), z)) # non-broadcasting add, nobroadcast could be an attribute if that turns out to work.
+
+# fuser is modified to only work on non-broadcasting adds.
+
+
+
+# API:

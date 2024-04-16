@@ -1,0 +1,13 @@
+# Title: torch.jit.trace returns unwrapped C type
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.1.0
+# Labels: oncall: jit, module: regression
+# PR Title: torch.jit.trace returns unwrapped C type
+import torch
+def f(x):
+  return x*2
+z = torch.jit.trace(f, (torch.zeros(10),))
+print(type(z))

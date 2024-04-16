@@ -1,0 +1,34 @@
+ Optional parameters for Tuple
+# Bug description: Assert error on optional parameter in TorchScript model, when calling into C++ function from JIT-ed Python script module (i.e. a script module that has been scripted using @torch.jit.script).
+#                 (This is different than previous bug title "TorchScript does not support Optional parameters for Tuple", which is about the use of optional parameter in TorchScript.)
+#                 When invoking such script module from Python, it will throw exception: Assert error on optional parameter in TorchScript model, when calling into C++ function from JIT-ed Python script module (i.e. a script module that has been scripted using @torch.jit.script).
+#                 This assert failure is caused by optional parameter of type Tuple in the scripted model. E.g., b(x=None) or b(1, 2, None), where function b is decorated with @torch.jit.script.
+
+# Title: "assert" error when using torch.cat inside a JIT-compiled method
+"""
+Output:
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/home/titaiwang/pytorch/torch/csrc/api/include/torch/script.h", line 3542, in operator()
+    return this_->forward(*args, **kwargs);
+  File "example.py", line 8, in forward
+    assert x > 0 # make sure input is positive
+AssertionError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/home/titaiwang/pytorch/torch/csrc/api/include/torch/script.h", line 3542, in operator()
+    return this_->forward(*args, **kwargs);
+  File "example.py", line 8, in forward
+    assert x > 0 # make sure input is positive
+AssertionError: x <= 0
+"""
+# Version: PyTorch version: 1.4.0
+# Labels: oncall: jit, model-building
+# PR Title: "assert" error when using torch.cat inside a JIT-compiled method
+@torch.jit.script
+def forward(input):
+    x = input[0]  # shape should be (2, 1)
+    assert x > 0  # make sure input is positive
+    return x + torch.sum(x)  # add an extra term so it doesn't optimize to zero
+# API: JIT compilation and assertion in JIT-compiled method
+# Bug description: JIT compilation of above method fails with error message "AssertionError: The following operation failed in the TorchScript interpreter.".

@@ -1,0 +1,2 @@
+ builtin function on JIT mode
+# Bug description: inconsistent results of string `split` func on JIT mode

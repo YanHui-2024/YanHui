@@ -1,0 +1,343 @@
+# API: torch.nn.utils.rnn
+# Bug description: The lengths returned in a PackedSequence are different depending on the tracing state, resulting in a checker failure
+class ExperimentalLSTM(torch.nn.Module):
+    def __init__(self, input_dim, hidden_dim):
+        super().__init__()
+
+    def forward(self, input):
+        # type: (Tensor)
+        packed = torch.nn.utils.rnn.pack_padded_sequence(
+            input=input, lengths=torch.tensor([1, 2]), enforce_sorted=False
+        )
+        return packed
+        # packed is
+        # PackedSequence
+        #     data
+        #     batch_sizes
+        #     sorted_indices
+        #     unsorted_indices (this is the only different one, it's None in script)
+
+        # output, lengths = torch.nn.utils.rnn.pad_packed_sequence(
+        #     sequence=packed, total_length=2
+        # )
+        # # lengths is flipped, so is output
+        # return output[0]
+
+lstm = ExperimentalLSTM(input_dim=2, hidden_dim=2)
+lstm = lstm.eval()
+
+batch_size = 2
+
+input = torch.arange(batch_size * 2 * 2).view(batch_size, 2, 2).float()
+script_lstm = torch.jit.script(lstm)
+script_out = script_lstm(input)
+torch._C._jit_set_inline_everything_mode(False)
+# print(script_lstm.graph)
+print("script result\n{}".format(script_out))
+
+print("\n")
+eager_out = lstm(input)
+print("eager result\n{}".format(eager_out))
+
+
+# API: torchvision.models.resnet18
+# Bug description: Trace sanity check fails when using MKLDNN layout
+#                  when using torch.jit.trace in PyTorch v1.6.0
+import torch
+import torchvision
+from torch.utils import mkldnn as mkldnn_utils
+
+# An instance of your model.
+model = torchvision.models.resnet18(pretrained=True)
+# Switch the model to eval model
+model.eval()
+
+model = mkldnn_utils.to_mkldnn(model)
+
+# An example input you would normally provide to your model's forward() method.
+example = torch.rand(1, 3, 224, 224).to_mkldnn()
+
+# Use torch.jit.trace to generate a torch.jit.ScriptModule via tracing.
+traced_script_module = torch.jit.trace(model, example)
+
+# Save the TorchScript model
+traced_script_module.save("traced_resnet_model.pt")
+
+
+# API: scripting
+# Bug description: Fail on autodiff in JIT code, with backtrace to ir/IR.cpp line 1110.
+#                  Failure happens when the second pass of backward scripting is run, after graph was copied and reconstructed.
+#                  This failure can also be reproduced by only running method() once.
+# PRIORITY: p2 (Highest priority if you are impacted by this)
+# TRIAGE STATUS: need to be triaged as it breaks the backward pass.
+@torch.jit.script
+def meth(x, weight, b1):
+bias = b1 * 3
+return torch.nn.functional.linear(x, weight, bias)
+M = 10
+K = 10
+N = 10
+x = torch.rand(M, K, requires_grad=True)
+weight = torch.rand(K, N, requires_grad=True)
+bias = torch.rand(M, N, requires_grad=True)
+meth(x, weight, bias).backward()
+meth(x, weight, bias).backward()
+import torch
+
+@torch.jit.script
+def method1(x, weight, b1, b2):
+    bias = b1 * b2
+    return torch.nn.functional.linear(x, weight, bias)
+
+M = 10
+K = 10
+N = 10
+
+x = torch.rand(M, K, requires_grad=True)
+weight = torch.rand(K, N, requires_grad=True)
+b1 = torch.rand(M, N, requires_grad=True)
+b2 = torch.rand(M, N, requires_grad=True)
+
+method1(x, weight, b1, b2)
+method1(x, weight, b1, b2)
+
+
+# API: torch.onnx.export
+# Bug description: The traceback is here
+#                  I think there may be several problems in the model
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit, module: onnx
+# PR Title: RuntimeError: input_values.size() == param_count_list.size()INTERNAL ASSERT FAILED at "..\\torch\\csrc\\jit\\python\\script_init.cpp":480, please report a bug to PyTorch.
+import torch
+from nets.models import DigitModel
+#load pretrained torch model
+def load_model(model, pretrained_path, load_to_cpu):
+print('Loading pretrained model from {}'.format(pretrained_path))
+if load_to_cpu:
+pretrained_dict = torch.load(pretrained_path, map_location=lambda storage, loc: storage)
+else:
+device = torch.cuda.current_device()
+pretrained_dict = torch.load(pretrained_path, map_location=lambda storage, loc: storage.cuda(device))
+model.load_state_dict(pretrained_dict, strict=False)
+return model
+#DigitModel
+#@inproceedings{
+#  anonymous2022unsupervised,
+#  title={Unsupervised Federated Learning is Possible},
+#  author={Anonymous},
+#  booktitle={Submitted to The Tenth International Conference on Learning Representations},
+#  year={2022},
+#  url={https://openreview.net/forum?id=WHA8009laxu},
+#  note={under review}
+# }
+import torch
+import torch.nn as nn
+import torch.nn.functional as func
+import torchvision
+class DigitModel(nn.Module):
+def __init__(self, class_num=10):
+super(DigitModel, self).__init__()
+self.class_num = class_num
+self.conv1 = nn.Conv2d(3, 64, 5, 1, 2)
+self.bn1 = nn.BatchNorm2d(64)
+self.conv2 = nn.Conv2d(64, 64, 5, 1, 2)
+self.bn2 = nn.BatchNorm2d(64)
+self.conv3 = nn.Conv2d(64, 128, 5, 1, 2)
+self.bn3 = nn.BatchNorm2d(128)
+self.fc1 = nn.Linear(6272, 2048)
+self.bn4 = nn.BatchNorm1d(2048)
+self.fc2 = nn.Linear(2048, 512)
+self.bn5 = nn.BatchNorm1d(512)
+self.fc3 = nn.Linear(512, class_num)
+def forward(self, x):
+x = func.relu(self.bn1(self.conv1(x)))
+x = func.max_pool2d(x, 2)
+x = func.relu(self.bn2(self.conv2(x)))
+x = func.max_pool2d(x, 2)
+x = func.relu(self.bn3(self.conv3(x)))
+x = x.view(x.shape[0], -1)
+x = self.fc1(x)
+x = self.bn4(x)
+x = func.relu(x)
+x = self.fc2(x)
+x = self.bn5(x)
+x = func.relu(x)
+x = self.fc3(x)
+return x
+def predict(self, x):
+x = func.relu(self.bn1(self.conv1(x)))
+x = func.max_pool2d(x, 2)
+x = func.relu(self.bn2(self.conv2(x)))
+x = func.max_pool2d(x, 2)
+x = func.relu(self.bn3(self.conv3(x)))
+x = x.view(x.shape[0], -1)
+x = self.fc1(x)
+x = self.bn4(x)
+x = func.relu(x)
+x = self.fc2(x)
+x = self.bn5(x)
+x = func.relu(x)
+x = self.fc3(x)
+return x
+def main():
+model = DigitModel()
+input_path="D:\\BaiduNetdiskDownload\\FedUL\\checkpoint\\exp1_r70\\last.pth"  # your path to .pth file
+onnx_path='D:/BaiduNetdiskDownload/FedUL/checkpoint/exp1_r70/digitModel-mobilenetv2-exp1_r70-last.onnx'   # your saving path and name
+pth_to_onnx(model,input_path, onnx_path)
+if __name__ == '__main__':
+main()
+from nets.models import DigitModel
+import torch
+import os
+import onnx
+
+#load pretrained torch model
+def load_model(model, pretrained_path, load_to_cpu):
+    print('Loading pretrained model from {}'.format(pretrained_path))
+    if load_to_cpu:
+        pretrained_dict = torch.load(pretrained_path, map_location=lambda storage, loc: storage)
+    else:
+        device = torch.cuda.current_device()
+        pretrained_dict = torch.load(pretrained_path, map_location=lambda storage, loc: storage.cuda(device))
+    model.load_state_dict(pretrained_dict, strict=False)
+    return model
+
+#convert to onnx model
+def pth_to_onnx(model,input_path, output_path):
+
+    
+    torch_model = load_model(model,input_path,True)  
+    torch_model.eval()
+    torch_model = torch.jit.script(torch_model)
+    x=torch.randn(1,1,28,28, device="cuda")
+    export_onnx_file = output_path  
+    print(torch_model)
+    # Note: the bug is here
+    torch.onnx.export(torch_model,
+                      x,
+                      export_onnx_file,
+                      verbose=True,
+                      opset_version=9,  
+                      do_constant_folding=True, 
+                      input_names=["input"], 
+                      output_names=["output"] ,
+                      dynamic_axes={"input": {0: "batch_size"}, 
+                                     "output": {0: "batch_size"}}
+                      )
+
+#DigitModel 
+#@inproceedings{
+#  anonymous2022unsupervised,
+#  title={Unsupervised Federated Learning is Possible},
+#  author={Anonymous},
+#  booktitle={Submitted to The Tenth International Conference on Learning Representations},
+#  year={2022},
+#  url={https://openreview.net/forum?id=WHA8009laxu},
+#  note={under review}
+# }
+import torch
+import torch.nn as nn
+import torch.nn.functional as func
+import torchvision
+class DigitModel(nn.Module):
+    def __init__(self, class_num=10):
+        super(DigitModel, self).__init__()
+        self.class_num = class_num
+
+        self.conv1 = nn.Conv2d(3, 64, 5, 1, 2)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.conv2 = nn.Conv2d(64, 64, 5, 1, 2)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.conv3 = nn.Conv2d(64, 128, 5, 1, 2)
+        self.bn3 = nn.BatchNorm2d(128)
+
+        self.fc1 = nn.Linear(6272, 2048)
+        self.bn4 = nn.BatchNorm1d(2048)
+        self.fc2 = nn.Linear(2048, 512)
+        self.bn5 = nn.BatchNorm1d(512)
+
+        self.fc3 = nn.Linear(512, class_num)
+
+    def forward(self, x, Pi, priors_corr, prior_test):
+        x = func.relu(self.bn1(self.conv1(x)))
+        x = func.max_pool2d(x, 2)
+
+        x = func.relu(self.bn2(self.conv2(x)))
+        x = func.max_pool2d(x, 2)
+
+        x = func.relu(self.bn3(self.conv3(x)))
+        x = x.view(x.shape[0], -1)
+
+        x = self.fc1(x)
+        x = self.bn4(x)
+        x = func.relu(x)
+
+        x = self.fc2(x)
+        x = self.bn5(x)
+        x = func.relu(x)
+
+        x = self.fc3(x)
+
+        g = torch.softmax(x, dim=1)
+        x = self.QfunctionMulticlass(g, Pi, priors_corr)
+
+        return x
+
+    def QfunctionMulticlass(self, g, Pi, priors_corr):
+        pi_ita = torch.mm(Pi, g.permute(1, 0))
+        rou_pi_ita = torch.matmul(priors_corr, pi_ita)
+
+        pi_corr = pi_ita.permute(1, 0) * priors_corr.unsqueeze(0)
+        output = (pi_corr.permute(1, 0) / rou_pi_ita).permute(1, 0)
+
+        return output
+
+    def predict(self, x):
+        x = func.relu(self.bn1(self.conv1(x)))
+        x = func.max_pool2d(x, 2)
+
+        x = func.relu(self.bn2(self.conv2(x)))
+        x = func.max_pool2d(x, 2)
+
+        x = func.relu(self.bn3(self.conv3(x)))
+
+        x = x.view(x.shape[0], -1)
+
+        x = self.fc1(x)
+        x = self.bn4(x)
+        x = func.relu(x)
+
+        x = self.fc2(x)
+        x = self.bn5(x)
+        x = func.relu(x)
+
+        x = self.fc3(x)
+
+        g = torch.softmax(x, dim=1)
+
+        return g
+
+#trackback
+Traceback (most recent call last):
+  File "D:/BaiduNetdiskDownload/FedUL/load_model.py", line 119, in <module>
+    pth_to_onnx(model,input_path, onnx_path) 
+  File "D:/BaiduNetdiskDownload/FedUL/load_model.py", line 35, in pth_to_onnx
+    torch.onnx.export(torch_model,
+  File "C:\tools\Anaconda3\envs\fedul\lib\site-packages\torch\onnx\__init__.py", line 316, in export
+    return utils.export(model, args, f, export_params, verbose, training,
+  File "C:\tools\Anaconda3\envs\fedul\lib\site-packages\torch\onnx\utils.py", line 107, in export
+    _export(model, args, f, export_params, verbose, training, input_names, output_names,
+  File "C:\tools\Anaconda3\envs\fedul\lib\site-packages\torch\onnx\utils.py", line 724, in _export
+    _model_to_graph(model, args, verbose, input_names,
+  File "C:\tools\Anaconda3\envs\fedul\lib\site-packages\torch\onnx\utils.py", line 493, in _model_to_graph
+    graph, params, torch_out, module = _create_jit_graph(model, args)
+  File "C:\tools\Anaconda3\envs\fedul\lib\site-packages\torch\onnx\utils.py", line 422, in _create_jit_graph
+    graph = _propagate_and_assign_input_shapes(
+RuntimeError: input_values.size() == param_count_list.size()INTERNAL ASSERT FAILED at "..\\torch\\csrc\\jit\\python\\script_init.cpp":480, please report a bug to PyTorch. 
+
+Process finished with exit code 1
+
+
+
+# API:

@@ -1,0 +1,49 @@
+ InstanceNorm2d
+# Bug description:
+#                  onnx::InstanceNormalization is not an ATen op when using torch.jit.trace in PyTorch v0.4.0
+
+# Title: RuntimeError: "aten::_convolution" returned invalid type Float, expected Double
+"""
+Output:
+Traceback (most recent call last):
+  File "/workspace/pytorch/test/onnx-exportable-fails.py", line 19, in <module>
+    torch.jit.script(m)
+  File "torch/tensor.py", line 60, in __enter__
+    return self._run()
+RuntimeError: RuntimeError: "aten::_convolution" returned invalid type Float, expected Double aten::_convolution (at pos 3):
+    - Convolution2d(3, 64, kernel_size=(11, 11), stride=(4, 4))
+        aten::_convolution (inferred) -> (Double, Double, Float)
+        aten::add (0.19s into 0 iters)
+    [Inlined Graph]
+        graph(%x):
+            %3 : Double = aten::to(27856, 42272, False)
+            %4 : Float = aten::_convolution(%x, %3)
+            %y : Double = aten::add(%4, %3)
+            return (%y)
+    [Inlined Graph]
+        graph(%x):
+            %1 : Long = prim::Constant[value=16]()
+            %2 : Float = prim::NumToTensor[requires_grad=0](%1)
+            %3 : Double = aten::to(27856, 42272, False)
+            %4 : Float = aten::_convolution(%x, %3)
+            %y : Double = aten::add(%4, %3)
+            return (%y)
+RuntimeError: "aten::_convolution" returned invalid type Float, expected Double
+"""
+# Version: PyTorch version: 1.2.0, 1.6.0
+# Labels: oncall: jit
+# PR Title: RuntimeError: "aten::_convolution" returned invalid type Float, expected Double
+import torch
+from torch import nn as nn
+class Conv(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv = nn.Conv2d(3, 64, kernel_size=11, stride=4)
+    def forward(self, x):
+        return self.conv(x).to(torch.float)
+m = Conv().cuda()
+with torch.no_grad():
+    traced = torch.jit.trace(m, (torch.zeros((16, 3, 240, 320)).cuda(),))
+    print(traced.__getattr__('forward').graph)
+# API: Conv2d
+# Bug description: Conversion from Double to Float with aten::_convolution fails in PyTorch v1.2.0-1.6.0

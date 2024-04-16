@@ -1,0 +1,29 @@
+# Title: [JIT] Tuple assignment doesn't work when unpacking values to class attributes
+"""
+Output:
+RuntimeError:
+lhs of assignment must be a variable, subscript, or starred expression:
+  File "self_attr.py", line 8
+    def __init__(self, a: int, b: int):
+        self.a, self.b = pass_through(a, b)
+        ~~~~~~ <--- HERE
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+# PR Title: [JIT] Tuple assignment doesn't work when unpacking values to class attributes
+import torch
+
+def pass_through(a: int, b: int):
+    return (a, b)
+
+class JitClass:
+    def __init__(self, a: int, b: int):
+        self.a, self.b = pass_through(a, b)
+
+    def get(self):
+        return self.a + self.b
+
+@torch.jit.script
+def fn(a: int, b: int):
+    o = JitClass(a, b)
+    return o.get()

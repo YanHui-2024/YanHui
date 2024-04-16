@@ -1,0 +1,24 @@
+# Title: [JIT] Inferred Tensor string representation should include the fact that it is inferred
+"""
+Output:
+RuntimeError: 
+all inputs of range must be ints, found Tensor in argument 0:
+  File "<ipython-input-13-8c4279680b35>", line 2
+def foo(x: torch.Tensor, y):  # Missing "y: int"
+    for _ in range(y):
+             ~~~~~~~ <--- HERE
+        x = x + 1
+    return x
+"""
+# Version: PyTorch version: 1.5.0
+# Labels: oncall: jit, module: bootcamp, triaged
+# PR Title: [JIT] Inferred Tensor string representation should include the fact that it is inferred
+def foo(x: torch.Tensor, y):  # Missing "y: int"
+    for _ in range(y):
+        x = x + 1
+    return x
+        
+x = torch.ones(())
+
+foo_script = torch.jit.script(foo)
+print(foo_script(x, 2))

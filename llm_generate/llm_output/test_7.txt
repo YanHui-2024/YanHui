@@ -1,0 +1,17 @@
+import torch
+
+# API: torch.load
+# Bug description: RuntimeError when using @torch.jit.script and loading an exported model in PyTorch v1.4.0
+import torch
+from torch import nn as tnn
+class Model(tnn.Module):
+    def __init__(self, h: int = 16) -> None:
+        super().__init__()
+        self.fc1 = tnn.Linear(h, h)
+
+    @torch.jit.script
+    def forward(self, x: torch.Tensor):
+        return torch.tanh(self.fc1(x))
+m = Model(42)
+y = m(torch.randn(3, 5))
+torch.save(m.state_dict(), "saved/model.pt")

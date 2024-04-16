@@ -1,0 +1,77 @@
+ Model with @torch.jit.ignore decorator
+# Bug description: torch.jit.ignore messes with buffer device placement
+#                  when using torch.jit.trace in PyTorch v1.3.0
+
+# Title: __setitem__ not jit-able for dict[str, Tensor]
+"""
+Output:
+---------------------------------------------------------------------------
+AttributeError                            Traceback (most recent call last)
+<ipython-input-65-0f9e7418c72d> in <module>()
+     32     print("before setting item")
+     33     # this prints cuda:0 but should print cuda:1 from the print below
+---> 34     m.state_dict()["a"] = torch.zeros(10, device="cuda:1").to('cpu')
+     35     print("after setting item")
+     36 # AttributeError                            Traceback (most recent call last)
+<ipython-input-64-e42f79fcc8d1> in <module>()
+     20         print(str(type(m)))  # prints <class 'torch.jit.frontend.JITModule'>
+     21     # this prints cuda:0 but should print cpu from the print below
+---> 22     m.state_dict()["a"] = torch.zeros(10, device="cpu").to('cuda')
+     23     print("after setting item")
+AttributeError: 'JITModule' object has no attribute '_set_attr'
+"""
+# Version: PyTorch version: 1.5.0
+# Labels: oncall: jit, triaged
+# PR Title: __setitem__ not jit-able for dict[str, Tensor]
+import torch
+class M(torch.nn.Module):
+    def forward(self):
+        return 123
+m = M()
+print(str(type(m)))  # prints <class 'torch.jit.frontend.JITModule'>
+# this prints cuda:0 but should print cpu from the print below
+m.state_dict()["a"] = torch.zeros(10, device="cuda:0").to('cpu')
+print("after setting item")
+try:
+    m = torch.jit.script(m)
+except Exception as e:
+    print(str(e))  # prints 'JITModule' object has no attribute '_set_attr'
+# API: state_dict containing a dict[str, Tensor]
+# Bug description: __setitem__ not jit-able for dict[str, Tensor]
+
+# Title: __getitem__ not jit-able for dict[str, Tensor]
+"""
+Output:
+---------------------------------------------------------------------------
+RuntimeError                              Traceback (most recent call last)
+<ipython-input-71-60c52f38a5d5> in <module>()
+    14         print("before setting item")
+    15         # this prints cuda:0 but should print cuda:1 from the print below
+---> 16         m.state_dict()["a"] = torch.zeros(10, device="cuda:1").to('cpu')
+    17         print("after setting item")
+    18 # AttributeError                            Traceback (most recent call last)
+<ipython-input-69-e42f79fcc8d1> in <module>()
+     20         print(str(type(m)))  # prints <class 'torch.jit.frontend.JITModule'>
+     21     # this prints cuda:0 but should print cpu from the print below
+---> 22     m.state_dict()["a"] = torch.zeros(10, device="cpu").to('cuda')
+     23     print("after setting item")
+AttributeError: 'JITModule' object has no attribute '_set_attr'
+"""
+# Version: PyTorch version: 1.5.0
+# Labels: oncall: jit, triaged
+# PR Title: __getitem__ not jit-able for dict[str, Tensor]
+import torch
+class M(torch.nn.Module):
+    def forward(self):
+        return 123
+m = M()
+print(str(type(m)))  # prints <class 'torch.jit.frontend.JITModule'>
+# this prints cuda:0 but should print cpu from the print below
+m.state_dict()["a"] = torch.zeros(10, device="cuda:0").to('cpu')
+print("after setting item")
+try:
+    m = torch.jit.script(m)
+except Exception as e:
+    print(str(e))  # prints 'JITModule' object has no attribute '_set_attr'
+# API: state_dict containing a dict[str, Tensor]
+# Bug description: __getitem__ not jit-able for dict[str, Tensor]

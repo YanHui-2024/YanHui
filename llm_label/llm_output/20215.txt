@@ -1,0 +1,26 @@
+ Adaptive Max Pooling in JIT
+# Bug description: Assertion failed in generated code of aten::adaptive_max_pool2d with PyTorch version 1.1.0
+#                  when there is only one value specified for the output_size argument
+diff --git a/torch/csrc/api/include/torch/nn/functional/AdaptiveMaxPool2d.h b/torch/csrc/api/include/torch/nn/functional/AdaptiveMaxPool2d.h
+index e563a81..5b7d410 100644
+--- a/torch/csrc/api/include/torch/nn/functional/AdaptiveMaxPool2d.h
++++ b/torch/csrc/api/include/torch/nn/functional/AdaptiveMaxPool2d.h
+@@ -37,6 +37,10 @@
+ torch::Tensor adaptive_max_pool2d(const torch::Tensor& input,
+                                  const std::vector<int64_t>& output_size);
++  // TODO: Add support for a single scalar.
++  static auto adaptive_max_pool2d =
++    &torch::nn::functional::AdaptiveMaxPool2dFunction::apply;
+
+ TORCH_FUNCTIONAL_API torch::Tensor adaptive_avg_pool1d(const torch::Tensor& input,
+diff --git a/test/jit/test_generated.py b/test/jit/test_generated.py
+index 836a7f0..e9b4f52 100644
+--- a/test/jit/test_generated.py
++++ b/test/jit/test_generated.py
+@@ -25,7 +25,6 @@
+             (x, {"output_size":[3]}), # 1-element list
+             (x, {"output_size":(3,)}), # tuple of two elements
+         ]:
+-        with self.assertRaisesRegex(AssertionError, "Output size should have"):
++        with self.assertRaisesRegex(RuntimeError, r'Output dim 1 should be .* but was .*'):
+             torch._C._nn.adaptive_max_pool2d(x, output_size=output_size)

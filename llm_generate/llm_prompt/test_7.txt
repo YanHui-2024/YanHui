@@ -1,0 +1,63 @@
+# API: nn.ParameterList, nn.ModuleList, nn.Sequential, and nn.ModuleDict in TorchScript
+# Bug description: Runtime Error on scripting a ModuleList or ParameterList while using subscript
+#                  when using torch.jit.script(MyModule()) in PyTorch v1.9.0
+import torch
+from torch import nn
+
+class MyModule(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.module_list = nn.ModuleList([nn.Linear(1,1) for _ in range(10)])
+        self.parameter_list = nn.ParameterList([nn.Parameter(torch.zeros(1)) for _ in range(10)])
+
+    def forward(self, x):
+        self.module_list[0]
+        self.parameter_list[0]
+        return x
+
+
+if __name__ == '__main__':
+    model = MyModule()
+    torch.jit.script(model)
+
+
+# API: JIT Support
+# Bug description: binary operators not supported in PyTorch version 1.4.0
+import torch as tc
+from torch import jit
+@jit.script
+def func(inp):
+    return inp<<1
+a = tc.tensor([3,4,5])
+func(a)
+
+
+# API: torch.jit._recursive.infer_type_store
+# Bug description: Unknown type annotation: 'typing.Final[float]' when using Python 3.8 and Torch JIT in PyTorch v1.5.0
+import torch
+from typing import Final
+
+class M(torch.nn.Module):
+    y: Final[float]
+
+    def __init__(self):
+        super().__init__()
+        self.y = 0.0
+
+    def forward(self, x):
+        return x + self.y
+
+torch.jit.script(M())
+
+
+# API: torch.norm
+# Bug description: torch.norm ignores argument defaults when used with @torch.jit.script on PyTorch v1.1.0
+import torch
+
+@torch.jit.script
+def norm_test():
+  t = torch.ones(10, 5)
+  return torch.norm(t, dim=1, keepdim=True)
+
+
+# API:

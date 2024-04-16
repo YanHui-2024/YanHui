@@ -1,0 +1,81 @@
+# API: NamedTuple from another file
+# Bug description: Unknown type name 'a.Type':
+#                  when using torch.jit.script in PyTorch v1.3.0
+import torch
+import torch.nn as nn
+
+import a
+
+class M(nn.Module):
+    def forward(self):
+        return a.Type(1)
+
+torch.jit.script(M())
+
+
+# API: Dict in JIT Model
+# Bug description: a RuntimeError on model with dict
+#                  when using torch.jit.script in PyTorch v1.5.1
+class MyModule(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.x = {True: 1}
+
+model = MyModule()
+model_s = torch.jit.script(model)
+
+
+# API: Optional parameters for Tuple
+# Bug description: Assert error on optional parameter in TorchScript model, when calling into C++ function from JIT-ed Python script module (i.e. a script module that has been scripted using @torch.jit.script).
+#                 (This is different than previous bug title "TorchScript does not support Optional parameters for Tuple", which is about the use of optional parameter in TorchScript.)
+#                 When invoking such script module from Python, it will throw exception: Assert error on optional parameter in TorchScript model, when calling into C++ function from JIT-ed Python script module (i.e. a script module that has been scripted using @torch.jit.script).
+#                 This assert failure is caused by optional parameter of type Tuple in the scripted model. E.g., b(x=None) or b(1, 2, None), where function b is decorated with @torch.jit.script.
+@torch.jit.script
+def b(x: Optional[Tuple[int, int]] = None):
+    if x is None:
+        x = (1, 2)
+    else:
+        x = torch.jit._unwrap_optional(x)
+        
+    return x
+
+
+# API: Final[int]
+# Bug description: AttributeError when using torch.jit.script and Final on an int variable in PyTorch v1.7.0
+# Dockerfile
+FROM python:3.6-slim-buster
+USER root
+WORKDIR /root
+RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install torch==1.7.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+COPY a.py /
+RUN python3 /a.py
+
+# a.py:
+import torch
+from torch import nn
+
+class A(nn.Module):
+    dim: torch.jit.Final[int] = 4
+
+    def __init__(self):
+        super().__init__()
+        self.l = nn.Linear(10, 10)
+
+    def forward(self, x):
+        return self.l(x)
+
+
+class B(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.a = A()
+
+    def forward(self, x):
+        return self.a(x) + self.a.dim
+
+b = B()
+b = torch.jit.script(b)
+
+
+# API:

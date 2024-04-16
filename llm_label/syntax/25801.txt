@@ -1,0 +1,12 @@
+# Title: [jit] Missing source highlight error
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.2.0
+# Labels: oncall: jit, good first issue, jit-backlog
+# PR Title: [jit] Missing source highlight error
+@torch.jit.script
+def fn(x):
+    # type: (List[int], int) -> bool
+    return max(x)

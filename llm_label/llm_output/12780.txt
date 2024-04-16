@@ -1,0 +1,90 @@
+ pytorch/jit
+# Bug description: all lists get merged during tracing when using torch.nn.RNN in PyTorch v1.0rc1
+
+# Title: RuntimeError when using torch.no_grad() with a jit.trace'd model and no inputs
+"""
+Output:
+Traceback (most recent call last):
+  File "test/jittest.py", line 6, in <module>
+    traced = torch.jit.trace(model, example_input)
+  File "/home/titaiwang/.conda/envs/pytorch/lib/python3.7/site-packages/torch/jit/_tracing.py", line 824, in trace
+    return Tracer(self._create_method_from_graph(g), self).trace(*args)
+  File "/home/titaiwang/.conda/envs/pytorch/lib/python3.7/site-packages/torch/jit/_tracing.py", line 1092, in trace
+    return self._make_class(graph_executor)()
+RuntimeError: Trying to trace forward a model that has parameters but the inputs do not require gradients! Set enable_grad in torch.enable_grad() or specify explicit requires_grad flags on the inputs.
+"""
+# Version: PyTorch version: 1.1
+# Labels: oncall: jit, module: onnx, onnx-triaged
+# PR Title: RuntimeError when using torch.no_grad() with a jit.trace'd model and no inputs
+import numpy as np
+from torchvision import datasets, transforms
+from torch.autograd import Variable
+traced = torch.jit.trace(model, example_input)
+# API: PyTorch TensorFlow tracing example fails when using autocast with custom model in 1.1
+"""
+Output:
+Traceback (most recent call last):
+File "test/tf-jit-autocast.py", line 38, in <module>
+x = tf.random.uniform(size=(16,4))
+File "/home/titaiwang/.conda/envs/pytorch/lib/python3.7/site-packages/tensorflow_core/python/ops/array_ops.py", line 2064, in uniform
+seed1 = gen_random_ops._random_uniform(shape, dtype, seed=seed, seed2=seed2)
+File "/home/titaiwang/.conda/envs/pytorch/lib/python3.7/site-packages/tensorflow_core/python/ops/gen_random_ops.py", line 1835, in _random_uniform
+return gen_random_ops.random_uniform(shape=shape, dtype=dtype, seed=seed, seed2=seed2, name=name)
+File "/home/titaiwang/.conda/envs/pytorch/lib/python3.7/site-packages/tensorflow_core/python/ops/gen_random_ops.py", line 1824, in random_uniform
+dtype=dtype, name=name)
+File "/home/titaiwang/.conda/envs/pytorch/lib/python3.7/site-packages/tensorflow_core/python/framework/op_def_library.py", line 762, in apply_op
+op_def=op_def)
+File "/home/titaiwang/.conda/envs/pytorch/lib/python3.7/site-packages/tensorflow_core/python/framework/ops.py", line 4181, in create_op
+ret = OpDefLibrary.apply_op(op_type_name, inputs, dtypes=output_types, name=scope, op_def=op_def)
+File "/home/titaiwang/.conda/envs/pytorch/lib/python3.7/site-packages/tensorflow_core/python/framework/ops.py", line 4195, in apply_op
+inputs = _MakeAttrValidateFn(op_def)(inputs)
+File "/home/titaiwang/.conda/envs/pytorch/lib/python3.7/site-packages/tensorflow_core/python/framework/ops.py", line 4086, in _MakeAttrValidateFn
+attrs = {a.name: a for a in op_def.attr}
+AttributeError: 'NoneType' object has no attribute 'name'
+"""
+# Version: PyTorch version: 1.1
+# Labels: oncall: jit, module: onnx, onnx-triaged
+# PR Title: RuntimeError when using torch.no_grad() with a jit.trace'd model and no inputs
+from __future__ import print_function
+import numpy as np
+from torchvision import datasets, transforms
+from torch.autograd import Variable
+model = Net().to(device)
+model.eval()
+example_input = torch.randn((16, 4))
+traced = torch.jit.trace(model, example_input)
+with torch.no_grad(): # RuntimeError here.
+    y = traced(x)
+# API: PyTorch tracing example fails when using autocast with custom model in 1.1
+"""
+Output:
+Traceback (most recent call last):
+File "test/tf-jit-autocast.py", line 38, in <module>
+x = tf.random.uniform(size=(16,4))
+File "/home/titaiwang/.conda/envs/pytorch/lib/python3.7/site-packages/tensorflow_core/python/ops/array_ops.py", line 2064, in uniform
+seed1 = gen_random_ops._random_uniform(shape, dtype, seed=seed, seed2=seed2)
+File "/home/titaiwang/.conda/envs/pytorch/lib/python3.7/site-packages/tensorflow_core/python/ops/gen_random_ops.py", line 1835, in _random_uniform
+return gen_random_ops.random_uniform(shape=shape, dtype=dtype, seed=seed, seed2=seed2, name=name)
+File "/home/titaiwang/.conda/envs/pytorch/lib/python3.7/site-packages/tensorflow_core/python/ops/gen_random_ops.py", line 1824, in random_uniform
+dtype=dtype, name=name)
+File "/home/titaiwang/.conda/envs/pytorch/lib/python3.7/site-packages/tensorflow_core/python/framework/op_def_library.py", line 762, in apply_op
+ret = OpDefLibrary.apply_op(op_type_name, inputs, dtypes=output_types, name=scope, op_def=op_def)
+File "/home/titaiwang/.conda/envs/pytorch/lib/python3.7/site-packages/tensorflow_core/python/framework/ops.py", line 4181, in create_op
+ret = OpDefLibrary.apply_op(op_type_name, inputs, dtypes=output_types, name=scope, op_def=op_def)
+File "/home/titaiwang/.conda/envs/pytorch/lib/python3.7/site-packages/tensorflow_core/python/framework/ops.py", line 4195, in apply_op
+inputs = _MakeAttrValidateFn(op_def)(inputs)
+File "/home/titaiwang/.conda/envs/pytorch/lib/python3.7/site-packages/tensorflow_core/python/framework/ops.py", line 4086, in _MakeAttrValidateFn
+attrs = {a.name: a for a in op_def.attr}
+AttributeError: 'NoneType' object has no attribute 'name'
+"""
+# Version: PyTorch version: 1.1
+# Labels: oncall: jit, module: onnx, module: autograd, onnx-triaged
+# PR Title: RuntimeError when using torch.no_grad() with a jit.trace'd model and no inputs
+from __future__ import print_function
+import numpy as np
+from torchvision import datasets, transforms
+from torch.autograd import Variable
+model = Net().to(device)
+model.eval()
+example_input = torch.randn((16, 4))
+traced = torch.jit.trace

@@ -1,0 +1,17 @@
+# Title: [jit] round not equivalent between python and torchscript
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.5.1
+# Labels: oncall: jit
+# PR Title: [jit] round not equivalent between python and torchscript
+import torch
+
+def foo():    
+    return round(2.5)
+
+sfoo = torch.jit.script(foo)
+print(foo(), sfoo())
+# gives
+# 2, 3.0

@@ -1,0 +1,82 @@
+# API: torch.nn.Conv2d
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.12.1
+import torch
+
+class MyModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.cv1 = torch.nn.Conv2d(3, 3, 5, 2, 1)
+
+    def forward(self, x):
+        x = self.cv1(x)
+        return x
+
+x = torch.randn(10, 3, 20, 20) * 2
+m = MyModule().eval()
+x = x.cuda()
+m = m.cuda()
+
+with torch.no_grad():
+    print("outside result: ", torch.jit.trace(m, x))
+    with torch.cuda.amp.autocast(enabled = True, dtype=torch.float16):
+        print("inside result: ", torch.jit.trace(m, x))
+
+
+# API: torch.nn.Conv2d + ZeroPad2d
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.7.0
+import torch
+from torch import nn
+
+class Pad(torch.nn.Module):
+    def forward(self, x):
+        pad_op =  nn.ZeroPad2d(padding=(10, 20, 0, 0))
+        return pad_op(x)
+
+m = torch.jit.script(Pad())
+
+
+# API: Adaptive Max Pooling in JIT
+# Bug description: Assertion failed in generated code of aten::adaptive_max_pool2d with PyTorch version 1.1.0
+#                  when there is only one value specified for the output_size argument
+diff --git a/torch/csrc/api/include/torch/nn/functional/AdaptiveMaxPool2d.h b/torch/csrc/api/include/torch/nn/functional/AdaptiveMaxPool2d.h
+index e563a81..5b7d410 100644
+--- a/torch/csrc/api/include/torch/nn/functional/AdaptiveMaxPool2d.h
++++ b/torch/csrc/api/include/torch/nn/functional/AdaptiveMaxPool2d.h
+@@ -37,6 +37,10 @@
+torch::Tensor adaptive_max_pool2d(const torch::Tensor& input,
+const std::vector<int64_t>& output_size);
++  // TODO: Add support for a single scalar.
++  static auto adaptive_max_pool2d =
++    &torch::nn::functional::AdaptiveMaxPool2dFunction::apply;
+diff --git a/aten/src/ATen/native/AdaptiveMaxPooling2d.cpp b/aten/src/ATen/native/AdaptiveMaxPooling2d.cpp
+index b3b77c5..ec16c5e 100644
+--- a/aten/src/ATen/native/AdaptiveMaxPooling2d.cpp
++++ b/aten/src/ATen/native/AdaptiveMaxPooling2d.cpp
+@@ -322,6 +322,7 @@ std::tuple<Tensor, Tensor> adaptive_max_pool2d_cpu(
+ {
+   Tensor output = at::empty({0}, input.options());
+   Tensor indices = at::empty({0}, input.options().dtype(kLong));
++  assert(output_size.size() == 2);
+   adaptive_max_pool2d_out_cpu_template(
+     output,
+     indices,
+
+
+# API: Python string
+# Bug description: When using scripting, strings with unicode characters are not preserved
+import torch
+string = "Normanðy"
+print(string)
+
+def foo(s: str):
+    return len(s)
+
+foo_scripted = torch.jit.script(foo)
+
+print(foo(string))
+print(foo_scripted(string))
+
+
+# API:

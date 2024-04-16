@@ -1,0 +1,70 @@
+# API: TorchScript for device type object (e.g., torch.device("cpu") )
+# Bug description: JIT compilation fails with annotation of tensor device type in PyTorch v1.3.1
+@torch.jit.script
+def fn(m):
+    # type: (Tensor) -> Device
+    return m.device
+
+
+# API: copy_
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.0rc1
+import torch
+
+@torch.jit.script
+def foo(x):
+    y = torch.rand(3, 4)
+    y.copy_(x)
+    return y
+
+
+
+# API: `torch.isinstance` on List
+# Bug description: `torch.jit.isinstance` is overly admissive when comparing container types in eager mode
+# Issue Number: PyTorch issue# 39597 (https://github.com/pytorch/pytorch/issues/39597)
+import torch
+from typing import List
+
+def fn():
+    x: List[torch.Tensor] = []
+    if torch.jit.isinstance(x, List[int]):
+        print("Wrong!")
+    else:
+        print("Right")
+    return x
+
+scripted = torch.jit.script(fn)
+scripted()                 # prints "Right"
+fn()                       # prints "Wrong!"
+
+
+# API: layerNorm
+# Bug description: Error printing a model containing LayerNorm.
+#                  This is a minimal script to reproduce the issue.
+import torch
+from torch import nn
+class Test(nn.Module):
+def __init__(self):
+super().__init__()
+self.layer_norm = nn.LayerNorm(5)
+def forward(self, x):
+pass
+t = Test()
+print(t)
+import torch
+from torch.nn import LayerNorm
+from torch.jit import ScriptModule
+
+
+class Test(ScriptModule):
+    def __init__(self, dim):
+        super().__init__()
+        self.layer_norm = LayerNorm(dim)
+
+
+if __name__ == '__main__':
+    m = Test(100)
+    print(m)
+
+
+# API:

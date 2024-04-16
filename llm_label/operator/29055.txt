@@ -1,0 +1,21 @@
+# Title: TorchScript does not preserve string behavior for string with unicode characters
+"""
+Output:
+Normanðy
+8
+9
+"""
+# Version: PyTorch version: 1.3.0
+# Labels: oncall: jit, triaged, jit-backlog
+# PR Title: 
+import torch
+string = "Normanðy"
+print(string)
+
+def foo(s: str):
+    return len(s)
+
+foo_scripted = torch.jit.script(foo)
+
+print(foo(string))
+print(foo_scripted(string))

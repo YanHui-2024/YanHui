@@ -1,0 +1,6 @@
+# API: TorchScript for device type object (e.g., torch.device("cpu") )
+# Bug description: JIT compilation fails with annotation of tensor device type in PyTorch v1.3.1
+@torch.jit.script
+def fn(m):
+    # type: (Tensor) -> Device
+    return m.device

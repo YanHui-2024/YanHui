@@ -1,0 +1,3 @@
+ NamedTuple in TorchScript
+# Bug description: a TypeError on model accepting custom type of NamedTuple
+#                  when using torch.jit.script in PyTorch v1.3.1

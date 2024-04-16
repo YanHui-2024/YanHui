@@ -1,0 +1,9 @@
+import torch
+# API: Inplace operations in JIT scripted function
+# Bug description: An error on the inplace operation in a JIT scripted function 
+# Related issues: https://github.com/pytorch/pytorch/issues/50429
+def f(a):
+    torch._assert(isinstance(a, bool), "Incorrect type")
+    return not a
+    
+f_script = torch.jit.script(f)

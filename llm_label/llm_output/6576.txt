@@ -1,0 +1,143 @@
+ JIT trace of Dropout with negative input
+# Bug description: Trace sanity check fails when using torch.jit.trace on a model that uses the Dropout op
+#                  when using PyTorch v1.7.0 or v1.8.0 (reproducible)
+
+# Title: TS is incorrect in tracing drop_path in Cell.forward
+"""
+Output:
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "c:\users\appveyor\.aptx\tsc\test_tracer\cell.py", line 126, in forward
+    x = cell(x)
+  File "c:\users\appveyor\.aptx\tsc\test_tracer\cell.py", line 84, in forward
+    return self._op(x, p=self.drop_path())
+  File "c:\users\appveyor\.aptx\tsc\test_tracer\cell.py", line 102, in drop_path
+    if not training: return 0
+RuntimeError: KeyError: 'training'
+"""
+# Version: PyTorch version: 1.8.0
+# Labels: oncall: jit
+# PR Title: TS is incorrect in tracing drop_path in Cell.forward
+import torchvision.models as models
+model = models.mobilenet_v2()
+model.eval()
+scripted = torch.jit.script(model)
+print(len(scripted.graph.nodes())) # should be 128, was 130 in a failed run
+# API: JIT tracing of drop_path for Cell in MobilenetV2
+# Bug description: Wrong trace with DropPath op in Cell.forward
+
+# Title: torch.jit.script does not support type hints in __init__ methods
+"""
+Output:
+torch.nn.modules.module.ModuleAttributeError: Type hints for 'conv' in the 'MyLayer' module are not supported, but were given (torch.nn.Conv2d). Use super().__init__() to set these.
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit, module: vision-models
+# PR Title: torch.jit.script does not support type hints in __init__ methods
+import torch
+class MyLayer(torch.nn.Module):
+    def __init__(self, conv : torch.nn.Conv2d):
+        super().__init__()
+        self.conv = conv
+    def forward(self, x):
+        return x + 1
+layer = MyLayer(torch.nn.Conv2d(3, 5, (7, 7)))
+scripted_layer = torch.jit.script(layer)
+# API: JIT scripting of Conv2d with type hints in __init__ method
+# Bug description: TorchScript compilation fails on a model with type hints in the __init__ method
+
+# Title: JIT tracing does not support forward as callable class member
+"""
+Output:
+torch.nn.modules.module.ModuleAttributeError: Type hints for 'forward' in the 'MyLayer' module are not supported, but were given (Callable). Use super().__init__() to set these.
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit, module: vision-models
+# PR Title: JIT tracing does not support forward as callable class member
+import torch
+class MyLayer(torch.nn.Module):
+    def __init__(self, conv : torch.nn.Conv2d):
+        super().__init__()
+        self.conv = conv
+    @staticmethod
+    def forward(x):
+        return x + 1
+layer = MyLayer(torch.nn.Conv2d(3, 5, (7, 7)))
+scripted_layer = torch.jit.script(layer)
+# API: JIT scripting of model with forward as a static method
+# Bug description: TorchScript compilation fails on a model that has forward as a class member and calls it statically
+
+# Title: Module name in error message is not consistent with what is returned by nn.Module.__repr__
+"""
+Output:
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "model_bugs/bug154879137064286612.py", line 4, in forward
+    return x + 1
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "model_bugs/bug154879137064286612.py", line 4, in <module>
+    return x + 1
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "model_bugs/bug154879137064286612.py", line 4, in forward
+    return x + 1
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "model_bugs/bug154879137064286612.py", line 4, in forward
+    return x + 1
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "model_bugs/bug154879137064286612.py", line 4, in <module>
+    return x + 1
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+# PR Title: Module name in error message is not consistent with what is returned by nn.Module.__repr__
+import torch.nn as nn
+class MyLayer(torch.nn.Module):
+    def __init__(self, conv : torch.nn.Conv2d):
+        super().__init__()
+        self.conv = conv
+    @staticmethod
+    def forward(x):
+        return x + 1
+layer = MyLayer(torch.nn.Conv2d(3, 5, (7, 7)))
+scripted_layer = torch.jit.script(layer)
+# API: JIT scripting of model with forward as a static method
+# Bug description: TorchScript compilation fails on a model that has forward as a class member and calls it statically
+
+# Title:  RuntimeError("Unknown C++ node type encountered")
+"""
+Output:
+RuntimeError("Unknown C++ node type encountered", 16, "aten::embedding_bag")
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit, module: vision-models
+# PR Title: RuntimeError("Unknown C++ node type encountered")
+import torchvision.ops as ops
+x = torch.randint(30521, (16,))
+embedding_bag = nn.EmbeddingBag(10 ** 7, 19, mode="sum", sparse=True)
+scripted_embedding = torch.jit.trace_module(embedding_bag, {"input": x})
+# API: RuntimeError("Unknown C++ node type encountered")
+# Bug description: Unknown node type "aten::embedding_bag"
+
+# Title: Script Module with no _output, _input, or other parameters
+"""
+Output:
+Traceback (most recent call last):
+  File "test.py", line 18, in <module>
+    test = torch.jit.script(MyModule())
+RuntimeError: Missing output parameter (e.g., 'output') from the trace!
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit, module: vision-models
+# PR Title: Script Module with no _output, _input, or other parameters
+class MyModule(nn.Module):
+    def forward(self, x):
+        return x + 1
+model = torch.jit.script(MyModule())
+# API: TorchScript scripting of model with no output parameter
+# Bug description: TorchScript fails to compile a simple model that returns its input plus one
+
+# Title: jit.trace on module, not callable, gives "

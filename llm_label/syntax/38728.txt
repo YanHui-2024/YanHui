@@ -1,0 +1,11 @@
+# Title: [JIT] Finish Resolving Python Types By Value
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.5.0
+# Labels: oncall: jit, module: bootcamp, triaged, large, medium
+# PR Title: [JIT] Finish Resolving Python Types By Value
+@torch.jit.script
+def foo(out: X):
+    return out

@@ -1,0 +1,16 @@
+# API: std::vector<std::vector<Tensor>>
+# Bug description: [JIT] C++ frontend is unable to support std::vector<std::vector<Tensor>> when using torch.jit.script in PyTorch v1.0.0
+import torch
+class Model(torch.jit.ScriptModule):
+    def __init__(self):
+        super(Model, self).__init__()
+
+    @torch.jit.script_method
+    def forward(self, x_list_list):
+        # type: (List[List[Tensor]]) -> Tensor
+
+        return x_list_list[0][0]
+
+
+m = Model()
+m.save("./model.pt")

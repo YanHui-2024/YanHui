@@ -1,0 +1,82 @@
+ JIT Compilation of Python 3.9
+# Bug description: JIT compilation fails if running in a environment with Python-3.9
+
+# Title: JIT model saving and loading does not work for model saved with `state_dict` method when using multiple GPUs
+"""
+Output:
+Traceback (most recent call last):
+  File "test.py", line 28, in <module>
+    loaded = torch.jit.load(filename)
+RuntimeError: Error parsing module 'temp/model': Tracing failed because type __torch__.torch.nn.modules.conv.___torch_mangle_3.Conv2d is not supported in exportable TorchScript modules. See https://pytorch.org/docs/stable/jit.html#restrictions-when-exporting-models for more information.
+Traceback (most recent call last):
+  File "test.py", line 28, in <module>
+    loaded = torch.jit.load(filename)
+RuntimeError: Error parsing module 'temp/model': Tracing failed because type __torch__.torch.nn.modules.conv.___torch_mangle_3.Conv2d is not supported in exportable TorchScript modules. See https://pytorch.org/docs/stable/jit.html#restrictions-when-exporting-models for more information.
+Traceback (most recent call last):
+  File "test.py", line 28, in <module>
+    loaded = torch.jit.load(filename)
+RuntimeError: Error parsing module 'temp/model': Tracing failed because type __torch__.torch.nn.modules.conv.___torch_mangle_3.Conv2d is not supported in exportable TorchScript modules. See https://pytorch.org/docs/stable/jit.html#restrictions-when-exporting-models for more information.
+"""
+# Version: PyTorch version: 1.5.0, 1.6.0
+# Labels: oncall: jit
+# PR Title: JIT model saving and loading does not work for model saved with `state_dict` method when using multiple GPUs
+import torch
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+if device == 'cuda':
+    device_ids = list(range(torch.cuda.device_count()))
+else:
+    device_ids = [0] # cpu only
+
+model = torch.nn.Conv2d(3, 4, kernel_size=1).to(device)
+data = torch.rand((8, 3, 5, 6)).to(device)
+optimizer = torch.optim.AdamW([torch.load('temp/model')], lr=0.001)
+criterion = torch.nn.CrossEntropyLoss()
+loss = criterion(data, data[:, 0:2])
+loss.backward()
+print(list(optimizer.param_groups[0]['params'][0].shape)) # [4, 3, 1, 1]
+for g in optimizer.param_groups:
+    for p in g['params']:
+        print(p)
+
+filename = 'temp/model'
+try:
+    torch.jit.save(model.state_dict(), filename)
+except Exception as e:
+    with open('error.txt', 'w') as f:
+        f.write("ERROR: " + str(e))
+# API: JIT Model Saving and Loading
+# Bug description: the model is saved in multi-GPU setup using state_dict() method but cannot be loaded properly
+
+# Title: jit script module does not support dict in forward pass
+"""
+Output:
+ERROR: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 15, in <module>
+    x = torch.jit.script(foo)()
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "/home/conda/torch.py", line 15, in forward
+    ret[k] = v(x) * 2 # this is fine
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "/home/conda/torch.py", line 15, in forward
+    ret[k] = v(x) * 2 # this is fine
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "/home/conda/torch.py", line 15, in forward
+    ret[k] = v(x) * 2 # this is fine
+  File "/usr/local/lib/python3.8/dist-packages/torch/csrc/generated/nn/_utils/static.py", line 780, in __call__
+    return _C._nn_ModuleDict__call__(self, *args)
+RuntimeError: Expected type Optional[Dict[str, Tensor]]
+"""
+# Version: PyTorch version: 1.5.0, 1.6.0
+# Labels: oncall: jit
+# PR Title: jit script module does not support dict in forward pass
+def foo(x):
+    return {'ret': {}}
+torch.jit.script(foo)()
+print("Done!")
+# API: Scripting a function with dictionary as output type
+# Bug description: Tracer cannot trace the code.

@@ -1,0 +1,2 @@
+ std::vector<std::vector<Tensor>>
+# Bug description: [JIT] C++ frontend is unable to support std::vector<std::vector<Tensor>> when using torch.jit.script in PyTorch v1.0.0

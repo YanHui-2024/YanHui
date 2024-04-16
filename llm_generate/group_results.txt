@@ -1,0 +1,40 @@
+#0:
+TypeError: trace() got an unexpected keyword argument 'optimized'
+
+#1:
+RuntimeError:
+cannot call a value of type 'NoneType':
+
+#2:
+AttributeError: 'torch._C.ScriptFunction' object has no attribute 'toDlpack'
+
+#3:
+AttributeError: module 'torch' has no attribute 'T'
+
+#4:
+TypeError: Identity.forward() missing 1 required positional argument: 'input'
+
+#7:
+NameError: name 'Double' is not defined
+
+#9:
+RuntimeError: Type '<class '__main__.FooModel'>' cannot be compiled since it inherits from nn.Module, pass an instance instead
+
+#10:
+AttributeError: 'Linear' object has no attribute 'save'
+
+#12:
+RuntimeError: Expected 3D (unbatched) or 4D (batched) input to conv2d, but got input of size: [1, 2]
+
+#13:
+AssertionError: embed_dim must be divisible by num_heads
+
+#15:
+AttributeError: module 'torch._C' has no attribute '_get_device_index'
+
+#18:
+RuntimeError:
+Unknown type name 'PackedSequence':
+
+#19:
+ModuleNotFoundError: No module named 'jax'

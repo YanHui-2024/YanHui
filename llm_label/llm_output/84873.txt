@@ -1,0 +1,118 @@
+ torch.nn.Module
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.12.1
+
+# Title: Causes a RuntimeError when trying to call trace_module twice on an instance of the same module with different arguments.
+"""
+Output:
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/home/titaiwang/pytorch/torch/nn/modules/module.py", line 803, in _call_impl
+    result = forward_call(*input, **kwargs)
+TypeError: 'NoneType' object is not callable
+"""
+# Version: PyTorch version: 1.12.1
+# Labels: oncall: jit, module: onnx, module: amp (automated mixed precision), onnx-triaged, onnx-unknown
+# PR Title: Causes a RuntimeError when trying to call trace_module twice on an instance of the same module with different arguments.
+import torch  # noqa: E402
+
+class Foo(torch.nn.Module):
+    def forward(self, x, y):  # noqa: B903,E741
+        return x + y
+
+foo_instance = Foo()
+module_a = torch.jit.trace(foo_instance, (torch.randn(2), torch.randn(2)))
+# The first call to trace_module is fine, since trace_module is just a wrapper around tracing_method_compiler.compile_traced module.
+assert "Foo" in str(type(module_a))
+# Now we try compiling it again for the second time and trigger the bug.
+module_b = torch.jit.trace(foo_instance, (torch.randn(1), torch.randn(1)))
+assert "Foo" in str(type(module_b))
+# API: tracing_method_compiler.compile_traced, torch.nn.Module
+# Bug description: Traceback on trying to call trace_module twice on an instance of the same module with different arguments.
+
+# Title: torch.jit.trace not working when using custom class.
+"""
+Output:
+---------------------------------------------------------------------------
+RuntimeError                              Traceback (most recent call last)
+<ipython-input-204-5f6e3dcf73b4> in <module>()
+      1 a = torch.rand(2, 4).float() # input for the model being traced
+----> 2 b = torch.ones(2, 4) # input for the model being traced
+      3 c = torch.zeros(2, 4) # input not used by the model
+      4 d = torch.Tensor([1.,0.]).float() # input not used by the model
+----> 5 x=torch.jit.trace(Model(), (a, b))
+      6 print(x(d, c))
+      7 x.save("test.pt")
+RuntimeError: Input argument number mismatch: 3 arguments were passed to forward() when expecting between 1 and 2
+"""
+# Version: PyTorch version: 1.4.0
+# Labels: oncall: jit, module: onnx, module: amp (automated mixed precision), onnx-triaged, onnx-unknown
+# PR Title: torch.jit.trace not working when using custom class.
+import torch
+class Model(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+    
+    def forward(self, x, y=None):
+        return x + 10 * y if y is not None else x + 5
+
+a = torch.rand(2, 4).float() # input for the model being traced
+b = torch.ones(2, 4) # input for the model being traced
+c = torch.zeros(2, 4) # input not used by the model
+d = torch.Tensor([1.,0.]).float() # input not used by the model
+x=torch.jit.trace(Model(), (a, b))
+print(x(d, c))
+x.save("test.pt")
+# API: tracing_method_compiler.compile_traced, torch.nn.Module
+# Bug description: Traceback on trying to call trace_module twice on an instance of the same module with different arguments.
+
+# Title: RuntimeError when loading a saved pytorch model with torch.jit.load.
+"""
+Output:
+---------------------------------------------------------------------------
+RuntimeError                              Traceback (most recent call last)
+<ipython-input-210-37b479c95a65> in <module>()
+      1 model = Model() # some pytorch model that you want to load later on
+----> 2 torch.save(model, "example.pt")
+      3 example = torch.jit.load("example.pt")
+
+/opt/conda/envs/lab42/lib/python3.7/site-packages/torch/serialization.py in save(obj, f, pickle_module, _use_new_zipfile_serialization)
+    654         # (usually the most recent)
+    655         version = latest_write_version
+--> 656         restore_location = saved_file.name
+    657         try:
+    658             if isinstance(f, str):
+
+/opt/conda/envs/lab42/lib/python3.7/site-packages/torch/serialization.py in __exit__(self, type, value, traceback)
+   1092                 self._save_method(obj, filepath, pickle_module=pickle_module)
+   1093         finally:
+-> 1094             f.close()
+   1095 
+   1096     def __enter__(self):
+
+/opt/conda/envs/lab42/lib/python3.7/site-packages/torch/_utils.py in decorator(callable_func)
+     80         if callable_func.__name__.startswith('__'):
+     81             raise RuntimeError("The @preserve_storage_noop can only preserve storage when applied to functions "
+---> 82                                "whose names don't start with '__', "
+     83                                f"but was given the function '{callable_func.__name__}'.")
+     84         try:
+
+RuntimeError: The @preserve_storage_noop can only preserve storage when applied to functions whose names don't start with '__', but was given the function '_save'.
+"""
+# Version: PyTorch version: 1.7.0+cu110
+# Labels: oncall: jit, module: onnx, module: amp (automated mixed precision), onnx-unknown
+# PR Title: RuntimeError when loading a saved pytorch model with torch.jit.load.
+import torch
+class Model(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+    
+    def forward(self, x, y=None):
+        return x + 10 * y if y is not None else x + 5
+
+model = Model() # some pytorch model that you want to load later on
+torch.save(model, "example.pt")
+example = torch.jit.load("example.pt")
+# API: torch.jit.script, torch.jit.trace, torch.nn.Module
+# Bug description: Traceback on trying to call trace_module twice on an instance of the same module with different arguments.
+

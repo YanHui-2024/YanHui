@@ -1,0 +1,22 @@
+# API: Pytorch tensor indexing
+# Bug description:
+#                  When accessing a pytorch tensor with the [] operator using an integer, it throws an IndexError "index not in bounds" when the index is greater than the first dimension size.
+import torch
+t = torch.zeros((10,))
+print(len(t)) # prints 10
+try:
+    t[9] # works
+except IndexError as exn:
+    print("caught error")
+    print(exn) # throws a "IndexError: index not in bounds" error
+
+# API: torch.onnx.export
+# Bug description:
+#                  If using the parameter `dynamic_axes=True` with torch.onnx.export, then it will throw a RuntimeError `name 'input' already exists`.
+import torch
+model = torch.nn.Identity()
+torch.onnx.export(model, (), "identity.pt", verbose=False)
+try:
+    torch.jit.load("identity.pt")
+except RuntimeError as exn:
+    print(exn) # throws a `RuntimeError: name 'input' already exists` error

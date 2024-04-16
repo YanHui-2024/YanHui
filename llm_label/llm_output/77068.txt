@@ -1,0 +1,117 @@
+ JIT Attribute
+# Bug description: Assertion error when using attributes on torch.jit
+
+# Title: Python to Torchscript with List of Tensors
+"""
+Output:
+Traceback (most recent call last):
+  File "test/tiny_list_to_tsc.py", line 37, in <module>
+    traced = torch.jit.trace(model, ((torch.randn([10] * depth), [torch.ones([10] * depth).long()]))
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_tracing.py", line 1765, in trace
+    return _C._traced_function_from_graph(
+RuntimeError: The following error happened while emitting the graph for a Python function that was passed to "trace":
+Argument 'arg0' of method '__call__' is not an instance of Tensor or Tuple[Tensor, ...]
+This can happen if you pass in a module as one of the arguments.
+If you did this intentionally (for example, you have an argument that could be anything),
+you will need to wrap it with torch._C._infer_compile_class() so that it is only traced when instances are passed in:
+```
+@torch._C._infer_compile_class
+class Model():
+  def forward(self, arg0):
+    return arg0 + 1
+```
+If you didn't intend to pass a module as an argument (this may be because you forgot that you were tracing your model and did not use torch.jit.trace instead), this error may be a bug in the code or it may just mean that the argument can take multiple types. You should try wrapping non-tensor arguments with torch._C._infer_compile_class:
+```
+@torch._C._infer_compile_class
+class Model():
+  def forward(self, arg0):
+    return arg0 + 1
+```
+If you have any other questions, please file an issue at https://github.com/pytorch/pytorch/issues/new?template=bug-report.md. (Traceback is below)
+Traceback (most recent call last):
+  File "test/tiny_list_to_tsc.py", line 37, in <module>
+    traced = torch.jit.trace(model, ((torch.randn([10] * depth), [torch.ones([10] * depth).long()]))
+RuntimeError: The following error happened while emitting the graph for a Python function that was passed to "trace":
+Argument 'arg0' of method '__call__' is not an instance of Tensor or Tuple[Tensor, ...]
+This can happen if you pass in a module as one of the arguments.
+If you did this intentionally (for example, you have an argument that could be anything),
+you will need to wrap it with torch._C._infer_compile_class() so that it is only traced when instances are passed in:
+```
+@torch._C._infer_compile_class
+class Model():
+  def forward(self, arg0):
+    return arg0 + 1
+```
+If you didn't intend to pass a module as an argument (this may be because you forgot that you were tracing your model and did not use torch.jit.trace instead), this error may be a bug in the code or it may just mean that the argument can take multiple types. You should try wrapping non-tensor arguments with torch._C._infer_compile_class:
+```
+@torch._C._infer_compile_class
+class Model():
+  def forward(self, arg0):
+    return arg0 + 1
+```
+If you have any other questions, please file an issue at https://github.com/pytorch/pytorch/issues/new?template=bug-report.md. (Traceback is below)
+RuntimeError: Argument 'arg0' of method '__call__' is not an instance of Tensor or Tuple[Tensor, ...]
+This can happen if you pass in a module as one of the arguments.
+If you did this intentionally (for example, you have an argument that could be anything),
+you will need to wrap it with torch._C._infer_compile_class() so that it is only traced when instances are passed in:
+```
+@torch._C._infer_compile_class
+class Model():
+  def forward(self, arg0):
+    return arg0 + 1
+```
+If you didn't intend to pass a module as an argument (this may be because you forgot that you were tracing your model and did not use torch.jit.trace instead), this error may be a bug in the code or it may just mean that the argument can take multiple types. You should try wrapping non-tensor arguments with torch._C._infer_compile_class:
+```
+@torch._C._infer_compile_class
+class Model():
+  def forward(self, arg0):
+    return arg0 + 1
+```
+If you have any other questions, please file an issue at https://github.com/pytorch/pytorch/issues/new?template=bug-report.md. (Traceback is below)
+RuntimeError: Argument 'arg0' of method '__call__' is not an instance of Tensor or Tuple[Tensor, ...]
+This can happen if you pass in a module as one of the arguments.
+If you did this intentionally (for example, you have an argument that could be anything),
+you will need to wrap it with torch._C._infer_compile_class() so that it is only traced when instances are passed in:
+```
+@torch._C._infer_compile_class
+class Model():
+  def forward(self, arg0):
+    return arg0 + 1
+```
+If you didn't intend to pass a module as an argument (this may be because you forgot that you were tracing your model and did not use torch.jit.trace instead), this error may be a bug in the code or it may just mean that the argument can take multiple types. You should try wrapping non-tensor arguments with torch._C._infer_compile_class:
+```
+@torch._C._infer_compile_class
+class Model():
+  def forward(self, arg0):
+    return arg0 + 1
+```
+If you have any other questions, please file an issue at https://github.com/pytorch/pytorch/issues/new?template=bug-report.md. (Traceback is below)
+RuntimeError: Argument 'arg0' of method '__call__' is not an instance of Tensor or Tuple[Tensor, ...]
+This can happen if you pass in a module as one of the arguments.
+If you did this intentionally (for example, you have an argument that could be anything),
+you will need to wrap it with torch._C._infer_compile_class() so that it is only traced when instances are passed in:
+```
+@torch._C._infer_compile_class
+class Model():
+  def forward(self, arg0):
+    return arg0 + 1
+```
+If you didn't intend to pass a module as an argument (this may be because you forgot that you were tracing your model and did not use torch.jit.trace instead), this error may be a bug in the code or it may just mean that the argument can take multiple types. You should try wrapping non-tensor arguments with torch._C._infer_compile_class:
+```
+@torch._C._infer_compile_class
+class Model():
+  def forward(self, arg0):
+    return arg0 + 1
+```
+If you have any other questions, please file an issue at https://github.com/pytorch/pytorch/issues/new?template=bug-report.md. (Traceback is below)
+RuntimeError: Argument 'arg0' of method '__call__' is not an instance of Tensor or Tuple[Tensor, ...]
+This can happen if you pass in a module as one of the arguments.
+If you did this intentionally (for example, you have an argument that could be anything),
+you will need to wrap it with torch._C._infer_compile_class() so that it is only traced when instances are passed in:
+```
+@torch._C._infer_compile_class
+class Model():
+  def forward(self, arg0):
+    return arg0 + 1
+```
+If you didn't intend to pass a module as an argument (this may be because you forgot that you were tracing your model and did not use torch.jit.trace instead), this error may be a bug in the code or it may just mean that the

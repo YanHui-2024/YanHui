@@ -1,0 +1,14 @@
+ Python function signature for `torch.tensordot` in Python
+# Bug description: when passing a tuple of int as the dimension pair, TorchScript JIT compilation fails
+
+# Title: JIT Compile Error with PyTorch 1.6 and CUDA 10.2
+"""
+# Version: PyTorch version: 1.6
+# Labels: oncall: jit
+# PR Title: JIT Compile Error with PyTorch 1.6 and CUDA 10.2
+import torch
+cuda_available = False
+if "cuda" in dir(torch): cuda_available = True
+assert not cuda_available, "CUDA is available on your system but it should not be!"
+# API: CUDA not to be avaliable in PyTorch v1.6 or earlier
+# Bug description: when using CUDA with PyTorch 1.6 or earlier, JIT compilation fails to run

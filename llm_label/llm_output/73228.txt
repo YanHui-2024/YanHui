@@ -1,0 +1,2 @@
+ N/A
+# Bug description: TorchScript not computing the correct type for complex scalar

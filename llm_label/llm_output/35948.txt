@@ -1,0 +1,180 @@
+ int(str)
+# Bug description: RuntimeError: 
+Arguments for call are not valid.
+The following variants are available:
+  
+  aten::Int(Tensor a) -> (int):
+  Expected a value of type 'Tensor' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(bool a) -> (int):
+  Expected a value of type 'bool' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(float a) -> (int):
+  Expected a value of type 'float' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(Scalar a) -> (int):
+  Expected a value of type 'number' for argument 'a' but instead found type 'str'.
+The original call is:
+  File "D:/GitHub/yolov3/qwe.py", line 6
+def f(s: str):
+    return int(s)
+           ~~~ <--- HERE
+# API: int(str)
+# Bug description: RuntimeError: 
+Arguments for call are not valid.
+The following variants are available:
+  
+  aten::Int(Tensor a) -> (int):
+  Expected a value of type 'Tensor' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(bool a) -> (int):
+  Expected a value of type 'bool' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(float a) -> (int):
+  Expected a value of type 'float' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(Scalar a) -> (int):
+  Expected a value of type 'number' for argument 'a' but instead found type 'str'.
+The original call is:
+  File "D:/GitHub/yolov3/qwe.py", line 6
+def f(s: str):
+    return int(s)
+           ~~~ <--- HERE
+# API: int(str)
+# Bug description: RuntimeError: 
+Arguments for call are not valid.
+The following variants are available:
+  
+  aten::Int(Tensor a) -> (int):
+  Expected a value of type 'Tensor' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(bool a) -> (int):
+  Expected a value of type 'bool' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(float a) -> (int):
+  Expected a value of type 'float' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(Scalar a) -> (int):
+  Expected a value of type 'number' for argument 'a' but instead found type 'str'.
+The original call is:
+  File "D:/GitHub/yolov3/qwe.py", line 6
+def f(s: str):
+    return int(s)
+           ~~~ <--- HERE
+# API: int(str)
+# Bug description: RuntimeError: 
+Arguments for call are not valid.
+The following variants are available:
+  
+  aten::Int(Tensor a) -> (int):
+  Expected a value of type 'Tensor' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(bool a) -> (int):
+  Expected a value of type 'bool' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(float a) -> (int):
+  Expected a value of type 'float' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(Scalar a) -> (int):
+  Expected a value of type 'number' for argument 'a' but instead found type 'str'.
+The original call is:
+  File "D:/GitHub/yolov3/qwe.py", line 6
+def f(s: str):
+    return int(s)
+           ~~~ <--- HERE
+# API: int(str)
+# Bug description: RuntimeError: 
+Arguments for call are not valid.
+The following variants are available:
+  
+  aten::Int(Tensor a) -> (int):
+  Expected a value of type 'Tensor' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(bool a) -> (int):
+  Expected a value of type 'bool' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(float a) -> (int):
+  Expected a value of type 'float' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(Scalar a) -> (int):
+  Expected a value of type 'number' for argument 'a' but instead found type 'str'.
+The original call is:
+  File "D:/GitHub/yolov3/qwe.py", line 6
+def f(s: str):
+    return int(s)
+           ~~~ <--- HERE
+# API: int(str)
+# Bug description: RuntimeError: 
+Arguments for call are not valid.
+The following variants are available:
+  
+  aten::Int(Tensor a) -> (int):
+  Expected a value of type 'Tensor' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(bool a) -> (int):
+  Expected a value of type 'bool' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(float a) -> (int):
+  Expected a value of type 'float' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(Scalar a) -> (int):
+  Expected a value of type 'number' for argument 'a' but instead found type 'str'.
+The original call is:
+  File "D:/GitHub/yolov3/qwe.py", line 6
+def f(s: str):
+    return int(s)
+           ~~~ <--- HERE
+# API: int(str)
+# Bug description: RuntimeError: 
+Arguments for call are not valid.
+The following variants are available:
+  
+  aten::Int(Tensor a) -> (int):
+  Expected a value of type 'Tensor' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(bool a) -> (int):
+  Expected a value of type 'bool' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(float a) -> (int):
+  Expected a value of type 'float' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(Scalar a) -> (int):
+  Expected a value of type 'number' for argument 'a' but instead found type 'str'.
+The original call is:
+  File "D:/GitHub/yolov3/qwe.py", line 6
+def f(s: str):
+    return int(s)
+           ~~~ <--- HERE
+# API: int(str)
+# Bug description: RuntimeError: 
+Arguments for call are not valid.
+The following variants are available:
+  
+  aten::Int(Tensor a) -> (int):
+  Expected a value of type 'Tensor' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(bool a) -> (int):
+  Expected a value of type 'bool' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(float a) -> (int):
+  Expected a value of type 'float' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(Scalar a) -> (int):
+  Expected a value of type 'number' for argument 'a' but instead found type 'str'.
+The original call is:
+  File "D:/GitHub/yolov3/qwe.py", line 6
+def f(s: str):
+    return int(s)
+           ~~~ <--- HERE
+# API: int(str)
+# Bug description: RuntimeError: 
+Arguments for call are not valid.
+The following variants are available:
+  
+  aten::Int(Tensor a) -> (int):
+  Expected a value of type 'Tensor' for argument 'a' but instead found type 'str'.
+  
+  aten::Int(bool a) -> (int):
+  Expected a value of type 'bool' for argument 'a' but instead found type 'str'.
+  
+ 

@@ -1,0 +1,50 @@
+ namedtuple
+# Bug description: JIT fails to match namedtuples with different ordering of fields in a graph. 
+#                  when using torch.jit.trace in PyTorch v1.6.0, the order of fields in the tuple affects the matching.
+
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit
+# PR Title: JIT changes method kwarg argument names
+from torch import nn as nn
+@torch.jit.script
+class TestModule(nn.Module):
+    def forward(self, x):
+        return x.transpose(0,1)
+    
+@torch.jit.script
+class AnotherTestModule(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.inner_module = TestModule()
+        
+    def forward(self, y):
+        return self.inner_module(x=y)
+    
+module = AnotherTestModule()
+trace_input = torch.ones([1,1])
+ 
+try:
+    traced_module = torch.jit.trace_module(module, dict(forward=(trace_input,)))
+except RuntimeError as e:
+    print('Tracing failed due to:', e)
+
+# API: tensor[int]
+# Bug description: JIT fails to match tensors if their index types differ but values are the same. 
+#                  when using torch.jit.trace in PyTorch v1.7.0, the type of the index for the access is what affects matching.
+
+# Version: PyTorch version: 1.6.0
+# Labels: oncall: jit
+# PR Title: JIT changes method kwarg argument names
+from torch import nn as nn
+@torch.jit.script
+class TestModule(nn.Module):
+    def forward(self, x, y):
+        return x[y]
+    
+module = TestModule()
+trace_inputs = (torch.rand([10,20]), torch.tensor(['a'], dtype=torch.long))
+ 
+try:
+    traced_module = torch.jit.trace_module(module, dict(forward=(*trace_inputs,)))
+except RuntimeError as e:
+    print('Tracing failed due to:', e)

@@ -1,0 +1,67 @@
+# API: torch.nn.EmbeddingBag.from_pretrained(embeddings, state=None, padding_idx=None)
+# Bug description: `TypeError` when passing in the argument `state` to `torch.nn.EmbeddingBag.from_pretrained()`
+#                  which has an overload with same name but diff parameters.
+#                  `TypeError` only occurs when calling scripted model, and not on eager execution of EmbeddingBag.
+## Cause
+```
+    if not PY2 and py_args.kw_defaults:
+        raise NotSupportedError(ctx_range, _vararg_kwarg_err)
+
+
+# API: Missing support in torch.jit for sorted on string list?
+# Bug description: missing `sorted` support for str
+#                  when using torch.jit.trace in PyTorch v1.6.0
+class TestModule(torch.nn.Module):
+    def __init__(self):
+        super(TestModule, self).__init__()
+        
+    def forward(self, list_of_str: List[str]):
+        return sorted(list_of_str)
+
+m = TestModule()
+m_scripted = torch.jit.script(m)
+# gives runtime error
+m_scripted(["str3", "str2", "str1"]) 
+
+
+# API: NamedTuple in JIT Functionalities
+# Bug description: AttributeError on function returning an instance of namedtuple
+#                  when using torch.jit.trace in PyTorch v1.0.0
+import torch
+from collections import namedtuple
+ret = namedtuple("ret", ["U"])(torch.eye(2,2)) # ret is a named tuple
+def f():
+return ret
+x = torch.jit.trace(f, {})
+ret = a.svd()
+U = ret.U  # previously, only ret[0] was supported
+
+
+# API: torch.nn.Module, nn.functional.relu, torch.jit.trace
+# Bug description: TypeError when using multiple return values on forward method of module
+#                  when using torch.jit.trace in PyTorch v1.2.0
+from torch import nn
+
+import torch
+
+
+class Model(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, a):
+        # type: (Tensor)
+
+        # [batch_size, sequence_length] →
+        # [batch_size, sequence_length]
+        a = torch.nn.functional.relu(a)
+        return a
+
+
+if __name__ == "__main__":
+    model = Model()
+    model = torch.jit.script(model)
+
+
+# API:

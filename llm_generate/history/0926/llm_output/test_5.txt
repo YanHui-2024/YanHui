@@ -1,0 +1,10 @@
+# API: dropout
+# Bug description: Torchscript doesn't support `training` argument in dropout when using torch.jit.trace in PyTorch v1.0rc1
+import torch                                                    
+from torch.nn import functional as F                            
+                                                                
+@torch.jit.script                                               
+def f(x):                                                       
+    return F.dropout(x) + F.dropout(x, training=True)           
+                                                                
+f(torch.randn((16, 32)))

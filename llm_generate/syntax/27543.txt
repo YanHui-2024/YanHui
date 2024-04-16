@@ -1,0 +1,8 @@
+# API: List
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.12.1
+@torch.jit.script
+def fn():
+    a = [1, 2, 3, 4]
+    return a[::-1]
+fn()

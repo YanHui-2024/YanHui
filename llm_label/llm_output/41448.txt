@@ -1,0 +1,96 @@
+ Dict Comprehension
+# Bug description: JIT errors when using a dict comprehension (e.g., {x : x for ...}) as input to a model
+#                  when using torch.jit.script in PyTorch v1.5.1
+
+# Title: [JIT] Support Dict view: keys, items, values
+"""
+Output:
+torch.jit.frontend.UnsupportedNodeError: Dict methods aren't supported:
+  File "main_test.py", line 6
+    def forward(self):
+        x = {i: i for i in range(2)}
+            ~ <--- HERE
+        return list(x.keys()), list(x.values())
+"""
+# Version: PyTorch version: 1.5.1
+# Labels: oncall: jit, weeks
+# PR Title: 
+class MyModule(nn.Module):
+    def forward(self):
+        x = {i: i for i in range(2)}
+        return list(x.keys()), list(x.values())
+model = MyModule()
+model_s = torch.jit.script(model)
+# API: Dict Views
+# Bug description: JIT errors when using dict views (e.g., x.keys(), x.items(), x.values()) as input to a model
+#                  when using torch.jit.script in PyTorch v1.5.1
+
+# Title: [JIT] Support Dict pop method
+"""
+Output:
+Traceback (most recent call last):
+  File "torch/nn/modules/module.py", line 864, in _call_impl
+    result = forward_call(*input, **kwargs)
+TypeError: 'NoneType' object is not subscriptable
+"""
+# Version: PyTorch version: 1.5.1
+# Labels: oncall: jit, bug
+# PR Title: [jit] Support Dict pop method (pop)
+class MyModule(nn.Module):
+    def forward(self):
+        x = {i: i for i in range(2)}
+        x.pop(1) # this line would fail if uncommented
+        return list(x.keys()), list(x.values())
+model = MyModule()
+model_s = torch.jit.script(model)
+# API: pop on Dicts in TorchScript Models
+# Bug description: JIT errors when a model uses dict views (e.g., x.keys(), x.items(), x.values()) as input to a model
+#                  when using torch.jit.script in PyTorch v1.5.1
+
+# Title: [JIT] Support Dict pop method
+"""
+Output:
+torch.jit.frontend.UnsupportedNodeError: Dict methods aren't supported:
+  File "main_test.py", line 6
+    def forward(self):
+        x = {i: i for i in range(2)}
+            ~ <--- HERE
+        return list(x.keys()), list(x.values())
+"""
+# Version: PyTorch version: 1.5.1
+# Labels: oncall: jit, bug
+# PR Title: [jit] Support Dict pop method (pop)
+class MyModule(nn.Module):
+    def forward(self):
+        x = {i: i for i in range(2)}
+        x.pop(1) # this line would fail if uncommented
+        return list(x.keys()), list(x.values())
+model = MyModule()
+model_s = torch.jit.script(model)
+# API: pop on Dicts in TorchScript Models
+# Bug description: JIT errors when a model uses dict views (e.g., x.keys(), x.items(), x.values()) as input to a model
+#                  when using torch.jit.script in PyTorch v1.5.1
+
+# Title: [JIT] Support Dict pop method
+"""
+Output:
+torch.jit.frontend.UnsupportedNodeError: Dict methods aren't supported:
+  File "main_test.py", line 6
+    def forward(self):
+        x = {i: i for i in range(2)}
+            ~ <--- HERE
+        return list(x.keys()), list(x.values())
+"""
+# Version: PyTorch version: 1.5.1
+# Labels: oncall: jit, bug
+# PR Title: [jit] Support Dict pop method (pop)
+class MyModule(nn.Module):
+    def forward(self):
+        x = {i: i for i in range(2)}
+        x.pop(1) # this line would fail if uncommented
+        return list(x.keys()), list(x.values())
+model = MyModule()
+model_s = torch.jit.script(model)
+# API: pop on Dicts in TorchScript Models
+# Bug description: JIT errors when a model uses dict views (e.g., x.keys(), x.items(), x.values()) as input to a model
+#                  when using torch.jit.script in PyTorch v1.5.1

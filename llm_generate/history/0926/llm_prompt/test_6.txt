@@ -1,0 +1,101 @@
+# API: Printing Tensor from traced module results in TypeError: rsplit() takes no keyword arguments
+# Bug description: RuntimeError on model with custom activation
+#                  when calling __repr__ on JIT-compiled modules using PyTorch v1.0.0
+import torch
+import torchvision
+
+resnet = torchvision.models.resnet18()
+sample_image = torch.randn(1, 3, 224, 224)
+resnet_jit = torch.jit.trace(resnet, sample_image)
+
+features = resnet_jit(sample_image)
+print features
+
+
+
+# API: torch.jit.Script Module
+# Bug description: [JIT][ONNX] aten::add and aten::sub ST overloads don't have alpha, so they don't match the ONNX symbolic when using torch.onnx._export in PyTorch v0.4.1 (and possibly earlier versions)
+import torch
+
+class SomeModule(torch.jit.ScriptModule):
+
+    @torch.jit.script_method
+    def forward(self, x : torch.Tensor):
+        bs = x.size(0)
+        return bs + 1
+
+example_outputs = (torch.LongTensor([SomeModule()(torch.rand(3, 4))]),)
+
+import io
+f = io.BytesIO()
+torch.onnx._export(SomeModule(), (torch.rand(3, 4),), f, verbose=True, example_outputs=example_outputs)
+
+
+# API: Tensor
+# Bug description: Tracing fails when the jitted operator takes a tuple of tensors as input, but works with a list of tensors.
+import os
+import torch
+import torch.jit
+from typing import List, Tuple
+csrc = """
+#include <torch/extension.h>
+#include <torch/script.h>
+
+using namespace at;
+
+Tensor test(std::vector<Tensor> inps) {  
+  return inps[0] * 2; // not terribly safe!
+}
+
+static auto registry =
+  torch::jit::RegisterOperators()
+    .op("mytest::test", &test);
+
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  m.def("test", &test, "super test!");
+}
+"""
+
+import torch.utils.cpp_extension
+
+ext = torch.utils.cpp_extension.load_inline("test", [csrc], verbose=True,
+                                            extra_ldflags=['-ltorch','-lcaffe2',
+                                                           '-L'+os.path.join(os.path.dirname(torch._C.__file__), 'lib') ])
+torch.ops.load_library(ext.__file__)
+
+t = torch.randn(5)
+print(torch.ops.mytest.test([t])) # works
+
+@torch.jit.script
+def test_wrapper(ts : List[torch.Tensor]): # need to do list!
+    return torch.ops.mytest.test(ts)
+
+print (test_wrapper([t])) # works
+
+print (test_wrapper((t,))) # works
+
+print ("doesn't work")
+
+print (torch.jit.trace(test_wrapper, ((t,),)))  # doesn't work
+# and I cannot be make it work
+
+
+# the canonical way to do Tuples of arbitrary lengths (?)
+@torch.jit.script
+def test_wrapper2(ts : Tuple[torch.Tensor, ...]): # doesn't work
+    return torch.ops.mytest.test(ts)
+
+
+
+# API: builtin function on JIT mode
+# Bug description: inconsistent results of string `split` func on JIT mode
+import torch
+from typing import List
+def simple_split(txt: str) -> List[str]:
+	return txt.split()
+ss = simple_split
+jit_ss = torch.jit.script(ss)
+ss('simple     split example') == jit_ss('simple     split example')
+
+
+# API:

@@ -1,0 +1,10 @@
+# API: torch.load
+# Bug description: Load tensor from file in C++ fails (caused by missing shared library?)
+#                  when using PyTorch v1.1.0 or lower, but works for the latest version?
+#include <torch/torch.h>
+
+int main() {
+  torch::Tensor tensor;
+  torch::load(tensor, "tensor.pt");
+  std::cout << tensor << std::endl;
+}

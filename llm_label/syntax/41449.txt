@@ -1,0 +1,15 @@
+# Title: [jit] support boolean in dictionary
+"""
+Output:
+RuntimeError: Cannot create dict for key type 'bool', only int, float, Tensor and string keys are supported
+"""
+# Version: PyTorch version: 1.5.1
+# Labels: oncall: jit, module: bootcamp, days
+# PR Title: [jit] support boolean in dictionary
+class MyModule(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.x = {True: 1}
+
+model = MyModule()
+model_s = torch.jit.script(model)

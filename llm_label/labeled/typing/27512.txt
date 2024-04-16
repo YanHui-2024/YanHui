@@ -1,0 +1,11 @@
+# API: Tensor
+# Bug description: Incompatible results between eager execution and JIT compilation with // operator
+#                  on PyTorch v1.2.0
+def test(pos):
+    return pos // 2
+
+input = torch.tensor(4)
+print(test(input)
+# tensor(2)
+print(torch.jit.script(test)(input))
+# 2

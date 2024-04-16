@@ -1,0 +1,119 @@
+ nn.ParameterList, nn.ModuleList, nn.Sequential, and nn.ModuleDict in TorchScript
+# Bug description: Runtime Error on scripting a ModuleList or ParameterList while using subscript
+#                  when using torch.jit.script(MyModule()) in PyTorch v1.9.0
+
+# Title: FX trace of a model that uses einsum with an out-of-order transpose as one argument fails compilation
+"""
+Output:
+RuntimeError: Could not compile the graph because it contained the following nodes that cannot be compiled into XLA native code:
+  %1 : Tensor = aten::bmm( # /pytorch/torch/fx/passes/shape_prop.py:277:0
+    %x,
+    %w)              # /pytorch/torch/nn/functional.py:956:0
+                     ~~~~~~~~~~~ <--- HERE
+  %3 : Tensor = aten::add(# /pytorch/torch/fx/passes/shape_prop.py:277:0
+    %x,
+    %1,
+    %2)              # /pytorch/torch/fx/passes/shape_prop.py:154:0
+  %3 : Tensor = aten::transpose(# /pytorch/torch/nn/utils/rnn.py:759:0
+    %3,
+    %2,
+    %2)              # /pytorch/torch/fx/passes/shape_prop.py:154:0
+  %6 : (Tensor, Tensor) = aten::einsum(# /pytorch/torch/nn/modules/rnn.py:1723:0
+    %4,
+    %5,
+    %x,
+    %x,
+    %x,
+    %3,
+    %x)             # /pytorch/torch/fx/passes/shape_prop.py:154:0
+                     ~~~~~~~~~~~ <--- HERE
+RuntimeError: Could not compile the graph because it contained the following nodes that cannot be compiled into XLA native code:
+  %1 : Tensor = aten::bmm( # /pytorch/torch/fx/passes/shape_prop.py:277:0
+    %x,
+    %w)              # /pytorch/torch/nn/functional.py:956:0
+                     ~~~~~~~~~~~ <--- HERE
+  %3 : Tensor = aten::add(# /pytorch/torch/fx/passes/shape_prop.py:277:0
+    %x,
+    %1,
+    %2)              # /pytorch/torch/fx/passes/shape_prop.py:154:0
+  %3 : Tensor = aten::transpose(# /pytorch/torch/nn/utils/rnn.py:759:0
+    %3,
+    %2,
+    %2)              # /pytorch/torch/fx/passes/shape_prop.py:154:0
+  %6 : (Tensor, Tensor) = aten::einsum(# /pytorch/torch/nn/modules/rnn.py:1723:0
+    %4,
+    %5,
+    %x,
+    %x,
+    %x,
+    %3,
+    %x)             # /pytorch/torch/fx/passes/shape_prop.py:154:0
+                     ~~~~~~~~~~~ <--- HERE
+RuntimeError: Could not compile the graph because it contained the following nodes that cannot be compiled into XLA native code:
+  %1 : Tensor = aten::bmm( # /pytorch/torch/fx/passes/shape_prop.py:277:0
+    %x,
+    %w)              # /pytorch/torch/nn/functional.py:956:0
+                     ~~~~~~~~~~~ <--- HERE
+  %3 : Tensor = aten::add(# /pytorch/torch/fx/passes/shape_prop.py:277:0
+    %x,
+    %1,
+    %2)              # /pytorch/torch/fx/passes/shape_prop.py:154:0
+  %3 : Tensor = aten::transpose(# /pytorch/torch/nn/utils/rnn.py:759:0
+    %3,
+    %2,
+    %2)              # /pytorch/torch/fx/passes/shape_prop.py:154:0
+  %6 : (Tensor, Tensor) = aten::einsum(# /pytorch/torch/nn/modules/rnn.py:1723:0
+    %4,
+    %5,
+    %x,
+    %x,
+    %x,
+    %3,
+    %x)             # /pytorch/torch/fx/passes/shape_prop.py:154:0
+                     ~~~~~~~~~~~ <--- HERE
+RuntimeError: Could not compile the graph because it contained the following nodes that cannot be compiled into XLA native code:
+  %1 : Tensor = aten::bmm( # /pytorch/torch/fx/passes/shape_prop.py:277:0
+    %x,
+    %w)              # /pytorch/torch/nn/functional.py:956:0
+                     ~~~~~~~~~~~ <--- HERE
+  %3 : Tensor = aten::add(# /pytorch/torch/fx/passes/shape_prop.py:277:0
+    %x,
+    %1,
+    %2)              # /pytorch/torch/fx/passes/shape_prop.py:154:0
+  %3 : Tensor = aten::transpose(# /pytorch/torch/nn/utils/rnn.py:759:0
+    %3,
+    %2,
+    %2)              # /pytorch/torch/fx/passes/shape_prop.py:154:0
+  %6 : (Tensor, Tensor) = aten::einsum(# /pytorch/torch/nn/modules/rnn.py:1723:0
+    %4,
+    %5,
+    %x,
+    %x,
+    %x,
+    %3,
+    %x)             # /pytorch/torch/fx/passes/shape_prop.py:154:0
+                     ~~~~~~~~~~~ <--- HERE
+RuntimeError: Could not compile the graph because it contained the following nodes that cannot be compiled into XLA native code:
+  %1 : Tensor = aten::bmm( # /pytorch/torch/fx/passes/shape_prop.py:277:0
+    %x,
+    %w)              # /pytorch/torch/nn/functional.py:956:0
+                     ~~~~~~~~~~~ <--- HERE
+  %3 : Tensor = aten::add(# /pytorch/torch/fx/passes/shape_prop.py:277:0
+    %x,
+    %1,
+    %2)              # /pytorch/torch/fx/passes/shape_prop.py:154:0
+  %3 : Tensor = aten::transpose(# /pytorch/torch/nn/utils/rnn.py:759:0
+    %3,
+    %2,
+    %2)              # /pytorch/torch/fx/passes/shape_prop.py:154:0
+  %6 : (Tensor, Tensor) = aten::einsum(# /pytorch/torch/nn/modules/rnn.py:1723:0
+    %4,
+    %5,
+    %x,
+    %x,
+    %x,
+    %3,
+    %x)             # /pytorch/torch/fx/passes/shape_prop.py:154:0
+                     ~~~~~~~~~~~ <--- HERE
+RuntimeError: Could not compile the graph because it contained the following nodes that cannot be compiled into XLA native code:
+  %1 : Tensor = aten::bmm( # /pytorch/torch/

@@ -1,0 +1,127 @@
+
+"""
+Traceback (most recent call last):
+  File "test.py", line 45, in <module>
+    test_scripting_torch_package()
+  File "test.py", line 30, in test_scripting_torch_package
+    torch._C._jit_set_require_nothrow(True) # enable to make it fail on purpose.
+AttributeError: module 'torch._C' has no attribute '_jit_set_require_nothrow'
+"""
+# Version: PyTorch version: 1.3.1
+# Labels: jit
+def test_scripting_torch_package():
+    try:
+        script = torch._C._get_torch_package_mode() == 'script'
+    except AttributeError:
+        assert False, "should be able to read the package mode"
+    if not script: # this test makes sense only when running in scripting.
+        return
+    torch._C._set_torch_package_mode('script')
+    try:
+        try:
+            with enable_profiling_mode():
+                a = torch.rand(2, 3)
+                b = torch.rand(2, 3)
+                c = torch.mm(a, b)
+                raise RuntimeError("should not get here")
+        except RuntimeError: # good!
+            pass
+    finally:
+        torch._C._set_torch_package_mode('default')
+# API: enable_profiling_mode()
+# Bug description: Exception: Expected all tensors to be on the same device, but found at least two devices.
+def test_enable_profiling_mode():
+    x = torch.rand(2).to('cuda') # this will work because we're already in profiling mode, which allows CUDA ops.
+# API:
+"""
+Traceback (most recent call last):
+  File "test/tinytest.py", line 18, in <module>
+    scripted = torch.jit.script(M())
+RuntimeError: Expected autocast_cache to be None when _torch_dispatch_trace is False. Got 906352
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+def test_autocast_error():
+    x = torch.randn(3, requires_grad=False)
+    with torch.autocast('cuda'):
+        result = x ** 2 + (x > .5).type_as(x) # error happens here because we're in autocast.
+# API:
+"""
+Traceback (most recent call last):
+  File "test/tinytest.py", line 36, in <module>
+    scripted = torch.jit.script(M())
+RuntimeError: Expected autocast_cache to be None when _torch_dispatch_trace is False. Got 906352
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+def test_set_grad_enabled():
+    # The goal of this script is to ensure that setting grad mode works correctly in the context manager and that it can be nested.
+    x = torch.randn(3, requires_grad=False)
+    with torch.set_grad_enabled(True):
+        y_1 = (2 * x).sum() # y_1 will have a grad function
+        assert y_1.requires_grad == True
+        with torch.set_grad_enabled(False):
+            y_2 = 4 * x # y_2 should not track history and does not require grad
+            assert y_2.requires_grad == False
+    y_3 = torch.randn(3, requires_grad=False)
+    with torch.set_grad_enabled(True):
+        y_4 = 5 * x # this should track history and require grad
+        assert y_2.requires_grad == False
+        with torch.no_grad():
+            assert (y_3 + y_4).requires_grad == False
+    assert y_1.requires_grad == True
+# API:
+"""
+Traceback (most recent call last):
+  File "test/tinytest.py", line 36, in <module>
+    scripted = torch.jit.script(M())
+RuntimeError: Expected autocast_cache to be None when _torch_dispatch_trace is False. Got 906352
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+def test_set_allow_tf32():
+    x = torch.randn(3, requires_grad=False)
+    with torch.cpu.amp.autocast(True):
+        y_1 = (x ** 2).sum() # this is supposed to be the tf32 path
+        assert torch._C._get_autocast_state_enabled() == True
+        assert torch._C._autocast_is_running(), "Autocast should now be enabled"
+    with torch.cpu.amp.autocast(False):
+        assert torch._C._get_autocast_state_enabled() == False, "Disabling autocast should set the internal state to False."
+        y_2 = (x ** 3).sum() # this is supposed to be float mode as we've exited autocast.
+    with torch.cpu.amp.autocast(True):
+        assert torch._C._get_autocast_state_enabled() == True, "Re-entering autocast should set the internal state back to True."
+        y_3 = (x ** 2).sum() # this is supposed to be tf32 mode again.
+    with torch.cpu.amp.autocast(False):
+        assert torch._C._get_autocast_state_enabled() == False, "Disabling autocast should set the internal state to False."
+        y_4 = (x ** 3).sum() # this is supposed to be float mode as we've exited autocast.
+    assert x.dtype != torch.float64 # sanity check, x should not have been casted to double
+# API:
+"""
+Traceback (most recent call last):
+  File "test/tinytest.py", line 32, in <module>
+    scripted = torch.jit.script(M())
+RuntimeError: Expected autocast_cache to be None when _torch_dispatch_trace is False. Got 906352
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+def test_set_allow_bf16():
+    x = torch.randn(3, requires_grad=False)
+    with torch.cpu.amp.autocast('bfloat16'):
+        y_1 = (x ** 2).sum() # this is supposed to be the bfloat mode
+        assert torch._C._get_autocast_state_enabled() == True
+        assert torch._C._autocast_is_running(), "Autocast should now be enabled"
+    with torch.cpu.amp.autocast(False):
+        y_2 = (x ** 3).sum() # this is supposed to be float mode as we've exited autocast.
+    with torch.cpu.amp.autocast('bfloat16'):
+        assert torch._C._get_autocast_state_enabled() == True, "Re-entering autocast should set the internal state back to True."
+        y_3 = (x ** 2).sum() # this is supposed to be bfloat mode again.
+    with torch.cpu.amp.autocast(False):
+        assert torch._C._get_autocast_state_enabled() == False, "Disabling autocast should set the internal state to False."
+        y_4 = (x ** 3).sum() # this is supposed to be float mode as we've exited autocast.
+    assert x.dtype != torch.float64 # sanity check, x should not have been casted to double
+# API:
+"""
+Traceback (most recent call last):
+  File "test/tinytest.py", line 32, in <module>
+    scripted = torch.jit.script(M())
+RuntimeError: Expected autocast_cache to be None when _torch_dispatch_trace is False

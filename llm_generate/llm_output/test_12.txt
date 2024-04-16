@@ -1,0 +1,16 @@
+# API: @parameterized.expand on a method decorated with @pytest.mark.parametrize
+# Bug description: TypeError: Test function takes 0 positional arguments but 1 was given
+import pytest
+from itertools import product
+
+class A:
+    def __init__(self, a):
+        pass
+
+@pytest.fixture(params=[1, 2])
+def test_fixture(request):
+    return request.param
+
+@pytest.mark.parametrize("a, b", product((10,), (5,)))
+def test_case(test_fixture, a, b):
+    assert a * 2 == b

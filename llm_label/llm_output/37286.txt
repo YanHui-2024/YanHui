@@ -1,0 +1,130 @@
+ torch.jit.script
+# Bug description: RuntimeError on torch.jit.script in PyTorch v1.5.0
+
+# Title: Exporting a script module with a type annotated attribute fails
+"""
+Output:
+Traceback (most recent call last):
+  File "test/issue_32978.py", line 6, in <module>
+    mod = torch.jit.script(MyModule())
+  File "/home/ansley/.conda/envs/pytorch-triage/lib/python3.8/site-packages/torch/jit/_scripting.py", line 1206, in script
+    return RecursiveScriptModule._construct(fn, args, kwargs)
+  File "/home/ansley/.conda/envs/pytorch-triage/lib/python3.8/site-packages/torch/jit/_recursive.py", line 987, in _construct
+    return ScriptModule(_compile_function(fn, self._tuple_of_types))
+  File "/home/ansley/.conda/envs/pytorch-triage/lib/python3.8/site-packages/torch/jit/_recursive.py", line 2794, in _compile_function
+    return torch._C._compile_script(bytecode)
+RuntimeError: Cannot export ScriptModule: Cannot compile the script because there is a semantic error: 18:17: The type annotation for argument 'b' must have exactly one value.
+"""
+# Version: PyTorch version: 1.4.0
+# Labels: oncall: jit, module: onnx, high priority, triage review, module: nn/functional, module: vision/transforms
+# PR Title: Exporting a script module with a type annotated attribute fails
+import torch
+class MyModule(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.b : int = 123
+    @torch.jit.export
+    def forward(self, a : int) -> int:
+        return self.b + a
+mod = torch.jit.script(MyModule())
+# API: JIT script module with type annotations
+# Bug description: Runtime error on exporting a scripted module with annotated types in PyTorch v1.4
+
+# Title: jit model export fails when there is an if statement in the body of loop
+"""
+Output:
+Traceback (most recent call last):
+  File "test/issue_32799.py", line 16, in <module>
+    mod = torch.jit.script(M())
+  File "/home/ansley/.conda/envs/pytorch-triage/lib/python3.8/site-packages/torch/jit/_recursive.py", line 978, in _compile_function
+    return torch._C._compile_script(bytecode)
+RuntimeError: Cannot export ScriptModule: Cannot compile the script because there is a semantic error: 16:25: Function call must be in loop body or not in any loop.
+"""
+# Version: PyTorch version: 1.4.0
+# Labels: oncall: jit, module: nn/functional, high priority, triage review
+# PR Title: jit model export fails when there is an if statement in the body of loop
+import torch
+class M(torch.nn.Module):
+    def forward(self, x : int):
+        for i in range(x):  # ? x ?
+            if True:  # ?
+                return i  # ? [0]
+# API: JIT script module with conditional statement (if) inside loop
+# Bug description: Runtime error on exporting a jit model with an if statement in the body of loop in PyTorch v1.4
+
+# Title: Cannot compile a script when there is a return statement inside the function body
+"""
+Output:
+Traceback (most recent call last):
+  File "test/issue_32830.py", line 9, in <module>
+    mod = torch.jit.script(M())
+  File "/home/ansley/.conda/envs/pytorch-triage/lib/python3.8/site-packages/torch/jit/_recursive.py", line 978, in _compile_function
+    return torch._C._compile_script(bytecode)
+RuntimeError: Cannot compile the script because there is a semantic error: 10:6: Missing return statement at end of function.
+"""
+# Version: PyTorch version: 1.4.0
+# Labels: oncall: jit, module: nn/functional, high priority, triage review
+# PR Title: Cannot compile a script when there is a return statement inside the function body
+import torch
+class M(torch.nn.Module):
+    def forward(self, x : int):
+        if True:  # ? [False]
+            return x + 10
+        else:
+            return x - 10
+mod = torch.jit.script(M())
+# API: JIT script module with a if statement in the body of forward method, and no else branch
+# Bug description: Runtime error on exporting a jit model with an if statement in the body of forward method in PyTorch v1.4
+
+# Title: Cannot load a script after scripting a model with attribute annotations whose type is a submodule
+"""
+Output:
+Traceback (most recent call last):
+  File "test/issue_32970.py", line 8, in <module>
+    mod = torch.jit.script(m)
+  File "/home/ansley/.conda/envs/pytorch-triage/lib/python3.8/site-packages/torch/jit/_recursive.py", line 970, in _compile_function
+    return torch._C._compile_script(bytecode)
+RuntimeError: Cannot compile the script because there is a semantic error: 6:19: The type annotation for argument 'b' must have exactly one value.
+"""
+# Version: PyTorch version: 1.4.0
+# Labels: oncall: jit, module: nn/functional, high priority, triage review
+# PR Title: Cannot load a script after scripting a model with attribute annotations whose type is a submodule
+import torch
+class M(torch.nn.Module):
+    def forward(self, x : int):
+        return self.b(x) + 10
+m = M()
+# API: JIT script module with attribute annotations for model containing submodules
+# Bug description: Runtime error on loading a jit scripted model after the export of the original model that contains sub-modules in PyTorch v1.4
+
+# Title: Cannot compile a script when there is a return statement inside the function body
+"""
+Output:
+Traceback (most recent call last):
+  File "test/issue_32830.py", line 9, in <module>
+    mod = torch.jit.script(M())
+  File "/home/ansley/.conda/envs/pytorch-triage/lib/python3.8/site-packages/torch/jit/_recursive.py", line 978, in _compile_function
+    return torch._C._compile_script(bytecode)
+RuntimeError: Cannot compile the script because there is a semantic error: 10:6: Missing return statement at end of function.
+"""
+# Version: PyTorch version: 1.4.0
+# Labels: oncall: jit, module: nn/functional, high priority, triage review
+# PR Title: Cannot compile a script when there is a return statement inside the function body
+import torch
+class M(torch.nn.Module):
+    def forward(self, x : int):
+        if True:  # ? [False]
+            return x + 10
+        else:
+            return x - 10
+mod = torch.jit.script(M())
+# API: JIT script module with a if statement in the body of forward method, and no else branch
+# Bug description: Runtime error on exporting a jit model with an if statement in the body of forward method in PyTorch v1.4
+
+# Title: Cannot compile a script when there is a return statement inside the function body
+"""
+Output:
+Traceback (most recent call last):
+  File "test/issue_32830.py", line 9, in <module>
+    mod = torch.jit.script(M())
+  File "/home/ans

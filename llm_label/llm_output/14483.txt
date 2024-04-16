@@ -1,0 +1,3 @@
+ cat
+# Bug description: Torchscript thinks that cat nodes broadcast their inputs
+#                  when using torch.jit.trace in PyTorch v1.0rc1

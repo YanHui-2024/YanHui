@@ -1,0 +1,154 @@
+# API: torch.onnx.export for pytorch trace model and onnx runtime.
+# Bug description: Sequence length and real_seq_length has different values/memory in tracemodel that causes problem with onnxruntime run.
+# Tracer vs Eager mode difference in tensor.shape
+import torch
+import onnxruntime
+
+class Model(torch.nn.Module):
+    def forward(self, hidden_states):
+        batch_size, seq_length = hidden_states.shape[:2]
+        real_seq_length = seq_length
+        real_seq_length += 2                                            => real_seq_length and seq_legth should have different values
+        return real_seq_length + seq_length
+
+
+# Call export
+
+# hidden_states is tensor of rank 2
+hidden_states = torch.randn(2, 3, 5)
+model = Model()
+
+import io
+onnx_io = io.BytesIO()
+tracemodel = torch.jit.trace(model, (hidden_states, ))
+torch.onnx.export(model, (hidden_states, ), onnx_io, verbose=True)
+
+# Call onnxruntime runtime and compare outputs on dynamic inputs
+ort_session = onnxruntime.InferenceSession(onnx_io.getvalue())
+
+print(model(hidden_states))
+print(tracemodel(hidden_states))
+print(ort_session.run(None, {
+                                ort_session.get_inputs()[0].name: hidden_states.numpy()
+                            }))
+
+
+# API: Casting method (int) in JITTed Code
+# Bug description: unknown builtin op: @torch.jit.script def cast_to_int(x):   return x.int()
+import torch
+
+@torch.jit.script
+def cast_to_int(x):
+    return x.int()
+
+
+# API: Scripting, training attribute
+# Bug description: training attribute is not passed on to scripted model
+"""
+## Test case 4
+# Title: JIT fails to resolve a custom type from torch._six with Python 3.7
+"""
+Output:
+ERROR: Failed due to exception: RuntimeError: Unable to resolve name 'OrderedDict' (type: 'type', location '__torch_jit__.core') in 'OrderedDict'
+File "<string>", line 1, in __call__ (src/OperatorRegistry.cpp:20)
+File "C:\Users\USER\Anaconda3\envs\cuda101\lib\site-packages\torch\jit\_recursive.py", line 458, in _to_tensor
+ret = type(value)(*args, **kwargs)
+TypeError: type argument expected tuple or list of tuples, got OrderedDict instead
+"""
+# Version: PyTorch version: 1.1.0
+# Labels: oncall: jit
+# PR Title: JIT fails to resolve a custom type from torch._six with Python 3.7
+import numpy as np
+from torch import nn
+import sys, os
+sys.path.insert(1,'/'.join([os.getcwd(), '..','..'])) # 2 directories up from current. This is a hack to allow ptsransformer to be imported
+sys.path.append('./')
+from ptsransformer import TransformerBlock, PTTransformer, PositionalEncoding
+#
+class Tst(nn.Module):
+def __init__(self):
+super().__init__()
+self.pos_enc = nn.Sequential(PositionalEncoding(512))  # This is causing issues. The PositionalEncoding type is registered in TransformerBlock, but it cannot be resolved for some reason...
+tamas@super-duper-compute-machine:~/JUPYTER_LAB$ ipython
+Python 3.7.3 (default, Mar 27 2019, 22:11:17) 
+Type 'copyright', 'credits' or 'license' for more information
+IPython 7.6.1 -- An enhanced Interactive Python. Type '?' for help.
+
+In [1]: import torch                                                                                                                              
+
+In [2]: torch.__version__                                                                                                                         
+Out[2]: '1.2.0'
+
+In [3]: class MyCell(torch.nn.Module): 
+   ...:     def __init__(self): 
+   ...:         super(MyCell, self).__init__() 
+   ...:         self.linear = torch.nn.Linear(4, 4) 
+   ...:  
+   ...:     def forward(self, x, h): 
+   ...:         new_h = torch.tanh(self.linear(x) + h) 
+   ...:         return new_h, new_h 
+   ...:  
+   ...: model = MyCell() 
+   ...: x, h = torch.rand(3, 4), torch.rand(3, 4) 
+   ...: scripted_model = torch.jit.script(model, (x, h))                                                                                          
+/home/tamas/anaconda3/envs/cuda/lib/python3.7/site-packages/torch/jit/__init__.py:1158: UserWarning: `optimize` is deprecated and has no effect. Use `with torch.jit.optimized_execution() instead
+  warnings.warn("`optimize` is deprecated and has no effect. Use `with torch.jit.optimized_execution() instead")
+
+In [4]: scripted_model.code                                                                                                                       
+Out[4]: 'def forward(self,\n    x: Tensor,\n    h: Tensor) -> Tuple[Tensor, Tensor]:\n  _0 = self.linear\n  _1 = _0.weight\n  _2 = _0.bias\n  if torch.eq(torch.dim(x), 2):\n    _3 = torch.__isnot__(_2, None)\n  else:\n    _3 = False\n  if _3:\n    bias = ops.prim.unchecked_unwrap_optional(_2)\n    ret = torch.addmm(bias, x, torch.t(_1), beta=1, alpha=1)\n  else:\n    output = torch.matmul(x, torch.t(_1))\n    if torch.__isnot__(_2, None):\n      bias0 = ops.prim.unchecked_unwrap_optional(_2)\n      output0 = torch.add_(output, bias0, alpha=1)\n    else:\n      output0 = output\n    ret = output0\n  new_h = torch.tanh(torch.add(ret, h, alpha=1))\n  return (new_h, new_h)\n'
+
+In [5]: scripted_model.training                                                                                                                   
+Out[5]: True
+
+In [6]: scripted_model.eval()                                                                                                                     
+Out[6]: 
+WeakScriptModuleProxy(
+  (linear): WeakScriptModuleProxy()
+)
+
+In [7]: scripted_model.training                                                                                                                   
+Out[7]: False
+
+In [8]: torch.jit.save(scripted_model, 'temp.pt')                                                                                                 
+
+In [9]: m = torch.jit.load('temp.pt')                                                                                                             
+
+In [10]: m.training                                                                                                                               
+Out[10]: True
+
+
+# API: InstanceNorm2d
+# Bug description:
+#                  onnx::InstanceNormalization is not an ATen op when using torch.jit.trace in PyTorch v0.4.0
+import torch
+
+class ConvLayer(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride):
+        super(ConvLayer, self).__init__()
+        reflection_padding = kernel_size // 2
+        self.reflection_pad = torch.nn.ReflectionPad2d(reflection_padding)
+        self.conv2d = torch.nn.Conv2d(in_channels, out_channels, kernel_size, stride)
+
+    def forward(self, x):
+        out = self.reflection_pad(x)
+        out = self.conv2d(out)
+        return out
+
+class TransformerNet(torch.nn.Module):
+    def __init__(self):
+        super(TransformerNet, self).__init__()
+        # Initial convolution layers
+        self.conv1 = ConvLayer(3, 32, kernel_size=9, stride=1)
+        self.in1 = torch.nn.InstanceNorm2d(32, affine=True)
+
+    def forward(self, x):
+        return self.in1(self.conv1(x))
+
+x = torch.rand(5, 3, 224, 224)
+tn = TransformerNet()
+traced = torch.jit.trace(x)(tn)
+print(traced.__getattr__('forward').graph)
+traced(x)
+
+
+# API:

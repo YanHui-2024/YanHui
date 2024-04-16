@@ -1,0 +1,3 @@
+ ScriptModule with optimize flag set to False
+# Bug description: the PYTORCH_JIT environment variable should not influence 
+#                  the behavior of torch.jit.script

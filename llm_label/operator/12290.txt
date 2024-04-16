@@ -1,0 +1,12 @@
+# Title: [jit] graph fuser doesn't look past broadcasts when fusing
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.0rc1
+# Labels: oncall: jit
+# PR Title: [jit] graph fuser doesn't look past broadcasts when fusing
+x = f(w)
+z = g(x, y)
+a, b = chunk(z)
+c = h(a, b)

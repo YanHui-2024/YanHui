@@ -1,0 +1,2 @@
+ JIT Support
+# Bug description: binary operators not supported in PyTorch version 1.4.0

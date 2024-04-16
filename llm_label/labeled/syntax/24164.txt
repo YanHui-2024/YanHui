@@ -1,0 +1,25 @@
+# API: torch.nn.Module, nn.functional.relu, torch.jit.trace
+# Bug description: TypeError when using multiple return values on forward method of module
+#                  when using torch.jit.trace in PyTorch v1.2.0
+from torch import nn
+
+import torch
+
+
+class Model(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, a):
+        # type: (Tensor)
+
+        # [batch_size, sequence_length] →
+        # [batch_size, sequence_length]
+        a = torch.nn.functional.relu(a)
+        return a
+
+
+if __name__ == "__main__":
+    model = Model()
+    model = torch.jit.script(model)

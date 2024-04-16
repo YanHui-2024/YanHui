@@ -1,0 +1,231 @@
+# Title: REGR: Accessing dict in JITed code in 1.11
+"""
+Output:
+python test.py
+Traceback (most recent call last):
+  File "test.py", line 43, in <module>
+    x, xs = model.forward(torch.ones(10, 10), {})
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 36, in forward
+            x = torch.cat((x, score), dim=1)  # removing this line makes it work
+        else:
+            x, meta = self.activation(x, meta)
+                      ~~~~~~~~~~~~~~~ <--- HERE
+        meta["meta_y_hat"] = x  # removing this line makes it work
+        return meta["meta_y_hat"], meta
+  File "test.py", line 13, in forward
+        meta["meta_y_hat"] = x
+        # return x, meta # would make it work
+        return meta["meta_y_hat"], meta  # JIT claims it errors here
+               ~~~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: KeyError: meta_y_hat
+"""
+# Version: PyTorch version: 1.11.0
+# Labels: oncall: jit
+# PR Title: REGR: Accessing dict in JITed code in 1.11
+from typing import Final
+import torch
+class LinearActivation(torch.nn.Module):
+    def forward(
+        self, x: torch.Tensor, meta: dict[str, torch.Tensor]
+    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        meta = meta.copy()
+        meta["meta_y_hat"] = x
+        # return x, meta # would make it work
+        return meta["meta_y_hat"], meta  # JIT claims it errors here
+class Test(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.flag: Final = ""
+        self.activation = LinearActivation()
+    def forward(
+        self, x: torch.Tensor, meta: dict[str, torch.Tensor]
+    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        meta = meta.copy()
+        if self.flag != "":  # this branch should not even be compiled
+            # assert False # would make it work
+            score = x[:, -1:]
+            x, meta = self.activation(
+                x[:, :, :-1],  # replacing this with x, would make it work
+                meta,
+            )
+            x = torch.cat((x, score), dim=1)  # removing this line makes it work
+        else:
+            x, meta = self.activation(x, meta)
+        meta["meta_y_hat"] = x  # removing this line makes it work
+        return meta["meta_y_hat"], meta
+if __name__ == "__main__":
+    model = torch.jit.script(Test())
+    x, xs = model.forward(torch.ones(10, 10), {})
+# API: Dict in JIT Model
+# Bug description: a KeyError on model with custom activation
+#                  when accessing the property of Dict using torch.jit.script in PyTorch v1.11
+
+# Title: Support default values on NamedTuple fields
+"""
+Output:
+Traceback (most recent call last):
+  File "test/tinytest.py", line 22, in <module>
+    scripted = torch.jit.script(M())
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_script.py", line 947, in script
+    return torch.jit._recursive.create_script_module(
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 398, in create_script_module
+    return create_script_module_impl(nn_module, concrete_type, stubs_fn)
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 459, in create_script_module_impl
+    create_methods_and_properties_from_stubs(concrete_type, method_stubs, property_stubs)
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 341, in create_methods_and_properties_from_stubs
+    concrete_type._create_methods_and_properties(property_defs, property_rcbs, method_defs, method_rcbs, method_defaults)
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/annotations.py", line 351, in try_ann_to_type
+    return torch._C._resolve_type_from_object(ann, loc, fake_rcb)
+RuntimeError: 
+Default values are currently not supported on NamedTuple fields in TorchScript. Fields with default values: [xy]:
+  File "test/tinytest.py", line 17
+    def forward(self, point: Point):
+                             ~~~~~ <--- HERE
+        return point
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+# PR Title: 
+import torch
+from torch.fx import symbolic_trace
+from collections import namedtuple
+from typing import Dict, NamedTuple, Optional, Tuple
+class Point(NamedTuple):
+    x: Optional[torch.Tensor] = None
+    y: Optional[torch.Tensor] = None
+class M(torch.nn.Module):
+    def __init__(self):
+        super(M, self).__init__()
+    def forward(self, point: Point):
+        return point
+p = Point(x=torch.rand(3), y=torch.rand(3))
+scripted = torch.jit.script(M())
+# API: NamedTuple in JIT Model
+# Bug description: a RuntimeError on model accepting a custom type of NamedTuple
+#                  when using torch.jit.script in PyTorch v1.7.1
+
+# Title: torch.jit.trace doesn't work with autocast on Conv node.
+"""
+Output:
+ERROR: Graphs differed across invocations!
+        Graph diff:
+                  graph(%self.1 : __torch__.MyModule,
+                        %x : Tensor):
+                    %cv1 : __torch__.torch.nn.modules.conv.Conv2d = prim::GetAttr[name="cv1"](%self.1)
+                    %4 : int = prim::Constant[value=15]()
+                +   %9 : Tensor = prim::Constant[value=0.01 *  6.7810  6.4636  5.3894 [ CUDAHalfType{3} ]](), scope: __module.cv1 # /home/titaiwang/pytorch/torch/nn/modules/conv.py:459:0
+                +   %10 : Tensor = prim::Constant[value=<Tensor>](), scope: __module.cv1 # /home/titaiwang/pytorch/torch/nn/modules/conv.py:459:0
+                ?             ^
+                +   return (%22)
+                ?             ^
+        First diverging operator:
+        Node diff:
+                - %cv1 : __torch__.torch.nn.modules.conv.___torch_mangle_2.Conv2d = prim::GetAttr[name="cv1"](%self.1)
+                ?                                                        ^
+                + %cv1 : __torch__.torch.nn.modules.conv.___torch_mangle_4.Conv2d = prim::GetAttr[name="cv1"](%self.1)
+                ?                                                        ^
+"""
+# Version: PyTorch version: 1.12.1
+# Labels: oncall: jit, module: onnx, module: amp (automated mixed precision), onnx-triaged
+# PR Title: torch.jit.trace doesn't work with autocast on Conv node.
+import torch
+
+class MyModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.cv1 = torch.nn.Conv2d(3, 3, 5, 2, 1)
+
+    def forward(self, x):
+        x = self.cv1(x)
+        return x
+
+x = torch.randn(10, 3, 20, 20) * 2
+m = MyModule().eval()
+x = x.cuda()
+m = m.cuda()
+
+with torch.no_grad():
+    print("outside result: ", torch.jit.trace(m, x))
+    with torch.cuda.amp.autocast(enabled = True, dtype=torch.float16):
+        print("inside result: ", torch.jit.trace(m, x))
+# API: torch.nn.Conv2d
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.12.1
+
+# Title: [jit] Error: 'List must contain only a single type' when loading Python model into C++
+"""
+Output:
+> terminate called after throwing an instance of 'torch::jit::script::ErrorReport'
+>   what():  
+> Lists must contain only a single type, expected: Float(1, 1083, 11) but found Float(1, 4332, 11) instead:
+> op_version_set = 0
+> def forward(self,
+>     input_1: Tensor) -> Tensor:
+>   _0 = [CONSTANTS.c0, CONSTANTS.c1, CONSTANTS.c2]
+>        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ <--- HERE
+>   return torch.cat(_0, 1)
+> 
+> Aborted (core dumped)
+"""
+# Version: PyTorch version: 1.0.1
+# Labels: oncall: jit
+# PR Title: [jit] Error: 'List must contain only a single type' when loading Python model into C++
+class YOLOv3(nn.Module):
+    def __init__(self, anchors, anch_mask, n_classes, ignore_thre=0.7):
+        """
+        Initialization of YOLOv3 class.
+        Args:
+            config_model (dict): used in YOLOLayer.
+            ignore_thre (float): used in YOLOLayer.
+        """
+        super(YOLOv3, self).__init__()
+        self.loss_list = []
+        self.module_list= create_yolov3_modules(anchors, anch_mask, n_classes, ignore_thre)
+        self.length = len(self.module_list) 
+    def forward(self, x, targets=None):
+        """
+        Forward path of YOLOv3.
+        Args:
+            x (torch.Tensor) : input data whose shape is :math:`(N, C, H, W)`, \
+                where N, C are batchsize and num. of channels.
+            targets (torch.Tensor) : label array whose shape is :math:`(N, 50, 5)`
+        Returns:
+            training:
+                output (torch.Tensor): loss tensor for backpropagation.
+            test:
+                output (torch.Tensor): concatenated detection results.
+        """
+        train = targets is not None
+        output = []
+        route_layers = []
+        for i in range(self.length):
+            # yolo layers
+            if i == 14 or i == 22 or i == 28:
+                if train:
+                    x, *loss_dict = self.module_list[i](x, targets)
+                    #for name, loss in zip(['xy', 'wh', 'conf', 'cls', 'l2'] , loss_dict):
+                    self.loss_list += loss_dict
+                else:
+                    x = self.module_list[i](x)
+                output.append(x)
+            else:
+                x = self.module_list[i](x)
+            # route layers
+            if i == 6 or i == 8 or i == 12 or i == 20:
+                route_layers.append(x)
+            if i == 14:
+                x = route_layers[2]
+            if i == 22:  # yolo 2nd
+                x = route_layers[3]
+            if i == 16:
+                x = torch.cat((x, route_layers[1]), 1)
+            if i == 24:
+                x = torch.cat((x, route_layers[0]), 1)
+            i+=1
+        if train:
+            return sum(output)
+        else:
+            return torch.cat(output, 1)
+# API:

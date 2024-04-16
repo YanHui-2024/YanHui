@@ -1,0 +1,36 @@
+# Title: [JIT] [Autocast] Autocast Pass induce warning in Jit Trace
+"""
+Output:
+/home/lesliefang/pytorch_1_7_1/Autocast_Pytorch/pytorch/torch/jit/_trace.py:983: TracerWarning: Output nr 1. of the traced function does not match the corresponding output of the Python function. Detailed error:
+Tensor-likes are not close!
+
+Mismatched elements: 595329 / 802816 (74.2%)
+Greatest absolute difference: 0.00012071523815393448 at index (0, 63, 43, 30) (up to 1e-05 allowed)
+Greatest relative difference: 0.01244930820610687 at index (0, 27, 106, 34) (up to 1e-05 allowed)
+
+  _check_trace(
+"""
+# Version: PyTorch version: 1.11.0
+# Labels: oncall: jit
+# PR Title: 
+import torch
+import torch.nn as nn
+
+class AtenSoftmaxRepalce(nn.Module):
+    def __init__(self, dim=-1):
+        super(AtenSoftmaxRepalce, self).__init__()
+        self.conv = torch.nn.Conv2d(3, 64, (3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+        self.softmax = torch.nn.Softmax(dim)
+
+    def forward(self, x):
+        x1 = self.conv(x)
+        return self.softmax(x1)
+
+model = AtenSoftmaxRepalce()
+model.eval()
+
+x = torch.rand(1, 3, 224, 224).to(torch.bfloat16)
+
+with torch.no_grad():
+    with torch.cpu.amp.autocast(cache_enabled=False):
+        model = torch.jit.trace(model, x).eval()

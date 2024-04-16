@@ -1,0 +1,26 @@
+ MaxPool with return_indices: true
+# Bug description: Trace sanity check fails when return_indices=True in module signature
+#                  when using torch.jit.trace in PyTorch v1.6.0
+
+# Title: torch.jit.trace does not produce correct code
+"""
+Output:
+(a) error in the torch.jit.trace call, which occurs with or without autocast enabled
+(b) incorrect behavior of the traced module -- a 10x slowdown and different outputs on some inputs compared to non-JITed training script
+"""
+# Version: PyTorch version: 1.6.0
+# Labels: oncall: jit, module: nn, module: data_parallel
+# PR Title: torch.jit.trace does not produce correct code
+from time import time
+import torch
+t1 = time()
+model = torch.nn.DataParallel(torch.nn.BatchNorm2d(32))
+x = torch.randn([64, 32], requires_grad=True)
+y = model(x)
+traced_script_module = torch.jit.trace(model.module, x)
+print("time spent in jit.trace: {:.0f}".format(time() - t1))
+print(y[0])
+print(traced_script_module(x)[0])
+# API: torch.jit.trace for DataParallel module
+# Bug description: Trace sanity check fails with or without autocast enabled
+#                  and incorrect behavior of the traced module when using torch.jit.trace in PyTorch v1.6.0

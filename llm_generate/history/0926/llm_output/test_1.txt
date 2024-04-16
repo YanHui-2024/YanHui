@@ -1,0 +1,30 @@
+# API: torch.nn.functional.linear
+# Bug description: RuntimeError on calling linear on a model with a non-float input when using torch.jit.trace in PyTorch v1.3.0 and below
+class Example(torch.nn.Module):
+    def __init__(self, layer):
+        super().__init__()
+        self.layer = layer
+    
+    def forward(self, x: torch.LongTensor) -> torch.FloatTensor: # wrong type here causes a failure when using jit.trace with v1.3.0 and below
+        return self.layer(x).relu()
+
+e = Example(torch.nn.Linear(5, 7))
+print(torch.jit.script(Example(None))) # succeeds
+print(torch.jit.script(e).code) # fails on call to e(torch.LongTensor())
+
+
+# API: torch.(nn.)Linear in TorchScript
+# Bug description: TypeError on calling linear with a 1-dimensional input when using torch.jit.trace in PyTorch v1.3.0 and below
+class MyModel(torch.nn.Module):
+    def __init__(self, layer):
+        super().__init__()
+        self.layer = layer
+    
+    def forward(self, x: torch.LongTensor) -> torch.FloatTensor: # wrong type here causes a failure when using jit.trace with v1.3.0 and below
+        return self.layer(x).relu()
+        
+model = MyModel(torch.nn.Linear(5, 7))
+scripted_model = torch.jit.script(model)
+inputs = [torch.LongTensor([i] * 5) for i in range(6)]
+print(list(map(lambda x: model(x), inputs))) # works fine
+print(list(map(lambda x: scripted_model(x), inputs))) # fails with RuntimeError: Expected 2-dimensional tensor (got tensor with 1 dimensions)

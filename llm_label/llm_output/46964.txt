@@ -1,0 +1,71 @@
+ Final[int]
+# Bug description: AttributeError when using torch.jit.script and Final on an int variable in PyTorch v1.7.0
+
+# Title: JITed module doesn't support returning a tuple of tensors.
+"""
+Output:
+ERROR: Exception while trying to run model
+Traceback (most recent call last):
+  File "/home/titaiwang/pytorch/torch/jit/_builtins/quantized/__init__.py", line 35, in annotate_args
+    return builtin_annotations[kind](*schema.arguments(fn))
+  File "aten/src/ATen/native/quantized/packed_params.cpp", line 164, in quantize_per_tensor
+    packed_params = _packed_params(*args);
+RuntimeError: Expected PackedParams but got NoneType at position 0
+
+graph(%self : __torch__.test::Pack(Tensor)):
+    %3 : int = prim::Constant[value=2]()
+    %13 : float = prim::Constant[value=1.5e-07]()
+    %9 : Tensor, %3 : int = prim::TupleConstruct(%self)
+                                        ^
+    # CHECK: [[@LINE + 1]]: RuntimeError: Expected PackedParams but got NoneType at position 0
+    %21 : __torch__.jit.Final[Tensor], %9, %3 = prim::TupleGetItem(%tuple: (%self, %3), %3)
+                                        ^
+  %26 : Tensor = prim::CallMethod[yn](%21, %9)
+                                       ^
+    return (%26)
+    # CHECK: [[@LINE + 0]]: RuntimeError: Expected PackedParams but got NoneType at position 0
+
+RuntimeError: 
+Expected PackedParams but got NoneType at position 0
+"""
+# Version: PyTorch version: 1.6.0, CUDA used: cuda 10.2
+# Labels: oncall: jit, days
+# PR Title: 
+# Dockerfile
+FROM python:3.8-slim-buster
+USER root
+WORKDIR /root
+RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install torch==1.6.0+cu102 -f https://download.pytorch.org/whl/torch_stable.html
+COPY a.py /
+COPY b.py /
+RUN python3 /a.py
+# a.py:
+import torch
+from test import B
+class A(B):
+    def __init__(self, dim):
+        super().__init__(dim)
+class Pack(torch.nn.Module):
+    def __init__(self, t):
+        super().__init__()
+        self._t = t
+    
+    def forward(self, x):
+        return (x + 1, torch.tensor([2]).type_as(x))
+a = A(3)
+a = torch.jit.script(a)
+print("outside: ", a(torch.randn(3)))
+# b.py:
+import test
+class B(test.A):
+    def __init__(self, dim):
+        super().__init__(dim)
+    @torch.jit.export
+    def forward_packed(self, x):
+        return self._t(x)[0] + 3
+b = B(4)
+b = torch.jit.script(b)
+print("inside: ", b(torch.randn(2)))
+# API: Tuple[Tensor, Tensor]
+# Bug description: RuntimeError when trying to compile model accepting a tuple of tensors in PyTorch 1.6.0

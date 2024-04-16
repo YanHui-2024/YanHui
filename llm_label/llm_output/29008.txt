@@ -1,0 +1,51 @@
+ In-place ops in JIT graph
+# Bug description: Incorrect traced graph for in-place ops
+#                  in current master (1.3.0)
+
+# Title: jit compilation hangs when tensor has no_grad() applied on it and is passed to forward method of nn.Module instance.
+"""
+Output:
+---------------------------------------------------------------------------
+RuntimeError                              Traceback (most recent call last)
+<ipython-input-72-1e950b326bb5> in <module>()
+      4
+      5     if use_cuda:
+----> 6         data = data.to(device='cuda', dtype=torch.float)
+      7 
+      8     # print('data shape is ', data.shape)
+
+/home/ubuntu/.local/lib/python3.5/site-packages/torch/tensor.py in to(self, *args, **kwargs)
+   1262             return super(_TensorBase, self).to(*args, **kwargs)
+   1263 
+-> 1264         if not isinstance(dtype, torch._six.string_classes):
+   1265             try:
+   1266                 dtype = torch._C._parse_cuda_dtype(dtype)
+
+/home/ubuntu/.local/lib/python3.5/site-packages/torch/_C.py in _parse_cuda_dtype(dtype)
+    491         raise TypeError("dtype must be a torch.dtype, or a str, int or " +  # noqa
+    492                         "a torch._six.string_classes, but got: {}".format(str(dtype)))
+--> 493     return parse_dtype(dtype)
+    494 
+    495 def _parse_cuda_memory_format(mformat):
+
+/home/ubuntu/.local/lib/python3.5/site-packages/torch/_C.py in parse_dtype(dtype)
+     76             msg = "invalid dtype '{}'"
+     77         raise TypeError(msg.format(str(dtype)))
+---> 78     return _C._parse_enum_type('DataType', str(dtype))
+
+RuntimeError: invalid dtype 'None'
+"""
+# Version: PyTorch version: 1.1.0, Cuda version: 9.2
+# Labels: high priority, oncall: jit, triaged, module: autograd (automatic differentiation)
+# PR Title: jit compilation hangs when tensor has no_grad() applied on it and is passed to forward method of nn.Module instance.
+import torch
+class IndexPutModel(torch.nn.Module):
+    def forward(self, x, update):
+        x[..., torch.tensor([2, 1, 3]), 2:4] += update
+        return x
+x = torch.randn(3, 4, 5, 6, 7)
+update = torch.randn(3, 1, 1, 3, 2)
+trace_graph, torch_out, inputs_states = torch.jit.get_trace_graph(IndexPutModel(), (x, update), _force_outplace=True, _return_inputs_states=True)
+print(trace_graph)
+# API: no-grad tensor in JIT graph
+# Bug description: jit compilation hangs when tensor has no_grad() applied on it and is passed to forward method of nn.Module instance.

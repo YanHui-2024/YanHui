@@ -1,0 +1,154 @@
+ NamedTuple in JIT Functionalities
+# Bug description: AttributeError on function returning an instance of namedtuple
+#                  when using torch.jit.trace in PyTorch v1.0.0
+import torch
+from collections import namedtuple
+ret = namedtuple("ret", ["U"])(torch.eye(2,2)) # ret is a named tuple
+def f():
+    return ret
+x = torch.jit.trace(f, {})
+# API: NamedTuple in JIT Model
+# Bug description: AttributeError on function returning an instance of namedtuple
+#                  when using torch.jit.script in PyTorch v1.0.0
+import torch
+from collections import namedtuple
+ret = namedtuple("ret", ["U"])(torch.eye(2,2)) # ret is a named tuple
+def f():
+    return ret
+x = torch.jit.script(f)
+# API: NamedTuple in JIT Model with autocast (automated mixed precision)
+# Bug description: AttributeError on function returning an instance of namedtuple
+#                  when using autocast for the model in PyTorch v1.0.0
+import torch
+from collections import namedtuple
+ret = namedtuple("ret", ["U"])(torch.eye(2,2)) # ret is a named tuple
+def f():
+    return ret
+x = torch.jit.script(f)
+with torch.autocast(device_type="cuda"):
+# API: NamedTuple in JIT Model with autocast (automated mixed precision)
+# Bug description: AttributeError on function returning an instance of namedtuple
+#                  when using autocast for the model in PyTorch v1.0.0
+import torch
+from collections import namedtuple
+ret = namedtuple("ret", ["U"])(torch.eye(2,2)) # ret is a named tuple
+def f():
+    return ret
+x = torch.jit.script(f)
+with torch.autocast(device_type="cuda"):
+# API: NamedTuple in JIT Model with autocast (automated mixed precision)
+# Bug description: AttributeError on function returning an instance of namedtuple
+#                  when using autocast for the model in PyTorch v1.0.0
+import torch
+from collections import namedtuple
+ret = namedtuple("ret", ["U"])(torch.eye(2,2)) # ret is a named tuple
+def f():
+    return ret
+x = torch.jit.script(f)
+with torch.autocast(device_type="cuda"):
+# API: NamedTuple in JIT Model with autocast (automated mixed precision)
+# Bug description: AttributeError on function returning an instance of namedtuple
+#                  when using autocast for the model in PyTorch v1.0.0
+import torch
+from collections import namedtuple
+ret = namedtuple("ret", ["U"])(torch.eye(2,2)) # ret is a named tuple
+def f():
+    return ret
+x = torch.jit.script(f)
+with torch.autocast(device_type="cuda"):
+# API: NamedTuple in JIT Model with autocast (automated mixed precision)
+# Bug description: AttributeError on function returning an instance of namedtuple
+#                  when using autocast for the model in PyTorch v1.0.0
+import torch
+from collections import namedtuple
+ret = namedtuple("ret", ["U"])(torch.eye(2,2)) # ret is a named tuple
+def f():
+    return ret
+x = torch.jit.script(f)
+with torch.autocast(device_type="cuda"):
+# API: NamedTuple in JIT Model with autocast (automated mixed precision)
+# Bug description: AttributeError on function returning an instance of namedtuple
+#                  when using autocast for the model in PyTorch v1.0.0
+import torch
+from collections import namedtuple
+ret = namedtuple("ret", ["U"])(torch.eye(2,2)) # ret is a named tuple
+def f():
+    return ret
+x = torch.jit.script(f)
+with torch.autocast(device_type="cuda"):
+# API: NamedTuple in JIT Model with autocast (automated mixed precision)
+# Bug description: AttributeError on function returning an instance of namedtuple
+#                  when using autocast for the model in PyTorch v1.0.0
+import torch
+from collections import namedtuple
+ret = namedtuple("ret", ["U"])(torch.eye(2,2)) # ret is a named tuple
+def f():
+    return ret
+x = torch.jit.script(f)
+with torch.autocast(device_type="cuda"):
+# API: NamedTuple in JIT Model with autocast (automated mixed precision)
+# Bug description: AttributeError on function returning an instance of namedtuple
+#                  when using autocast for the model in PyTorch v1.0.0
+import torch
+from collections import namedtuple
+ret = namedtuple("ret", ["U"])(torch.eye(2,2)) # ret is a named tuple
+def f():
+    return ret
+x = torch.jit.script(f)
+with torch.autocast(device_type="cuda"):
+# API: NamedTuple in JIT Model with autocast (automated mixed precision)
+# Bug description: AttributeError on function returning an instance of namedtuple
+#                  when using autocast for the model in PyTorch v1.0.0
+import torch
+from collections import namedtuple
+ret = namedtuple("ret", ["U"])(torch.eye(2,2)) # ret is a named tuple
+def f():
+    return ret
+x = torch.jit.script(f)
+with torch.autocast(device_type="cuda"):
+# API: NamedTuple in JIT Model with autocast (automated mixed precision)
+# Bug description: AttributeError on function returning an instance of namedtuple
+#                  when using autocast for the model in PyTorch v1.0.0
+import torch
+from collections import namedtuple
+ret = namedtuple("ret", ["U"])(torch.eye(2,2)) # ret is a named tuple
+def f():
+    return ret
+x = torch.jit.script(f)
+with torch.autocast(device_type="cuda"):
+# API: NamedTuple in JIT Model with autocast (automated mixed precision)
+# Bug description: AttributeError on function returning an instance of namedtuple
+#                  when using autocast for the model in PyTorch v1.0.0
+import torch
+from collections import namedtuple
+ret = namedtuple("ret", ["U"])(torch.eye(2,2)) # ret is a named tuple
+def f():
+    return ret
+x = torch.jit.script(f)
+with torch.autocast(device_type="cuda"):
+# API: NamedTuple in JIT Model with autocast (automated mixed precision)
+# Bug description: AttributeError on function returning an instance of namedtuple
+#                  when using autocast for the model in PyTorch v1.0.0
+import torch
+from collections import namedtuple
+ret = namedtuple("ret", ["U"])(torch.eye(2,2)) # ret is a named tuple
+def f():
+    return ret
+x = torch.jit.script(f)
+with torch.autocast(device_type="cuda"):
+# API: NamedTuple in JIT Model with autocast (automated mixed precision)
+# Bug description: AttributeError on function returning an instance of namedtuple
+#                  when using autocast for the model in PyTorch v1.0.0
+import torch
+from collections import namedtuple
+ret = namedtuple("ret", ["U"])(torch.eye(2,2)) # ret is a named tuple
+def f():
+    return ret
+x = torch.jit.script(f)
+with torch.autocast(device_type="cuda"):
+# API: NamedTuple in JIT Model with autocast (automated mixed precision)
+# Bug description: AttributeError on function returning an instance of namedtuple
+#                  when using autocast for the model in PyTorch v1.0.0
+import torch
+from collections import namedtuple
+ret = namedtuple("

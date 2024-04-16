@@ -1,0 +1,6 @@
+# API: N/A
+# Bug description: RuntimeException: expected scalar type Long but found Double
+@torch.jit.script
+def model():
+    return torch.tensor([[1,2],[0,0]], dtype=torch.double).sum()
+model()

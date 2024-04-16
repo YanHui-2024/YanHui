@@ -1,0 +1,100 @@
+ **dict
+# Bug description: TorchScript can't handle the **dict syntax, which results in an error saying it doesn't have a lineno attribute
+
+# Title: Fails to export function with kwarg
+"""
+Output:
+ERROR: If you're trying to run the PyTorch jit against a .py file, see test/jit/annotations/export_tests.py for notes on doing this. Otherwise, please provide a self-contained example and we'll take a look (github.com/pytorch/pytorch/issues)
+Traceback (most recent call last):
+  File "test/test_jit.py", line 46, in <module>
+    test_error(a)
+  File "test/test_jit.py", line 37, in test_error
+    with torch.autograd.profiler.profile() as prof:
+  File "torch/__init__.py", line 60, in inner
+    return func(*args, **kwargs)
+TypeError: 'dict' object is not callable
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+# PR Title: Fails to export function with kwarg
+def test_error(a=3):
+    x = {"hello": None}
+x = {}
+test_error(**x)
+# API: callable with keyword argument
+# Bug description: In torch 1.7, the callable with keyword arguments should be supported but it fails to export it.
+
+# Title: Fails to compile a complex module
+"""
+Output:
+torch/jit/frontend.py in __init__(self, ctx, offending_node, reason)
+    109         node_type = type(offending_node)
+    110         range_len = len(node_start_tokens.get(node_type, ' '))
+--> 111         source_range = ctx.make_range(offending_node.lineno,
+    112                                       offending_node.col_offset,
+    113                                       offending_node.col_offset + range_len)
+AttributeError: 'NoneType' object has no attribute 'lineno'
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit, days, TSUsability, module: onnx
+# PR Title: Fails to compile a complex module
+import torch
+from typing import Dict
+class A(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def test_error(self, x: int = 3) -> bool:
+        for i in range(10):
+            if (i + x) == 5:
+                return True
+        return False
+    
+    def forward(self) -> Dict[str, torch.Tensor]:
+        x = {"hello": None}
+        # TODO: when this is fixed, the below line should work as intended
+        return self.test_error(**x)
+a = A()
+# API: torch.nn.Module and **dict
+# Bug description: In torch 1.7, TorchScript can't handle a complex module
+
+# Title: Fails to export function with kwarg as a return type
+"""
+Output:
+ERROR: If you're trying to run the PyTorch jit against a .py file, see test/jit/annotations/export_tests.py for notes on doing this. Otherwise, please provide a self-contained example and we'll take a look (github.com/pytorch/pytorch/issues)
+Traceback (most recent call last):
+  File "test/test_jit.py", line 39, in <module>
+    test_error(a, b=2)
+TypeError: test_error() got an unexpected keyword argument 'b'
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit
+# PR Title: Fails to export function with kwarg as a return type
+def test_error(x, **y):
+    return y
+a = torch.randn(3)
+b = {"hello": None}
+# API: Callable accepting keyword argument and returning it.
+# Bug description: This fails when using the JIT compiler to call this function and TorchScript exporting to convert into a model file.
+
+# Title: Fails to export module with tuple subscripting as a return type
+"""
+Output:
+torch/jit/frontend.py in __init__(self, ctx, offending_node, reason)
+    109         node_type = type(offending_node)
+    110         range_len = len(node_start_tokens.get(node_type, ' '))
+--> 111         source_range = ctx.make_range(offending_node.lineno,
+    112                                       offending_node.col_offset,
+    113                                       offending_node.col_offset + range_len)
+AttributeError: 'NoneType' object has no attribute 'lineno'
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit, days
+# PR Title: Fails to export module with tuple subscripting as a return type
+import torch
+def test_error(x):
+    x = (1, 2, {'hello': None})
+    return x[2]['hello']
+a = test_error(torch.randn(3))
+# API: Callable returning tuple subscripting as a return type
+# Bug description: This fails when using the JIT compiler to call this function and TorchScript exporting to convert into a model file.

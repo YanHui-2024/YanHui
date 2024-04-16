@@ -1,0 +1,156 @@
+ gc
+# Bug description: When importing torch it fails with a RuntimeError "No such operator __file__::__file__"
+
+# Title: RuntimeError when using torch.autocast in JIT mode (with/without grad)
+"""
+Output:
+Traceback (most recent call last):
+  File "test_torch_jit.py", line 30, in <module>
+    with torch.no_grad():
+RuntimeError: autocast is not supported inside a TorchScript context
+"""
+# Version: PyTorch version: 1.2.0
+# Labels: oncall: jit, module: amp (automated mixed precision), onnx-triaged
+# PR Title: RuntimeError when using torch.autocast in JIT mode (with/without grad)
+import torch
+from collections import namedtuple
+class Test(torch.nn.Module):
+    def __init__(self, device = "cuda"):
+        super().__init__()
+        self.device = device
+    def forward(self, x):
+        with torch.no_grad():  # This line makes it fail
+            with torch.autocast("float16", device_type=self.device):
+                return (x * 2).cpu()
+m = Test().eval()
+input = torch.randn(3, requires_grad=True)
+scripted = torch.jit.script(m).to(torch.float16).half()
+# API: autocast
+# Bug description: RuntimeError when using torch.autocast in JIT mode (with/without grad)
+
+# Title: RuntimeError when using .cuda on a scripted model with custom class attributes
+"""
+Output:
+Traceback (most recent call last):
+  File "test_torch_jit.py", line 27, in <module>
+    c = C(3)
+  File "/usr/local/lib/python3.7/dist-packages/torch/nn/modules/_functions.py", line 854, in forward
+    return F.linear(input, weight, bias)
+RuntimeError: Custom class attribute __torch_script_spec__ of type <class 'list'> is not supported.
+"""
+# Version: PyTorch version: 1.6.0
+# Labels: oncall: jit, module: onnx (export to other frameworks), onnx-triaged
+# PR Title: RuntimeError when using .cuda on a scripted model with custom class attributes
+from torch import nn
+class C(nn.Module):
+    def __init__(self, dim_in):
+        super().__init__()
+        self.dim_out = 10 # this is the only custom attribute I'm adding to the scripted model in my actual use case
+    def forward(self, input):
+        return input
+c = C(3)
+scripted = torch.jit.script(c).to("cuda")
+# API: torch.nn.Module
+# Bug description: RuntimeError when using .cuda on a scripted model with custom class attributes
+
+# Title: Runtime error when calling __getattr__ on forward method of jit model with no-op return statement
+"""
+Output:
+Traceback (most recent call last):
+  File "test.py", line 18, in <module>
+    m = M()
+  File "test.py", line 13, in __init__
+    self.my_attr = my_module_getter(self)
+  File ".../site-packages/torch/_ops.py", line 60, in __getattr__
+    op = torch._C._jit_get_operation(qualified_op_name)
+RuntimeError: No such operator nn::MyModule::getter<int>
+"""
+# Version: PyTorch version: 1.5.0
+# Labels: oncall: jit, module: onnx (export to other frameworks), onnx-triaged
+# PR Title: Runtime error when calling __getattr__ on forward method of jit model with no-op return statement
+import torch
+from typing import Optional, Tuple, NamedTuple, Dict, List, Any
+from collections import namedtuple
+MyAttr = NamedTuple('Attr', [('x', int)])
+class M(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self._mymodule_attr: Optional[int] = None
+    @property
+    def mymodule_attr(self):
+        if self._mymodule_attr is not None:
+            return MyAttr(self._mymodule_attr)
+        else:
+            raise RuntimeError("MyModule has no attribute")
+    def forward(self, x):
+        return torch.jit.annotate(Optional[Tuple[int]], None)  # I use this as a workaround
+import torch.utils.bundled_inputs
+class MyModel(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+    @staticmethod
+    def _mymodule_attr(self) -> Optional[MyAttr]:
+        if self._mymodule_attr is not None:
+            return MyAttr(self._mymodule_attr)
+        else:
+            raise RuntimeError("MyModule has no attribute")
+    def forward(self, x):
+        mymodule_attr = self._mymodule_attr()
+# API: torch.jit
+# Bug description: Runtime error when calling __getattr__ on forward method of jit model with no-op return statement
+
+# Title: JIT Compilation Fails in PyTorch 1.3.1
+"""
+Output:
+Traceback (most recent call last):
+  File "test_torch_jit.py", line 5, in <module>
+    x = m.forward(x)
+RuntimeError: Expected type List[Optional[Tuple[int]]] at position 0, but got Optional[Tuple[int]] instead
+"""
+# Version: PyTorch version: 1.3.1
+# Labels: oncall: jit
+# PR Title: JIT Compilation Fails in PyTorch 1.3.1
+import torch
+class M(torch.nn.Module):
+    def __init__(self, x=None):
+        super().__init__()
+        self._x = x  # Optional[Tuple[int]]
+    def forward(self, x: Optional[Tuple[int]]) -> torch.Tensor:
+        return x
+# API: torch.nn.Module
+# Bug description: JIT Compilation Fails in PyTorch 1.3.1
+
+# Title: jit module's forward method does not work if the method name is different from "forward"
+"""
+Output:
+Traceback (most recent call last):
+  File "/tmp/test_torch_jit.py", line 46, in <module>
+    m = M(3)
+  File "/usr/local/lib/python3.7/dist-packages/torch/nn/modules/_functions.py", line 854, in forward
+    return F.linear(input, weight, bias)
+RuntimeError: Expected type List[Optional[Tuple[int]]] at position 0, but got Optional[Tuple[int]] instead
+"""
+# Version: PyTorch version: 1.3.1
+# Labels: oncall: jit
+# PR Title: jit module's forward method does not work if the method name is different from "forward"
+import torch
+class M(torch.nn.Module):
+    def __init__(self, x=None) -> None:  # type: ignore[misc]
+        super().__init__()
+        self._x = x  # Optional[Tuple[int]]
+    def my_forward(self, input):
+        return torch.jit.annotate(Optional[Tuple[int]], None)
+# API: torch.nn.Module, forward method name is different from "forward"
+# Bug description: jit module's forward method does not work if the method name is different from "forward"
+
+# Title: TypeError when using .apply() in JIT scripting mode for a custom class with __call__
+"""
+Output:
+Traceback (most recent call last):
+  File "/tmp/test_torch_jit.py", line 16, in <module>
+    m = M(3)
+TypeError: 'M' object is not subscriptable
+"""
+# Version: PyTorch version: 1.0.0
+# Labels: oncall: jit
+# PR Title: TypeError when using .

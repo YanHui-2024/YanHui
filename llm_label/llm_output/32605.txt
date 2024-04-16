@@ -1,0 +1,44 @@
+ torch.nn.utils.rnn
+# Bug description: The lengths returned in a PackedSequence are different depending on the tracing state, resulting in a checker failure
+
+# Title: [jit] Tracing with non-polymorphic input shapes does not work when using if statements (e.g. in forward) to switch between multiple backends.
+"""
+Output:
+Traceback (most recent call last):
+  File "test.py", line 19, in <module>
+    test_function()
+  File "test.py", line 5, in test_function
+    model = torch.jit.script(Net())
+  File "/workspace/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_tracing.py", line 1249, in script
+    instance = forward_api.createResolutionManager(cls, rec_mgr)
+  File "/workspace/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_forwarding.py", line 60, in createResolutionManager
+    mod = cls()
+  File "/workspace/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/nn/modules/container.py", line 156, in __init__
+    "Please implement your own ``extra_repr`` function" % self.__class__.__name__)
+RuntimeError: nn::Container extra_repr is unimplemented. Please implement your own ``extra_repr`` function (nn::Container:51). If you are inheriting ``nn::Container`` in a new module, please add ``S(0): _forward_impl`` and ``D(S(0), stride=1, padding=0) (S(1))`` to the ``modules`` list.
+  File "test.py", line 8, in __init__
+    super().__init__(input_size, hidden_size, batch_first=batch_first)
+RuntimeError: nn::LSTMCell extra_repr is unimplemented. Please implement your own ``extra_repr`` function (nn::LSTMCell:51). If you are inheriting ``nn::LSTMCell`` in a new module, please add ``S(0): _forward_impl`` and ``D(S(0), stride=1, padding=0) (S(1))`` to the ``modules`` list.
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+# PR Title: [jit] Tracing with non-polymorphic input shapes does not work when using if statements (e.g. in forward) to switch between multiple backends.
+import torch
+from torch import nn, Tensor
+class Net(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.input_size = 784
+        self.hidden_size = 500
+        self.batch_first = False
+    # pylint: disable=arguments-differ
+    def forward(self, x):
+        if x.shape[1] > 2:
+            model = torch.jit.script(Net())
+            return model(x)
+        else:
+            return None
+if __name__ == "__main__":
+    test_function()
+# API: torch.nn.Module (inherited by custom classes) + script() call inside module's forward
+# Bug description: The graph returned has an error when using a trace inside the forward, with multiple backends

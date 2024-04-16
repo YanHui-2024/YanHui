@@ -1,0 +1,97 @@
+ torch._C._autocast_is_enabled()
+# Bug description: TorchScript compilation fails when _autocast_is_enabled is invoked in JIT mode, 
+#                  but it works if executed as a Python script.
+#                  
+
+# Title: RuntimeError when using custom module
+"""
+Output:
+Traceback (most recent call last):
+  File "debug_custom_module.py", line 187, in <module>
+    script_model = torch.jit.script(Net())
+  File "/home/titaiwang/.conda/envs/pytorch39-dev/lib/python3.9/site-packages/torch/jit/__init__.py", line 1043, in script
+    return ScriptModule()
+  File "/home/titaiwang/.conda/envs/pytorch39-dev/lib/python3.9/site-packages/torch/jit/script.py", line 587, in __init__
+    self._recompile()
+  File "/home/titaiwang/.conda/envs/pytorch39-dev/lib/python3.9/site-packages/torch/jit/script.py", line 608, in _recompile
+    return _run_emit_hook(self._c)
+  File "/home/titaiwang/.conda/envs/pytorch39-dev/lib/python3.9/site-packages/torch/jit/script.py", line 57, in _run_emit_hook
+    return fn(self._c)
+RuntimeError: module attributes not supported for torch.jit.RecursiveScriptModule
+"""
+# Version: PyTorch version: 1.9.0+cu102
+# Labels: oncall: jit, module: custom_module
+# PR Title: RuntimeError when using custom module
+class TestNet(torch.nn.Module):
+    def __init__(self, n):
+        super().__init__()
+        self._n = n  # type: int
+    
+    def forward(self, x):
+        for i in range(self._n):
+            print("Iteration %d / %d" % (i + 1, self._n))
+            x = torch.neg(x) * 2 - 3 + x ** 5 + math.sqrt(4096)
+        return x
+# API: RecursiveScriptModule
+# Bug description: RuntimeError when using custom module
+if __name__ == '__main__':
+    net = TestNet(3).cuda().half()
+    script_model = torch.jit.script(net)
+
+# Title: JIT Error: Type mismatch for argument 0 between PyTorch C++ frontend and backend
+"""
+Output:
+Traceback (most recent call last):
+  File "test/tinytest.py", line 57, in <module>
+    assert script_m(1) == m(1)
+RuntimeError: Type mismatch for argument 0 between PyTorch C++ frontend and backend
+backend types:
+frontend types:
+function signature:
+  x : int
+"""
+# Version: PyTorch version: 1.9.1+cu113
+# Labels: oncall: jit, module: onnx (automated mixed precision), onnx-triaged
+# PR Title: JIT Error: Type mismatch for argument 0 between PyTorch C++ frontend and backend
+import torch
+@torch.jit.script
+def foo(x : int) -> int:
+    return x + 1
+m = torch.jit.trace(foo, (1,))
+# API: Trace
+# Bug description: JIT Error: Type mismatch for argument 0 between PyTorch C++ frontend and backend
+if __name__ == '__main__':
+    assert script_m(1) == m(1)
+# Title: torch.jit.ScriptModule loading from disk with tracing and running in eval mode
+"""
+Output:
+no_tracer: True   no_tracer=True
+Traceback (most recent call last):
+  File "test/tinytest.py", line 135, in <module>
+    script_m2 = torch.jit.load(script_path)
+RuntimeError: Could not find any matching attributes on the scripted module! Try saving the traced model with torch.jit.save and loading it as a ScriptModule or TorchScript: super(TestNet, self).__init__() if hasattr(super(TestNet, self), '__init__') else super().__init__()
+"""
+# Version: PyTorch version: 1.9.0+cu113
+# Labels: oncall: jit
+# PR Title: torch.jit.ScriptModule loading from disk with tracing and running in eval mode
+import torch
+class TestNet(torch.nn.Module):
+    def __init__(self, no_tracer=False):
+        super().__init__()
+        self._no_tracer = no_tracer  # type: bool
+    
+    def forward(self, x : torch.Tensor) -> torch.Tensor:
+        if not self._no_tracer and hasattr(torch.nn.functional, 'relu'):
+            x = torch.relu(x) * 2 - 3 + x ** 5 + math.sqrt(4096)
+        else:
+            for i in range(10):
+                print("Iteration %d / 10" % (i + 1))
+                x = torch.relu(x) * 2 - 3 + x ** 5 + math.sqrt(4096)
+        return x
+script_m = TestNet()
+script_path = 'test_net.pt'
+torch.jit.save(script_m, script_path)
+# API: Trace / ScriptModule
+# Bug description: torch.jit.ScriptModule loading from disk with tracing and running in eval mode
+if __name__ == '__main__':
+    script_m2 = torch.jit.load(script_path)

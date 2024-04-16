@@ -1,0 +1,104 @@
+ TorchScript graph
+# Bug description: Improve error messaging for using a tensor attribute in ScriptModule
+#                  when using torch.jit.trace in PyTorch v1.0.0
+
+# Title: Indexing list of lists (Tensor, and also tuple) doesn't work with forward()
+"""
+Output:
+RuntimeError: The following error happened while compiling a TorchScript function to the Torch IR:
+[test_indexing_list] index 2 out-of-bounds for list with length 2.
+
+Traceback:
+  File "pytorch/test/onnx/test_custom_ops.py", line 135, in forward (most recent call last)
+    return output[0][2]
+IndexError: index 2 out-of-bounds for list with length 2
+"""
+# Version: PyTorch version: 1.1.0
+# Labels: oncall: jit
+# PR Title: Indexing list of lists (Tensor, and also tuple) doesn't work with forward()
+class ListIndexModule(torch.jit.ScriptModule):
+    def __init__(self):
+        super(ListIndexModule, self).__init__()
+        self.register_buffer('x', torch.ones(2))
+        y = [[1, 2], [3, 4]]
+        self.y = y
+    
+    @torch.jit.ignore
+    def preprocess(self, x):
+        return torch.tensor([[x]], dtype=torch.float)
+
+    @torch.jit.script_method
+    def forward(self, x):
+        y = self.preprocess(x)
+        z = []
+        for i in range(2):  # error happens when i == 2
+            z.append(y[0][i])
+        
+        return torch.mean(torch.stack(z))
+    
+    @torch.jit.script_method
+    def postprocess(self, x):
+        if self.x[0] < 1:
+            return [x + self.y[0][0], x * torch.tensor([2])]
+        else:
+            # error happens when i == 1
+            return [x - self.y[0][1], self.y[0]]
+    
+    @torch.jit.script_method
+    def main(self, x):
+        a = self.forward(x)
+        b = self.postprocess(a)
+        
+        return [b, torch.zeros((2, 1)), a]
+    
+m = ListIndexModule()
+torch.jit.save(m, 'test_indexing_list.pt')
+# API: TorchScript graph
+# Bug description: Indexing list of lists (Tensor, and also tuple) doesn't work with forward()
+#                  when using torch.jit.trace in PyTorch v1.1.0
+
+# Title: [JIT] Module containing unified ops with exported function signature
+"""
+Output:
+ERROR: Graphs differed across invocations!
+        Graph diff:
+                  graph(%self : __torch__.Model, %x.1 : Tensor):
+                      %4 : Tensor = prim::GetAttr[name=a](%self) # /home/titaiwang/pytorch/torch/jit/_builtins._unwrap_optional:56 (from function wrapper at /opt/conda/lib/python3.8/site-packages/torch/nn/modules/module.py:972)
+                      %y : Tensor = prim::GetAttr[name=b](%self) # /home/titaiwang/pytorch/torch/jit/_builtins._unwrap_optional:56 (from function wrapper at /opt/conda/lib/python3.8/site-packages/torch/nn/modules/module.py:972)
+                      %6 : Tensor = aten::mm(%4, %y) # <unknown>:0 (from function wrapper at /home/titaiwang/.cache/torch/embedding_bag/_embedding_bag.py:153)
+                    return (%x.1, %6)
+        First diverging operator:
+        Node diff:
+                - %4 : Tensor = prim::GetAttr[name=a](%self) # /home/titaiwang/.cache/torch/embedding_bag/_embedding_bag.py:153 (from function wrapper at /opt/conda/lib/python3.8/site-packages/torch/nn/modules/module.py:972)
+                ?                  ^
+        First error in the backward graph:
+        Node diff:
+            - %4 : Tensor = prim::GetAttr[name=a](%self) # /home/titaiwang/.cache/torch/embedding_bag/_embedding_bag.py:153 (from function wrapper at /opt/conda/lib/python3.8/site-packages/torch/nn/modules/module.py:972)
+            ?                  ^
+        First error in the forward graph:
+        Node diff:
+                + %4 : Tensor = prim::GetAttr[name=a](%self) # /home/titaiwang/.cache/torch/embedding_bag/_embedding_bag.py:153 (from function wrapper at /opt/conda/lib/python3.8/site-packages/torch/nn/modules/module.py:972)
+                ?                  ^
+"""
+# Version: PyTorch version: 1.0.0
+# Labels: oncall: jit, onnx, module: embedding_bag (custom ops), module: unified_tensor_view
+# PR Title: [JIT] Module containing unified ops with exported function signature
+import torch
+from torch import Tensor, nn
+class Model(nn.Module):
+    def __init__(self, a=None, b=None):
+        super().__init__()
+        
+        self.a = a
+        if isinstance(b, int) or isinstance(b, float):
+            self.b = Tensor([b]).to("cuda")
+        else:
+            self.b = b
+    
+    def forward(self, x):
+        return torch.mm(self.a, self.b) * x
+m = Model()
+torch.jit.save(m, 'test_unified_ops.pt')
+# API: TorchScript graph
+# Bug description: [JIT] Module containing unified ops with exported function signature
+#                  when using torch.jit.trace in PyTorch v1.0.0

@@ -1,0 +1,48 @@
+# Title: [JIT] encodeRHS val.isInt() ASSERT FAILED during fusion
+"""
+Output:
+fmassa-mbp:~ fmassa$ python tst4.py
+Traceback (most recent call last):
+  File "tst4.py", line 30, in <module>
+    box_iou(torch.rand(4, 4), torch.rand(5, 4))
+  File "/Users/fmassa/anaconda3/lib/python3.6/site-packages/torch/nn/modules/module.py", line 491, in __call__
+    result = self.forward(*input, **kwargs)
+RuntimeError: val.isInt() ASSERT FAILED at /Users/distiller/project/conda/conda-bld/pytorch-nightly_1550985177969/work/torch/csrc/jit/fuser/codegen.cpp:220, please report a bug to PyTorch. (encodeRHS at /Users/distiller/project/conda/conda-bld/pytorch-nightly_1550985177969/work/torch/csrc/jit/fuser/codegen.cpp:220)
+frame #0: c10::Error::Error(c10::SourceLocation, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&) + 135 (0x10879d6e7 in libc10.dylib)
+frame #1: torch::jit::fuser::generateKernel(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, torch::jit::Graph const&, std::__1::vector<std::__1::pair<torch::jit::Value const*, torch::jit::fuser::TensorDesc const>, std::__1::allocator<std::__1::pair<torch::jit::Value const*, torch::jit::fuser::TensorDesc const> > > const&, std::__1::vector<std::__1::pair<torch::jit::Value const*, torch::jit::fuser::TensorDesc const>, std::__1::allocator<std::__1::pair<torch::jit::Value const*, torch::jit::fuser::TensorDesc const> > > const&, bool) + 20806 (0x10ed300c6 in libtorch.1.dylib)
+frame #2: torch::jit::fuser::compileKernel(torch::jit::fuser::KernelSpec const&, torch::jit::fuser::ArgSpec const&, std::__1::vector<long long, std::__1::allocator<long long> > const&, c10::Device) + 3696 (0x10ed1e980 in libtorch.1.dylib)
+frame #3: torch::jit::fuser::runFusion(long long, std::__1::vector<c10::IValue, std::__1::allocator<c10::IValue> >&) + 1632 (0x10ed26830 in libtorch.1.dylib)
+frame #4: torch::jit::runFusion(long long, std::__1::vector<c10::IValue, std::__1::allocator<c10::IValue> >&) + 18 (0x10ec2f5f2 in libtorch.1.dylib)
+frame #5: std::__1::__function::__func<torch::jit::(anonymous namespace)::$_1::operator()(torch::jit::Node const*) const::'lambda'(std::__1::vector<c10::IValue, std::__1::allocator<c10::IValue> >&), std::__1::allocator<torch::jit::(anonymous namespace)::$_1::operator()(torch::jit::Node const*) const::'lambda'(std::__1::vector<c10::IValue, std::__1::allocator<c10::IValue> >&)>, int (std::__1::vector<c10::IValue, std::__1::allocator<c10::IValue> >&)>::operator()(std::__1::vector<c10::IValue, std::__1::allocator<c10::IValue> >&) + 45 (0x10ec2ff8d in libtorch.1.dylib)
+frame #6: torch::jit::InterpreterStateImpl::runImpl(std::__1::vector<c10::IValue, std::__1::allocator<c10::IValue> >&) + 245 (0x10eb7b015 in libtorch.1.dylib)
+frame #7: torch::jit::InterpreterStateImpl::run(std::__1::vector<c10::IValue, std::__1::allocator<c10::IValue> >&) + 28 (0x10eb7354c in libtorch.1.dylib)
+frame #8: torch::jit::GraphExecutorImpl::run(std::__1::vector<c10::IValue, std::__1::allocator<c10::IValue> >&) + 4274 (0x10eb4ffa2 in libtorch.1.dylib)
+frame #9: torch::jit::script::Method::run(std::__1::vector<c10::IValue, std::__1::allocator<c10::IValue> >&) + 216 (0x1047f66e8 in libtorch_python.dylib)
+frame #10: torch::jit::invokeScriptMethodFromPython(torch::jit::script::Method&, torch::jit::tuple_slice, pybind11::kwargs) + 73 (0x1047f65a9 in libtorch_python.dylib)
+frame #11: void pybind11::cpp_function::initialize<torch::jit::script::initJitScriptBindings(_object*)::$_17, pybind11::object, pybind11::args, pybind11::kwargs, pybind11::name, pybind11::is_method, pybind11::sibling>(torch::jit::script::initJitScriptBindings(_object*)::$_17&&, pybind11::object (*)(pybind11::args, pybind11::kwargs), pybind11::name const&, pybind11::is_method const&, pybind11::sibling const&)::'lambda'(pybind11::detail::function_call&)::__invoke(pybind11::detail::function_call&) + 340 (0x1047f62b4 in libtorch_python.dylib)
+frame #12: pybind11::cpp_function::dispatcher(_object*, _object*, _object*) + 3324 (0x10439785c in libtorch_python.dylib)
+<omitting python frames>
+frame #32: start + 1 (0x7fff59ab1ed9 in libdyld.dylib)
+"""
+# Version: PyTorch version: 1.0.1
+# Labels: oncall: jit
+# PR Title: [JIT] encodeRHS val.isInt() ASSERT FAILED during fusion
+import torch
+
+torch._C._jit_override_can_fuse_on_cpu(True)
+
+@torch.jit.script
+def box_iou(box1, box2, eps:float=1e-5):
+    # box1: [N, 4], box2: [M, 4]
+    x1, y1, w1, h1 = box1.unsqueeze(1).unbind(2)
+    x2, y2, w2, h2 = box2.unbind(1)
+
+    xi = torch.max(x1, x2)  # Intersection
+    yi = torch.max(y1, y2)
+
+    wi = torch.clamp(torch.min(x1 + w1, x2 + w2) - xi, min=0)
+    hi = torch.clamp(torch.min(y1 + h1, y2 + h2) - yi, min=0)
+    return wi, hi
+
+box_iou(torch.rand(4, 4), torch.rand(5, 4))
+print(box_iou.graph_for(torch.rand(4, 4), torch.rand(5, 4)))

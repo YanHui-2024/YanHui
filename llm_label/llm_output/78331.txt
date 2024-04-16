@@ -1,0 +1,4 @@
+ torch.jit
+# Bug description: TorchScript model loads parameters in CPU even though 
+#                  they are originally defined on a GPU (which might not exist)
+

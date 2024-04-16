@@ -1,0 +1,84 @@
+# API: InstanceNorm3d
+# Bug description:
+#                  onnx::InstanceNormalization is not an ATen op when using torch.jit.trace in PyTorch v0.4.0
+import torch
+from torch import nn
+
+class ConvLayer(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride):
+        super(ConvLayer, self).__init__()
+        reflection_padding = kernel_size // 2
+        self.reflection_pad = nn.ReflectionPad3d(reflection_padding)
+        self.conv3d = nn.Conv3d(in_channels, out_channels, kernel_size, stride)
+
+    def forward(self, x):
+        out = self.reflection_pad(x)
+        out = self.conv3d(out)
+        return out
+
+class TransformerNet(torch.nn.Module):
+    def __init__(self):
+        super(TransformerNet, self).__init__()
+        # Initial convolution layers
+        self.in1 = nn.InstanceNorm3d(32, affine=True)
+        self.conv1 = ConvLayer(3, 32, kernel_size=9, stride=1)
+
+    def forward(self, x):
+        return self.in1(self.conv1(x))
+
+x = torch.rand(5, 3, 64, 64, 64)
+tn = TransformerNet()
+traced = torch.jit.trace(tn)(x)
+print(traced.__getattr__('forward').graph)
+traced(x)
+# ONNX: InstanceNormalization is not an ATen op when using torch.jit.trace in PyTorch v0.4.0
+
+# API: nn.Linear
+# Bug description: TypeError: type 'Function' doesn't define __len__ method. Was it implicitly defined and then inherited by Function? This should be an object of class onnx.helper.NodeProto() not FunctionType.
+import torch
+class Net(torch.nn.Module):
+    def __init__(self, in_features, out_features, bias=True):
+        super().__init__()
+        self.W = torch.nn.Linear(in_features, out_features, bias) # W is object of class nn.Sequential() not onnx.helper.NodeProto()
+    def forward(self, x):
+        return torch.mm(x, self.W)
+traced = torch.jit.trace(Net(10, 2), torch.rand(5, 10))
+print(type(list(traced.named_children())[0][1])) # W is object of class nn.Sequential() not onnx.helper.NodeProto()
+"""
+Traceback (most recent call last):
+  File "torch_bugs.py", line 40, in <module>
+    print(type(list(traced.named_children())[0][1])) # W is object of class nn.Sequential() not onnx.helper.NodeProto()
+IndexError: list index out of range
+"""
+
+# API: nn.Linear, nn.Conv2d (with torch.nn.ReLU)
+# Bug description: TypeError: 'torch._C.Value' object is not subscriptable
+import torch
+class Net(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.W1 = torch.nn.Linear(20, 3) # W1 is object of class nn.Sequential() not onnx.helper.NodeProto()
+        self.W2 = torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=(3, 3)) # W2 is object of class nn.Sequential() not onnx.helper.NodeProto()
+        self.W3 = torch.nn.ReLU()
+    def forward(self, x):
+        return self.W3(self.W2(x))
+traced = Net() # this is not an object of class nn.Module, but rather a list of objects (such as W1) that are part of the net and have their own graphs and so on
+print([type(list(traced.named_children())[i][1]) for i in range(len(traced.named_children()))]) # list of classes such as nn.Sequential() not onnx.helper.NodeProto()
+"""
+Traceback (most recent call last):
+  File "torch_bugs.py", line 50, in <module>
+    print([type(list(traced.named_children())[i][1]) for i in range(len(traced.named_children()))]) # list of classes such as nn.Sequential() not onnx.helper.NodeProto()
+  File "torch_bugs.py", line 50, in <listcomp>
+    print([type(list(traced.named_children())[i][1]) for i in range(len(traced.named_children()))]) # list of classes such as nn.Sequential() not onnx.helper.NodeProto()
+TypeError: 'torch._C.Value' object is not subscriptable
+"""
+traced = torch.jit.trace(Net(), (torch.rand(64, 64),))
+print([type(list(traced.named_children())[i][1]) for i in range(len(traced.named_children()))]) # list of classes such as nn.Sequential() not onnx.helper.NodeProto()
+"""
+Traceback (most recent call last):
+  File "torch_bugs.py", line 53, in <module>
+    print([type(list(traced.named_children())[i][1]) for i in range(len(traced.named_children()))]) # list of classes such as nn.Sequential() not onnx.helper.NodeProto()
+  File "torch_bugs.py", line 53, in <listcomp>
+    print([type(list(traced.named_children())[i][1]) for i in range(len(traced.named_children()))]) # list of classes such as nn.Sequential() not onnx.helper.NodeProto()
+TypeError: 'torch._C.Value' object is not subscriptable
+"""

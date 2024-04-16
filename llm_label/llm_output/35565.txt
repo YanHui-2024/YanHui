@@ -1,0 +1,29 @@
+ torch.jit.script, save, load
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.12.1
+
+# Title: TorchScript: TypeError when calling __getitem__() on a Tensor with __len__() and no __array_interface__
+"""
+Output:
+Traceback (most recent call last):
+  File "torch/testing/_internal/common_utils/jit_utils.py", line 61, in _try_get_deep_copyable_module_attrs
+    result[attr] = getattr(obj, attr)._get_deep_copyable_attributes()
+  File "torch/testing/_internal/common_utils/jit_utils.py", line 194, in _try_get_deep_copyable_module_attrs
+    result[attr] = getattr(obj, attr)._get_deep_copyable_attributes()
+TypeError: __getitem__() takes an integer or slice object, not a tensor. Use tensor.item() to convert a zero-dimension into a Python scalar.
+"""
+# Version: PyTorch version: 1.8.0
+# Labels: oncall: jit
+# PR Title: TorchScript: TypeError when calling __getitem__() on a Tensor with __len__() and no __array_interface__
+class TensorModule(torch.nn.Module):
+    def forward(self, x: torch.Tensor) -> None:
+        res = x[1]  # Error here
+
+tmod = TensorModule().to('cuda')
+torch._C._jit_set_profiling_executor(True)
+torch._C._jit_set_texpr_fuser_enabled(False)
+mod_scripted: torch.jit.ScriptModule = torch.jit.trace(tmod, (torch.randn((32, 16)).to('cuda')))
+# API: torch.nn.Module, torch.jit.trace, _C._jit_set_profiling_executor, _C._jit_set_texpr_fuser_enabled
+# Bug description: Traceback in torch._C._jit_set_texpr_fuser_enabled
+#                  when TorchScripting a module with no jit traceable ops and
+#                  attempting to use the fuser.

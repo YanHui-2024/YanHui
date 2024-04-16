@@ -1,0 +1,12 @@
+# Title: [JIT] fusing abs doesn't work on cuda
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.0rc1
+# Labels: oncall: jit
+# PR Title: [JIT] fusing abs doesn't work on cuda
+@torch.jit.script
+def x(a):
+     return a.abs()*2
+x(torch.randn(5, device='cuda'))

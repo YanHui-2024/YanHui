@@ -1,0 +1,15 @@
+# Title: [JIT] Inconsistent results of string `split` func on JIT mode
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.5.0
+# Labels: oncall: jit, module: bootcamp, triaged, small
+# PR Title: [JIT] Inconsistent results of string `split` func on JIT mode
+import torch
+from typing import List
+def simple_split(txt: str) -> List[str]:
+	return txt.split()
+ss = simple_split
+jit_ss = torch.jit.script(ss)
+ss('simple     split example') == jit_ss('simple     split example')

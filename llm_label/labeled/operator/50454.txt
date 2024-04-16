@@ -1,0 +1,14 @@
+# API: Trace
+# Bug description: a segmentation fault after calling `inlined_graph.nodes()`
+#                  when using torch.jit in PyTorch v1.7.1
+import torch
+from torch import nn
+class A(nn.Module):
+    def forward(self, x):
+        return x * 2
+print(torch.__version__)
+model = A()
+trace = torch.jit.trace(model, torch.tensor([3]))
+print(trace.inlined_graph)
+n = trace.inlined_graph.nodes()
+print(list(n))

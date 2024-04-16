@@ -1,0 +1,37 @@
+ Special Op(aten::normal_) in JIT Model
+# Bug description: a RuntimeError on model having aten::normal_ as an input to nn.Linear layer
+#                  when using torch.jit.script in PyTorch v1.7.1
+
+# Title: BatchNorm2D does not work properly when compiled into CUDA code.
+"""
+Output:
+Traceback (most recent call last):
+  File "/home/ansley/.cache/torch/pytorch_test_suite/temp_dir/test/tinytest.py", line 24, in <module>
+    scripted = torch.jit.script(M())
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/nn/modules/_modules_with_sparse.py", line 64, in script
+    return torch.jit._recursive.script(fn, example_inputs)
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 117, in script
+    return cls._recompile(fn, example_inputs)
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 207, in _recompile
+    return cls._recompile_single(fn, example_inputs)
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 257, in _recompile_single
+    return cls._create_methods_and_properties_from_stubs(concrete_type)
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 425, in _create_methods_and_properties_from_stubs
+    concrete_type._recompile(concrete_type)
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 125, in _recompile
+    raise RuntimeError('Unexpected error while applying recompilation to a ' + type_name)
+RuntimeError: Unexpected error while applying recompilation to a __module__.MyModule
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit, module: internals, triaged
+# PR Title: 
+class M(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+    def forward(self, x):
+        return 3*x
+concrete_type = torch._C._create_type('MyModule', (), {}, (M,))
+torch._C._recompile(concrete_type)
+# API: Recompilation of JITed models with autocast
+# Bug description: a RuntimeError on model using autocast when recompiling in PyTorch v1.7.1
+

@@ -1,0 +1,15 @@
+# API: Fusion groups with comparison ops
+# Bug description: Comparision op is mistakenly fused into the graph of previous fusion group
+#                  when using torch.jit.script in PyTorch v1.0rc1
+import torch
+
+def f(x, y, z):
+    return ((x + y) / z) >= z
+
+inputs = [torch.randn(2, 2, device='cuda') for _ in range(3)]
+real_output = f(*inputs)
+fs = torch.jit.script(f)
+output = fs(*inputs)
+print(fs.graph_for(*inputs))
+print(output)
+print(real_output)

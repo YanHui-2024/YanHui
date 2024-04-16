@@ -1,0 +1,21 @@
+# Title: [FX] torch.fx generate code that is not torch.jit able
+"""
+Output:
+RuntimeError: 
+python value of type 'ellipsis' cannot be used as a value. Perhaps it is a closed over global variable? If so, please consider passing it in as an argument or use a local varible instead.:
+def forward(self, x):
+    getitem = x[(Ellipsis, slice(None, None, None))];  x = None
+                 ~~~~~~~~ <--- HERE
+    return getitem
+"""
+# Version: PyTorch version: 1.8.0
+# Labels: oncall: jit
+# PR Title: [FX] torch.fx generate code that is not torch.jit able
+import torch
+from torch import fx
+
+def foo(x):
+    return x[..., :]
+
+torch.jit.script(foo)  # ok
+torch.jit.script(fx.symbolic_trace(foo))  # not ok

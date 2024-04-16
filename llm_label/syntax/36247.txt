@@ -1,0 +1,9 @@
+# Title: [JIT] Doesn't support dict() 
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.4.0
+# Labels: oncall: jit, triaged, enhancement, weeks, TSUsability, TSRootCause:UnsupportedConstructs
+# PR Title: 
+my_dict : Dict[int, Tensor] = dict()

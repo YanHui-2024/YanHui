@@ -1,0 +1,12 @@
+# Title: [jit] support `isinstance(foo, dict)`
+"""
+Output:
+RuntimeError: Unknown type name 'dict':
+"""
+# Version: PyTorch version: 1.5.0
+# Labels: oncall: jit, module: bootcamp, triaged, enhancement, days
+# PR Title: 
+if isinstance(foo, dict):
+    for k, v in foo.items():
+        assert isinstance(k, str)
+        assert isinstance(v, Tensor)

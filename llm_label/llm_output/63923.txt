@@ -1,0 +1,28 @@
+ PyTorch Version
+# Bug description: CUDA compilation fails when freezing a model.
+
+# Title: [Feature] PyTorch: Add support for ONNX optimizations
+"""
+Output:
+RuntimeError: Could not compile cuda code with:
+    >>> with torch.cuda.amp.autocast(enabled=True, dtype=torch.float16):
+                                      ^^^^
+RuntimeError: 'torch::jit::autocast_insert_cast' is not a member of 'c10'
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit, module: onnx
+# PR Title: [Feature] PyTorch: Add support for ONNX optimizations
+import torch
+from torchvision import models
+class MyModel(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.model = models.resnet18()
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        with torch.cuda.amp.autocast(enabled=True, dtype=torch.float16):
+            return self.model(x)
+m = MyModel().eval()
+m = m.to("cuda")
+dummy_input = torch.randn((32, 3, 500, 500), device="cuda", dtype=torch.float16)
+# API: PyTorch Version
+# Bug description: CUDA compilation fails when freezing a model.

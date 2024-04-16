@@ -1,0 +1,13 @@
+# API: NamedTuple from another file
+# Bug description: Unknown type name 'a.Type':
+#                  when using torch.jit.script in PyTorch v1.3.0
+import torch
+import torch.nn as nn
+
+import a
+
+class M(nn.Module):
+    def forward(self):
+        return a.Type(1)
+
+torch.jit.script(M())

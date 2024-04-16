@@ -1,0 +1,8 @@
+# API: torch.reciprocal
+# Bug description: 1 // 0, which should produce an exception, runs fine when using @torch.jit.script in PyTorch v1.0.0
+@torch.jit.script
+def test():
+    return 1 // 0
+
+
+print(test())

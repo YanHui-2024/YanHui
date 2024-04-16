@@ -1,0 +1,151 @@
+ isinf
+# Bug description: wrong annotated return type, but method returns bool
+
+# Title: jit doesn't compile custom module correctly
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit
+# PR Title: jit doesn't compile custom module correctly
+import torch
+from collections import namedtuple
+MyTuple = namedtuple('MyTuple', 'a,b')
+class TestModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+    
+    def forward(self, x: MyTuple) -> torch.Tensor:
+        return x.a + x.b
+model = TestModule()
+x_data = (MyTuple(torch.randn([10]), torch.randn([10])))
+script_module = torch.jit.script(TestModule())
+"""
+Output:
+Traceback (most recent call last):
+  File "/home/titaiwang/.local/lib/python3.8/site-packages/torch/utils/benchmark/_py37_compatibility.py", line 20, in <module>
+    from test import TestCase, skipIfRocm, disableScriptTest
+  File "/home/titaiwang/.local/lib/python3.8/site-packages/test/__init__.py", line 1175, in <module>
+    from test.assertions import assert_equal
+  File "/home/titaiwang/.local/lib/python3.8/site-packages/test/assertions.py", line 984, in <module>
+    from torch._six import container_abcs, string_classes, int_classes
+ImportError: cannot import name 'container_abcs' from 'torch._six' (/home/titaiwang/.local/lib/python3.8/site-packages/torch/_six.py)
+"""
+# API: JIT module 1: NamedTuple as return type of the forward method in PyTorch v1.7.0
+# Bug description: TypeError: Return value was annotated as having type testmodule.MyTuple but is actually of type tuple(tensor, tensor)
+class MyModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+    
+    def forward(self, x: torch.Tensor) -> MyTuple: # error here
+        return MyTuple(x + 1, x * 2)
+# API: JIT module 2: NamedTuple as a field of the model in PyTorch v1.7.0
+class MyModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor: # error here
+        return x + 1
+MyTuple = namedtuple('MyTuple', 'a,b')
+model = MyModule()
+script_module = torch.jit.script(model)
+# API: JIT module 3: named tuple as a field of the model in PyTorch v1.7.0
+class MyModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor: # error here
+        return x + 1
+MyTuple = namedtuple('MyTuple', 'a,b')
+model = MyModule()
+script_module = torch.jit.script(model)
+# API: JIT module 4: NamedTuple as a parameter of the forward method in PyTorch v1.7.0
+class MyModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+    
+    def forward(self, x: MyTuple) -> torch.Tensor: # error here
+        return x + 1
+model = MyModule()
+script_module = torch.jit.script(model)
+# API: JIT module 5: NamedTuple as a parameter of the forward method in PyTorch v1.7.0
+class MyModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+    
+    def forward(self, x: torch.Tensor, y: MyTuple) -> torch.Tensor: # error here
+        return x + 1
+model = MyModule()
+script_module = torch.jit.script(model)
+# API: JIT module 6: NamedTuple as a parameter of the forward method in PyTorch v1.7.0
+class MyModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor: # error here
+        return x + 1
+MyTuple = namedtuple('MyTuple', 'a,b')
+model = MyModule()
+script_module = torch.jit.script(model)
+# API: JIT module 7: NamedTuple as the only parameter of the forward method in PyTorch v1.7.0
+class MyModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+    
+    def forward(self, x) -> torch.Tensor: # error here
+        return x + 1
+MyTuple = namedtuple('MyTuple', 'a,b')
+model = MyModule()
+script_module = torch.jit.script(model)
+# API: JIT module 8: NamedTuple as a field of the model and the only parameter of forward in PyTorch v1.7.0
+class MyModule(torch.nn.Module):
+    def __init__(self, data):
+        super().__init__()
+    
+    def forward(self, x) -> torch.Tensor: # error here
+        return x + 1
+MyTuple = namedtuple('MyTuple', 'a,b')
+model = MyModule([1,2])
+script_module = torch.jit.script(model)
+# API: JIT module 9: NamedTuple as a field of the model and return value of forward in PyTorch v1.7.0
+class MyModule(torch.nn.Module):
+    def __init__(self, data):
+        super().__init__()
+    
+    def forward(self) -> torch.Tensor: # error here
+        return 3
+MyTuple = namedtuple('MyTuple', 'a,b')
+model = MyModule([1,2])
+script_module = torch.jit.script(model)
+# API: JIT module 10: NamedTuple as a field of the model and the only parameter of forward in PyTorch v1.7.0
+class MyModule(torch.nn.Module):
+    def __init__(self, data):
+        super().__init__()
+    
+    def forward(self, x) -> torch.Tensor: # error here
+        return x + 1
+MyTuple = namedtuple('MyTuple', 'a,b')
+model = MyModule([1,2])
+script_module = torch.jit.script(model)
+# API: JIT module 11: NamedTuple as a field of the model and the only parameter of forward in PyTorch v1.7.0
+class MyModule(torch.nn.Module):
+    def __init__(self, data):
+        super().__init__()
+    
+    def forward(self, x) -> torch.Tensor: # error here
+        return 3
+MyTuple = namedtuple('MyTuple', 'a,b')
+model = MyModule([1,2])
+script_module = torch.jit.script(model)
+# API: JIT module 12: NamedTuple as a field of the model and return value of forward in PyTorch v1.7.0
+class MyModule(torch.nn.Module):
+    def __init__(self, data):
+        super().__init__()
+    
+    def forward(self) -> torch.Tensor: # error here
+        return 3
+MyTuple = namedtuple('MyTuple', 'a,b')
+model = MyModule([1,2])
+script_module = torch.jit.script(model)
+# API: JIT module 13: NamedTuple as a field of the model and return value of forward in PyT

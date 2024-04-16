@@ -1,0 +1,37 @@
+# API: JIT trace of RNN model in Python (works on Linux)
+# Bug description: The code fails to compile when using PyTorch v1.10.2 or lower
+from jax.experimental import stax
+import torch
+
+torch.set_default_dtype(torch.float64)
+
+class RNN(stax.Serial):
+    """RNN cell."""
+    def __init__(self, key):
+        self._rng = random.PRNGKey(key)
+        nn = stax.serial(
+            stax.Dense(5),
+            stax.Elemwise('tanh'),
+            stax.Dense(1),
+            stax.Elemwise('tanh')
+        )
+
+        # Build network structure in-place
+        dummy_input = torch.zeros((2, 1))
+        self._cell, self._params = nn.initialize(self._rng, dummy_input)
+        
+    def forward(self, x):
+        out = []
+        for i in range(x.shape[0]):
+            out += [self._cell(x[i], ())]
+            
+        return torch.stack(out)[:, 0:1]
+
+def main():
+    rnn_model = RNN(42)
+    
+    x = torch.randn((3, 1))
+    print('RNN output:', rnn_model(x), '\n')
+    
+if __name__ == '__main__':
+    main()

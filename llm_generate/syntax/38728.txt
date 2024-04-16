@@ -1,0 +1,11 @@
+# API: torch.jit.ScriptModule (uncompiled) + torch.jit.Attribute (inherited)
+# Bug description: Unresolved forward refs in JIT compilation
+#                  when using @torch.jit.script in PyTorch v1.5.0
+class X(object):
+    def __init__(self):
+        pass
+
+@torch.jit.script
+def foo():
+    return X()
+    pass

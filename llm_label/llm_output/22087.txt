@@ -1,0 +1,21 @@
+ List
+# Bug description: the result of the trace is different from expected (original instance is mutated).
+#                  This happens when using torch.jit.trace in PyTorch v1.1.0
+
+# Title: [JIT] Faulty optimization on aten::permute with same permutation arguments
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.1.0
+# Labels: oncall: jit, module: onnx
+# PR Title: [JIT] Faulty optimization on aten::permute with same permutation arguments
+@torch.jit.script
+def foo(x):
+    return x.t() * x.t().t()
+x = torch.randn([5, 2])
+y1 = foo(x)
+y2 = (foo(x).t()).t()
+# API: aten::permute
+# Bug description: the result of the trace is different from expected (same permutation arguments but it's treated as two different invocations)
+#                  This happens when using torch.jit.trace in PyTorch v1.1.0

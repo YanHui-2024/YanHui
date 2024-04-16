@@ -1,0 +1,6 @@
+# API: Pathlib
+# Bug description: a TypeError when using `torch.jit.load` in PyTorch v1.6.0
+from pathlib import Path
+import torch
+
+model = torch.jit.load(Path("path/to/model.pth"))

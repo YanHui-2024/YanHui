@@ -1,0 +1,3 @@
+ SE-Fixup
+# Bug description: error with Jit and FP16
+#                  when using torch.jit.script in PyTorch v1.7.0

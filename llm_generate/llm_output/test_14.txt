@@ -1,0 +1,160 @@
+# API: torch.jit.save (PyTorch v1.7.0)
+# Bug description: Module contains an unknown export and cannot be saved
+import numpy as np
+from sklearn import datasets
+from sklearn.decomposition import PCA
+from scipy.spatial import distance_matrix, pdist
+import torch
+import math
+import pandas as pd
+import matplotlib.pyplot as plt
+
+model = 'models/myModel'
+
+def load_data(X_train, X_test):
+    x_train = np.array(X_train) # numpy array
+    y_train = np.ones((x_train.shape[0], 1))
+    
+    x_test = np.array(X_test) # numpy array
+    y_test = np.ones((x_test.shape[0], 1))
+    
+    x_trn = torch.from_numpy(x_train).float() # tensor from numpy array (float32)
+    y_trn = torch.from_numpy(y_train).long()
+    x_tst = torch.from_numpy(x_test).float() 
+    y_tst = torch.from_numpy(y_test).long()
+    
+    return [x_trn, y_trn, x_tst, y_tst]
+
+def pcaTrainTestData():
+    # load the MNIST data set (60,000 28x28 grayscale images and 10 clases)
+    X_train = datasets.fetch_openml('mnist_784', version=1, return_X_y=False)['data']
+    y_train = datasets.fetch_openml('mnist_784', version=1, return_X_y=False)['target'].astype(np.uint8)
+    
+    X_test  = datasets.fetch_openml('mnist_784', version=2, return_X_y=False)['data']
+    y_test  = datasets.fetch_openml('mnist_784', version=2, return_X_y=False)['target'].astype(np.uint8)
+    
+    # reshape the image data into rows
+    X_train = X_train.reshape(X_train.shape[0], 28*28)
+    y_train = np.array([ [float(x)] for x in y_train])
+    X_test = X_test.reshape(X_test.shape[0], 28*28)
+    y_test = np.array([[float(x)] for x in y_test])
+    
+    # save data to file as a numpy array [60000,784]+[10000,784]
+    data = load_data(X_train, X_test)
+    
+    # perform the PCA analysis
+    pca = PCA() 
+    pca.fit(data[0]) # fit based on the training data only!
+    
+    # save components to file as a numpy array [784,784]
+    torch.save(torch.from_numpy(pca.components_.T), 'pca_comps') 
+    
+# API: PCA + torch.jit.ScriptModule (compiled)
+import numpy as np
+from sklearn import datasets
+from sklearn.decomposition import PCA
+from scipy.spatial import distance_matrix, pdist
+import torch
+import math
+import pandas as pd
+import matplotlib.pyplot as plt
+
+pcaTrainTestData() # pre-load the data
+
+# load components from file (compiled)
+pcaComps = torch.jit.load('./pca_comps')
+
+@torch.jit.script
+def pcaTransform(X, Y):
+    Xc = torch.mm(X, pcaComps) # perform the projection/dimension reduction 
+    
+    # compute the pair-wise euclidean distance between test and training points
+    D1 = pdist(torch.cat((Xc, X))) 
+    D2 = pdist(torch.cat((Yc, Y)))  
+
+    return [D1, D2]
+
+# API: `torch.onnx.export` + `torch.jit.tracing_inputs`
+import torch
+from sklearn import datasets
+from sklearn.decomposition import PCA
+from scipy.spatial import distance_matrix, pdist
+import pandas as pd
+import matplotlib.pyplot as plt
+import onnx 
+import math
+import timeit
+
+model = 'models/myModel'
+
+def load_data(X_train, X_test):
+    x_train = np.array(X_train) # numpy array
+    y_train = np.ones((x_train.shape[0], 1))
+    
+    x_test = np.array(X_test) # numpy array
+    y_test = np.ones((x_test.shape[0], 1))
+    
+    x_trn = torch.from_numpy(x_train).float() # tensor from numpy array (float32)
+    y_trn = torch.from_numpy(y_train).long()
+    x_tst = torch.from_numpy(x_test).float() 
+    y_tst = torch.from_numpy(y_test).long()
+    
+    return [x_trn, y_trn, x_tst, y_tst]
+
+def pcaTrainTestData():
+    # load the MNIST data set (60,000 28x28 grayscale images and 10 clases)
+    X_train = datasets.fetch_openml('mnist_784', version=1, return_X_y=False)['data']
+    y_train = datasets.fetch_openml('mnist_784', version=1, return_X_y=False)['target'].astype(np.uint8)
+    
+    X_test  = datasets.fetch_openml('mnist_784', version=2, return_X_y=False)['data']
+    y_test  = datasets.fetch_openml('mnist_784', version=2, return_X_y=False)['target'].astype(np.uint8)
+    
+    # reshape the image data into rows
+    X_train = X_train.reshape(X_train.shape[0], 28*28)
+    y_train = np.array([ [float(x)] for x in y_train])
+    X_test = X_test.reshape(X_test.shape[0], 28*28)
+    y_test = np.array([[float(x)] for x in y_test])
+    
+    # save data to file as a numpy array [60000,784]+[10000,784]
+    data = load_data(X_train, X_test)
+    
+    # perform the PCA analysis
+    pca = PCA() 
+    pca.fit(data[0]) # fit based on the training data only!
+    
+    # save components to file as a numpy array [784,784]
+    torch.save(torch.from_numpy(pca.components_.T), 'pca_comps') 
+
+@torch.jit.script
+def pcaTransform(X, Y):
+    Xc = torch.mm(X, pcaComps) # perform the projection/dimension reduction 
+    
+    return [Xc, Y]
+
+# load components from file (compiled)
+pcaComps = torch.jit.load('./pca_comps')
+
+print('torch.onnx.export:')
+
+def exportModel():
+    # Load model and weights
+    model = 'models/myModel'
+    
+    print(f"Loading model from {model}")
+    pcaModel = torch.jit.load(model)
+    X_train, _, X_test, _ = load_data([], []) # dummy data just for exporting
+    inputs = torch.cat((X_train[:50], X_test[:10]))
+    traced_script_module = torch.jit.traced_function(pcaTransform)
+    
+    start = timeit.default_timer()
+    torch.onnx.export(
+        pcaModel,  # model being run
+        (inputs, inputs), 	# model input (or a tuple for multiple inputs)
+        'pca_comps.onnx',   # where to save the model (can be a file or file-like object)
+    )
+    
+    end = timeit.default_timer()
+    return round(end - start, 3)
+	
+export = exportModel()
+print("Export model to onnx file:", export, "seconds")

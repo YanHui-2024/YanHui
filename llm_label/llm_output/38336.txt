@@ -1,0 +1,2 @@
+ Modulo
+# Bug description: SyntaxError on model using modulo operation with torch.jit.script in PyTorch v1.5.0

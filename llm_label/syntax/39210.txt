@@ -1,0 +1,28 @@
+# Title: [jit] ScriptModules cannot call `index()` on Lists.
+"""
+Output:
+File ".../lib/python3.7/site-packages/torch/jit/_recursive.py", line 279, in create_methods_from_stubs
+    concrete_type._create_methods(defs, rcbs, defaults)
+RuntimeError:
+Tried to access nonexistent attribute or method 'index' of type 'List[str]'.:
+  File "test.py", line 11
+    def forward(self, s: str, l: List[str]):
+        return l.index(s)
+               ~~~~~~~ <--- HERE
+"""
+# Version: PyTorch version: 1.5.0
+# Labels: oncall: jit, triaged, enhancement
+# PR Title: [jit] ScriptModules cannot call `index()` on Lists.
+from typing import List
+
+import torch as th
+
+class Mod(th.nn.Module):                                                                                                                                                                                                                    
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, s: str, l: List[str]):
+        return l.index(s)
+
+mod = Mod()
+th.jit.script(mod)

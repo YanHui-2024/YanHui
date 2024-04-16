@@ -1,0 +1,27 @@
+ torch.nn.*
+# Bug description: isinstance(x, y) fails on modules when using torch.jit.script in PyTorch v1.0.1
+
+# Title: [JIT] jit.trace on torch.nn.functional.relu doesn't work as expected
+"""
+Output:
+torch.Size([3, 16])
+[ 1  2  3 -5]
+[ 0  0 -4]
+- torch.jit.Error(<unknown>, 'The argument "tensor (TensorType(Float, __torch__.torch.Size(__any_list__)), optional) -> Tensor" does not match any of the registered types: <none>')
+- error while running trace: Error: 1 errors occurred in total
+"""
+# Version: PyTorch version: 1.0.1
+# Labels: oncall: jit, low priority
+# PR Title: [JIT] jit.trace on torch.nn.functional.relu doesn't work as expected
+import torch
+import torch.jit
+@torch.jit.script
+def r(x):
+    return torch.relu(x)
+x = torch.rand((3, 16))
+print(x)
+print(r(x))
+traced_func = torch.jit.trace(r, x[:2])
+print(traced_func(x[:3]))
+# API: torch.nn.functional
+# Bug description: jit.trace on relu doesn't work as expected in PyTorch v1.0.1

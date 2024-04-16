@@ -1,0 +1,19 @@
+import torch
+
+# API: Nested Module with script function
+# Bug description: Runtime Error: Expected type List[Optional[torch.Tensor]] but got Optional[List[Optional[torch.Tensor]]]
+class M2(torch.nn.Module):                                                                                                                                                                                                                   
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x: torch.Tensor):
+        return self.m(x)
+
+@torch.jit.script
+def fn2():
+    a = M2()
+    b = [1, 2]
+    c = [b, b]
+    d = a(c)
+    print(d[0][0])
+fn2()

@@ -1,0 +1,7 @@
+# API: int(str)
+# Bug description: RuntimeError:
+Arguments for call are not valid.
+The following variants are available:
+def f(s: str):
+    return int(s)
+f = torch.jit.script(f)

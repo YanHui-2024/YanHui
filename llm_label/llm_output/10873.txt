@@ -1,0 +1,2 @@
+ torch.jit.Script Module
+# Bug description: [JIT][ONNX] aten::add and aten::sub ST overloads don't have alpha, so they don't match the ONNX symbolic when using torch.onnx._export in PyTorch v0.4.1 (and possibly earlier versions)

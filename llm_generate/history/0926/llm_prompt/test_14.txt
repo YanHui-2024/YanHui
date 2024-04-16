@@ -1,0 +1,57 @@
+# API: Casting method (int) in JITTed Code
+# Bug description: unknown builtin op: @torch.jit.script def cast_to_int(x):   return x.int()
+import torch
+
+@torch.jit.script
+def cast_to_int(x):
+    return x.int()
+
+
+# API: Trace
+# Bug description: a segmentation fault after calling `inlined_graph.nodes()`
+#                  when using torch.jit in PyTorch v1.7.1
+import torch
+from torch import nn
+class A(nn.Module):
+    def forward(self, x):
+        return x * 2
+print(torch.__version__)
+model = A()
+trace = torch.jit.trace(model, torch.tensor([3]))
+print(trace.inlined_graph)
+n = trace.inlined_graph.nodes()
+print(list(n))
+
+
+# API: N/A
+# Bug description: ASSERT FAILED during fusion
+import torch
+
+torch._C._jit_override_can_fuse_on_cpu(True)
+
+@torch.jit.script
+def box_iou(box1, box2, eps:float=1e-5):
+    # box1: [N, 4], box2: [M, 4]
+    x1, y1, w1, h1 = box1.unsqueeze(1).unbind(2)
+    x2, y2, w2, h2 = box2.unbind(1)
+
+    xi = torch.max(x1, x2)  # Intersection
+    yi = torch.max(y1, y2)
+
+    wi = torch.clamp(torch.min(x1 + w1, x2 + w2) - xi, min=0)
+    hi = torch.clamp(torch.min(y1 + h1, y2 + h2) - yi, min=0)
+    return wi, hi
+
+box_iou(torch.rand(4, 4), torch.rand(5, 4))
+print(box_iou.graph_for(torch.rand(4, 4), torch.rand(5, 4)))
+
+
+# API: torch.normal / torch.distributions
+# Bug description: Tracer throws runtime exception for torch.normal in PyTorch v0.4.1
+def fn(mean, std):
+    return torch.normal(mean, std)
+
+compiled_fn = torch.jit.trace(fn, (torch.zeros(2, 3), torch.ones(2, 3)))
+
+
+# API:

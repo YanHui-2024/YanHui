@@ -1,0 +1,6 @@
+# API: Constants and list/dict
+# Bug description: Scripting a function with a dict as argument results in UnsupportedNodeError while scripting it using a constant does not raise any error. Also list indexing using constants works but dict keys don't work.
+import torch
+@torch.jit.script
+def foo(x):
+    return torch.sum(x, dim=1)

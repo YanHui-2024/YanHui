@@ -1,0 +1,31 @@
+# API: (none)
+# Bug description: when calling `jit.trace` or `jit.script`, the model fails to trace with a `RuntimeError` saying that there is an unsupported node type: CallFunction
+def model_func(x): return x * 2
+model = nn.Sequential(nn.Linear(1,1), nn.ReLU(), Double())
+model.forward = types.MethodType(model_func, model)
+x = torch.rand(3, requires_grad=True)
+scripted_fn = torch.jit.trace(model, x) # <-- fails with this error: `RuntimeError: unsupported node type: CallFunction`
+# API: (none)
+# Bug description: when calling `jit.trace`, the model fails to trace because of a C++ assertion error saying that `output_nr` should be non-negative, but is -1
+model = nn.Sequential(nn.Linear(1,1), nn.ReLU())
+x = torch.rand(3, requires_grad=True)
+scripted_fn = torch.jit.trace(model, x) # <-- fails with this error: `RuntimeError: output_nr should be non-negative (found negative value: -1)`
+# API: (none)
+# Bug description: when calling `jit.script`, the model fails to script due to an unsupported node type: ListUnpack
+def model_func(x): return x * 2
+model = nn.Sequential(nn.Linear(1,1), nn.ReLU(), Double())
+x = torch.rand(3)
+scripted_fn = torch.jit.script(model, (x,)) # <-- fails with this error: `RuntimeError: unsupported node type: ListUnpack`
+
+# API: (none)
+# Bug description: when calling `torch._C._nn._trace`, the model fails to trace because of a C++ assertion error saying that `output_nr` should be non-negative, but is -1
+def model_func(x): return x * 2
+model = nn.Sequential(nn.Linear(1,1), nn.ReLU())
+x = torch.rand(3)
+scripted_fn = torch._C._nn._trace(model, x) # <-- fails with this error: `RuntimeError: output_nr should be non-negative (found negative value: -1)`
+# API: (none)
+# Bug description: when calling `torch._C._nn._script`, the model fails to script due to an unsupported node type: ListUnpack
+def model_func(x): return x * 2
+model = nn.Sequential(nn.Linear(1,1), nn.ReLU(), Double())
+x = torch.rand(3)
+scripted_fn = torch._C._nn._script(model, (x,)) # <-- fails with this error: `RuntimeError: unsupported node type: ListUnpack`

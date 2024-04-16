@@ -1,0 +1,7 @@
+# API: keyword argument
+return a == b or a + key() == b
+if __name__ == '__main__':
+x = torch.jit.script(compare)
+assert x(torch.ones(2), torch.zeros(2))
+assert not x(torch.ones(2), torch.ones(2), key=lambda: 1)
+def compare(a, b, *, key): # ?

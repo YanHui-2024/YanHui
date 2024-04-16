@@ -1,0 +1,42 @@
+ dtype argument for tensor constructor
+# Bug description: The dtype argument on a tensor constructor (e.g. torch.ones or torch.zeros) fails to work in JIT. It compiles fine but when called it errors out with a 'arguments for call are not valid'. 
+
+# Title: [JIT][script] no support for __bool__ method on custom class
+"""
+Output:
+Traceback (most recent call last):
+  File "test_bool.py", line 4, in <module>
+    T = torch.jit.script(T)
+  File "/home/pliky-dev/miniconda3/envs/onnx/lib/python3.6/site-packages/torch/jit/__init__.py", line 458, in script
+    rcb = createResolutionCallback(locals())
+  File "/home/pliky-dev/miniconda3/envs/onnx/lib/python3.6/site-packages/torch/_C._jit_tree_util", line 20, in createResolutionCallback
+    return _C._jit_script_resolve(module)
+RuntimeError: 
+arguments for call are not valid:
+  
+  arguments to __bool__ are not supported in TorchScript yet: 
+    def __bool__(self): 
+      return True
+       ~~~~~~~~~~~~~ <--- HERE
+for call at:
+@torch.jit.script
+def test_bool(x, y):
+    t = T()
+    if t:
+        x += 1
+    else:
+        y += 1
+         ~~~~ <--- HERE
+"""
+# Version: PyTorch version: 0.4.1
+# Labels: oncall: jit
+# PR Title: [JIT][script] no support for __bool__ method on custom class
+from torch.nn.modules.module import Module
+class T(Module):
+    def forward(self, x, y) -> Tuple[torch.Tensor, ...]:
+        return (x + 1, )
+    def __bool__(self) -> bool:
+        return True
+T = torch.jit.script(T())
+# API: __bool__ method on custom class
+# Bug description: The __bool__ method of a custom JIT-able class fails to work in JIT. It compiles fine but when called it errors out with a 'arguments for call are not valid'. 

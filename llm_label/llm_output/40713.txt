@@ -1,0 +1,2 @@
+ Optional[Module]
+# Bug description: Scripting leads to a nullptr dereference error on an Optional field during __init__.

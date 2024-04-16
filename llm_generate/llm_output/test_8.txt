@@ -1,0 +1,44 @@
+import torch
+from typing import Optional
+
+# API: Union[NoneType, T] in JIT Model
+# Bug description: a RuntimeError on model accepting an optional custom type
+#                  when using torch.jit.script in PyTorch v1.6.0
+class TestModule(torch.nn.Module):
+    def forward(self, x: torch.Tensor, k: Optional[int]):
+        return x
+
+m = TestModule()
+gm = torch.fx.symbolic_trace(m)
+scripted_gm = torch.jit.script(gm)
+
+
+# API: TorchScript
+# Bug description: Infinite loop when trying to save a model with torch.jit.save when using PyTorch v1.7.1
+
+model = SimpleModel()
+filename = "torchscript_simple_model"
+torch.jit.save(model, filename)
+# RuntimeError: invalid target 'cuda' for device 'cpu': CUDA is not currently available
+
+
+
+##############################
+# API: For in JIT model (1.7.0)
+def test():
+    x = 3
+    y = 0
+    for i in range(x):
+        y += torch.randn((i,))
+        if i == 0: # or some other condition
+            break
+    else:
+        print('loop complete')
+test()
+
+# Error message:
+# RuntimeError: infinite loop
+##############################
+
+
+

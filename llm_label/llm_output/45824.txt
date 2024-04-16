@@ -1,0 +1,2 @@
+ Pathlib
+# Bug description: a TypeError when using `torch.jit.load` in PyTorch v1.6.0

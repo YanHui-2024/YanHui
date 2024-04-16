@@ -1,0 +1,20 @@
+# Title: [jit] metacompile does not work in ternary operators
+"""
+Output:
+if-expression's true branch has type Tensor but false branch has type Dict[str, Tensor]:
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit, days, TSRootCause:TypeRefinement, TSUsability
+# PR Title: [jit] metacompile does not work in ternary operators
+class MyModule(torch.nn.Module):
+    flag: torch.jit.Final[bool]
+
+    def __init__(self):
+        super().__init__()
+        self.flag = True
+
+    def forward(self) -> torch.Tensor:
+        if self.flag:
+            return torch.ones(3)
+        else:
+            return {}

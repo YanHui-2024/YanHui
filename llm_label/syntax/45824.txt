@@ -1,0 +1,15 @@
+# Title: torch.jit.load does not accept pathlib.Path arguments
+"""
+Output:
+TypeError: import_ir_module(): incompatible function arguments. The following argument types are supported:
+    1. (arg0: torch._C.CompilationUnit, arg1: str, arg2: object, arg3: torch._C.ExtraFilesMap) -> torch._C.ScriptModule
+
+Invoked with: <torch._C.CompilationUnit object at 0x7fe633ff4a30>, PosixPath('path/to/model.pth'), None, ExtraFilesMap{}
+"""
+# Version: PyTorch version: 1.6.0
+# Labels: oncall: jit
+# PR Title: torch.jit.load does not accept pathlib.Path arguments
+from pathlib import Path
+import torch
+
+model = torch.jit.load(Path("path/to/model.pth"))

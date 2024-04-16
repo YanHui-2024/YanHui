@@ -1,0 +1,12 @@
+# API: torch._C._nnpack_lstm
+# Bug description: When passing a scripted model into C++ using the .toDlpack() method,
+#                  an error is thrown due to not being able to cast the PyTorch Tensor
+#                  returned from the forward pass.
+def test(x):
+    return x + 100, x * 5
+scripted = torch.jit.script(test)
+x = torch.ones([5], dtype=torch.int32)
+out_pack = scripted.toDlpack()
+tup = test(x)
+print(tup[0])
+print(tup[1])

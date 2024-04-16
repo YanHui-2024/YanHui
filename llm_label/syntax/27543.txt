@@ -1,0 +1,13 @@
+# Title: [JIT] Reverse slicing List gives runtime error
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.2.0
+# Labels: oncall: jit
+# PR Title: 
+@torch.jit.script
+def fn():
+    a = [1, 2, 3, 4]
+    return a[::-1]
+fn()

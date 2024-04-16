@@ -1,0 +1,16 @@
+# API: torch.jit.trace (python thread)
+# Bug description:
+#                  When calling `torch.jit.load` from a python thread other than the main one, it hangs indefinitely.
+#                  For example, running the code below will hang indefinitely:
+#                  ```
+#                      def dummy_worker(filepath):
+#                          traced = torch.jit.load(filepath)
+#                  filepath = "dummy_model.pt"
+#                      threading.Thread(target=dummy_worker, args=[filepath]).start()
+#                      ````
+#                  The same code works if called from the main thread.
+import torch
+from concurrent.futures import ThreadPoolExecutor
+
+with ThreadPoolExecutor(max_workers=1) as executor:
+    executor.submit(torch.jit.load, 'dummy_model.pt')

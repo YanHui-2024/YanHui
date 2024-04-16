@@ -1,0 +1,12 @@
+# Title: [jit] Support for `range(n)` as a value
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.1.0
+# Labels: oncall: jit, triaged
+# PR Title: [jit] Support for `range(n)` as a value
+@torch.jit.script
+def f():
+    x = [i for i in range(5)]
+    print(x)

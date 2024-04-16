@@ -1,0 +1,123 @@
+ torchvision.models.resnet18
+# Bug description: Trace sanity check fails when using MKLDNN layout
+#                  when using torch.jit.trace in PyTorch v1.6.0
+
+# Title: [ONNX] Cannot run exported model
+"""
+Output:
+Traceback (most recent call last):
+  File "pytorch_export_model/onnx.py", line 57, in <module>
+    output = resnet(input)
+  File "/home/user/.local/lib/python3.6/site-packages/torch/nn/modules/module.py", line 489, in __call__
+    result = self.forward(*input, **kwargs)
+  File "/home/user/.local/lib/python3.6/site-packages/torchvision/models/resnet.py", line 172, in forward
+    x = self.bn1(x)
+  File "/home/user/.local/lib/python3.6/site-packages/torch/nn/modules/module.py", line 489, in __call__
+    result = self.forward(*input, **kwargs)
+  File "/usr/local/lib/python3.6/dist-packages/torchvision/models/resnet.py", line 157, in forward
+    x = F.relu(self.bn2(self.conv2(x)), inplace=True)
+  File "/home/user/.local/lib/python3.6/site-packages/torch/nn/modules/module.py", line 489, in __call__
+    result = self.forward(*input, **kwargs)
+  File "/home/user/.local/lib/python3.6/site-packages/torch/nn/functional.py", line 1790, in relu
+    return torch.nn.functional._thnn.relu(input, inplace)
+RuntimeError: ReluBackward can only work on the output of a single direction Relu
+"""
+# Version: PyTorch version: 1.6.0
+# Labels: jit, module: onnx
+# PR Title: [ONNX] Cannot run exported model
+import torch
+import numpy as np
+import sys
+sys.path.insert(1,"/home/user/.cache/torch/hub/")
+from torchvision import models
+from PIL import Image
+model = models.resnet50()
+image_path = "/home/user/Downloads/" + "doge.jpg" # replace with your path
+input_image = Image.open(image_path)
+input_image = np.asarray(input_image).astype('float32')
+# Preprocessing the input image
+preprocess = torch.nn.Sequential(
+    torch.nn.TransformerEncoder(),
+    torch.nn.TransformerEncoder()
+)
+input = preprocess(torch.from_numpy(image).unsqueeze(0))
+model.eval()
+trace_model = torch.jit.script(model)
+torch.onnx.export(trace_model, input, "resnet50.onnx")
+# API: PIL.Image, torch.nn.Sequential
+# Bug description: Cannot run exported model
+#                  when using torchvision.models.resnet in PyTorch v1.6.0
+
+# Title: AttributeError: 'torch._C.ScriptModule' object has no attribute 'to'
+"""
+Output:
+Traceback (most recent call last):
+  File "pytorch_export_model/onnx_traced.py", line 12, in <module>
+    trace_model = torch.jit.trace(model, input)
+  File "/home/user/.local/lib/python3.6/site-packages/torch/jit/__init__.py", line 955, in trace
+    check_tolerance, strict, _force_outplace, _module_class)
+  File "/home/user/.local/lib/python3.6/site-packages/torch/jit/__init__.py", line 1119, in trace_module
+    check_tolerance, strict, _force_outplace, True, _module_class)
+  File "/home/user/.local/lib/python3.6/site-packages/torch/autograd/grad_mode.py", line 15, in decorate_context
+    return fn(*args, **kwargs)
+  File "/home/user/.local/lib/python3.6/site-packages/torch/jit/__init__.py", line 597, in _check_trace
+    copied_dict[name] = _clone_inputs(data)
+  File "/home/user/.local/lib/python3.6/site-packages/torch/jit/__init__.py", line 450, in _clone_inputs
+    clone_input, condition_msg="tensors")(args)
+  File "/home/user/.local/lib/python3.6/site-packages/torch/autograd/function.py", line 263, in _map
+    return fn(*args, **kwargs)
+  File "/home/user/.local/lib/python3.6/site-packages/torch/jit/__init__.py", line 443, in clone_input
+    v = a.detach().clone(memory_format=torch.preserve_format).requires_grad_(a.requires_grad)
+AttributeError: 'torch._C.ScriptModule' object has no attribute 'to'
+"""
+# Version: PyTorch version: 1.5.0, torchvision version: 0.3.0
+# Labels: oncall: jit
+# PR Title: AttributeError: 'torch._C.ScriptModule' object has no attribute 'to'
+import torch
+model = torch.hub.load("pytorch/vision", "resnet18")
+input_image = Image.open(image).astype('float32')
+# Preprocessing the input image
+preprocess = torch.nn.Sequential(
+    torch.nn.TransformerEncoder(),
+    torch.nn.TransformerEncoder()
+)
+input = preprocess(torch.from_numpy(image).unsqueeze(0))
+model.eval()
+trace_model = torch.jit.script(model)
+trace_model(input)
+# API: Image, PIL.Image, torchvision, torch.nn.Sequential
+# Bug description: AttributeError: 'torch._C.ScriptModule' object has no attribute 'to'
+#                  when using torch.jit.script in PyTorch v1.5.0
+
+import torch
+model = torchvision.models.resnet50()
+input_image = Image.open(image).astype('float32')
+# Preprocessing the input image
+preprocess = torch.nn.Sequential(
+    torch.nn.TransformerEncoder(),
+    torch.nn.TransformerEncoder()
+)
+input = preprocess(torch.from_numpy(image).unsqueeze(0))
+model.eval()
+trace_model = torch.jit.script(model)
+trace_model(input)
+# API: Image, PIL.Image, torchvision, torch.nn.Sequential
+# Bug description: AttributeError: 'torch._C.ScriptModule' object has no attribute 'to'
+#                  when using torch.jit.script in PyTorch v1.5.0
+
+import torch
+from torchvision import models
+model = models.resnet50()
+image_path = "/home/user/.cache/torch/hub/47c2a859b639ff4f6e7df09166d0ee031edfe9e4/dog.jpg" # replace with your path
+input_image = Image.open(image)
+input_image = np.asarray(input_image).astype('float32')
+# Preprocessing the input image
+preprocess = torch.nn.Sequential(
+    torch.nn.TransformerEncoder(),
+    torch.nn.TransformerEncoder()
+)
+input = preprocess(torch.from_numpy(image).unsqueeze(0))
+model.eval()
+trace_model = torch.jit.script(model)
+output = trace_model(input)
+# API: PIL.Image, torchvision.models, Image, torch.nn.Sequ

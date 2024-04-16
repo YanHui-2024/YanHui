@@ -1,0 +1,25 @@
+# API: Adaptive Max Pooling in JIT
+# Bug description: Assertion failed in generated code of aten::adaptive_max_pool2d with PyTorch version 1.1.0
+#                  when there is only one value specified for the output_size argument
+diff --git a/torch/csrc/api/include/torch/nn/functional/AdaptiveMaxPool2d.h b/torch/csrc/api/include/torch/nn/functional/AdaptiveMaxPool2d.h
+index e563a81..5b7d410 100644
+--- a/torch/csrc/api/include/torch/nn/functional/AdaptiveMaxPool2d.h
++++ b/torch/csrc/api/include/torch/nn/functional/AdaptiveMaxPool2d.h
+@@ -37,6 +37,10 @@
+torch::Tensor adaptive_max_pool2d(const torch::Tensor& input,
+const std::vector<int64_t>& output_size);
++  // TODO: Add support for a single scalar.
++  static auto adaptive_max_pool2d =
++    &torch::nn::functional::AdaptiveMaxPool2dFunction::apply;
+diff --git a/aten/src/ATen/native/AdaptiveMaxPooling2d.cpp b/aten/src/ATen/native/AdaptiveMaxPooling2d.cpp
+index b3b77c5..ec16c5e 100644
+--- a/aten/src/ATen/native/AdaptiveMaxPooling2d.cpp
++++ b/aten/src/ATen/native/AdaptiveMaxPooling2d.cpp
+@@ -322,6 +322,7 @@ std::tuple<Tensor, Tensor> adaptive_max_pool2d_cpu(
+ {
+   Tensor output = at::empty({0}, input.options());
+   Tensor indices = at::empty({0}, input.options().dtype(kLong));
++  assert(output_size.size() == 2);
+   adaptive_max_pool2d_out_cpu_template(
+     output,
+     indices,

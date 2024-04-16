@@ -1,0 +1,11 @@
+# API: __repr__ for a custom PyTorch model
+# Bug description: TypeError on missing `__call__()` method when using torch.jit.trace in PyTorch v1.7.0
+class Net(object):
+    def __init__(self, **kwargs):
+        pass
+        
+    def forward(self, input):
+        return input + 5
+    
+    def __repr__(self):
+        return "Hello world"

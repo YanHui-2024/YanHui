@@ -1,0 +1,20 @@
+# Title: Cannot change device of JIT module after initial loading using C++ frontend
+"""
+Output:
+Terminate std::runtime_error( Expected tensor to have CPU Backend, but got tensor with CUDA Backend (while checking arguments for batch_norm_cpu) (checkBackend at ../aten/src/ATen/TensorUtils.cpp:202)
+"""
+# Version: PyTorch version: 1.0.1
+# Labels: high priority, oncall: jit
+# PR Title: Cannot change device of JIT module after initial loading using C++ frontend
+#include <torch/script.h>
+
+#include <memory>
+
+int main() {
+    std::shared_ptr<torch::jit::script::Module> module = torch::jit::load("/tmp/bn_gpu.pt");
+    module->to(torch::kCPU);
+
+    std::vector<torch::jit::IValue> inputs;
+    inputs.emplace_back(torch::randn({6, 10}));
+    auto output = module->forward(inputs).toTensor();
+}

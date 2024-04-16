@@ -1,0 +1,12 @@
+# API: range
+# Bug description: Range in JIT doesn't accept more than one parameter
+#                  when calling `torch.jit.script` in PyTorch v1.0.1
+import torch
+
+@torch.jit.script
+def foo(x):
+    for i in range(1, 10):
+        x += float(i)
+    return x
+
+print(foo.code)

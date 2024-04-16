@@ -1,0 +1,67 @@
+ torch.onnx.ONNXExporter._export()
+# Bug description: Torch-ONNX export throws exception when trying to convert INT to Float type of Loop cond variable
+#                  (torch.__version__ = 1.0.1)
+
+# Title: Pytorch jit trace fails in 1.2
+"""
+Output:
+graph(%self : __main__.Simple,
+      %x.1 : Tensor):
+  %8 : int = prim::Constant[value=3]()
+  %5 : int = prim::Constant[value=0]()
+  %13 : int = prim::Constant[value=1]()
+  %24 : bool = prim::Constant[value=True]()
+  %60 : Tensor = aten::add(%self.sub_y, %x.1, %8) # test/simple.py:37: Simple.forward (at test/simple.py:37)
+  %61 : bool = prim::Constant[value=False]()
+  %95 : Tensor = aten::add(%self.sub_y, %x.1, %8) # test/simple.py:37: Simple.forward (at test/simple.py:37)
+    with prim::If(%5):
+      -> ()
+    with prim::If(%60):
+      %91 : Tensor = aten::add(%self.sub_y, %x.1, %8) # test/simple.py:37: Simple.forward (at test/simple.py:37)
+        -> ()
+    with prim::If(%95):
+      %92 : Tensor = aten::add(%self.sub_y, %x.1, %8) # test/simple.py:37: Simple.forward (at test/simple.py:37)
+        -> ()
+  return (%60, %95)
+"""
+# Version: PyTorch version: 1.2
+# Labels: oncall: jit
+# PR Title: Pytorch jit trace fails in 1.2
+import torch
+class Simple(torch.jit.ScriptModule):
+    def __init__(self, sub_y=0):
+        super(Simple, self).__init__()
+        self.sub_y = sub_y
+    @torch.jit.script_method
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        y = 0
+        for i in range(x.size(1)):
+            if i == self.sub_y:
+                y += i + x[0][i]
+        return y
+y = Simple()
+torch._C._jit_trace_module(y, [torch.randn(3)])
+# API: jit tracing
+# Bug description: JIT trace fails in PyTorch v1.2
+
+# Title: Pytorch 0.4.1 crashes with RuntimeError when using torch.jit.script on a class with properties.
+"""
+Output:
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/home/titaiwang/pytorch/build/lib/site-packages/torch/jit/_recursive.py", line 543, in create_script_module_impl
+    module._recompile()
+RuntimeError: Exception in recompilation hook for MyModule (<class '__main__.MyModule'>): RuntimeError("The following operation failed...
+"""
+# Version: PyTorch version: 0.4.1
+# Labels: oncall: jit, module: scripting
+# PR Title: Pytorch 0.4.1 crashes with RuntimeError when using torch.jit.script on a class with properties.
+class MyModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+    @property
+    def name(self) -> str:
+        return "MyModule"
+model = torch.jit.script(MyModule())
+# API: scripting module, properties, JIT trace
+# Bug description: JIT trace fails in PyTorch v0.4.1

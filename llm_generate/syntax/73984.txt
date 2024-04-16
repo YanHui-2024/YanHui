@@ -1,0 +1,12 @@
+# API: torch._C.parse_ir
+# Bug description: Cannot parse IR for "prim::Constant[value=annotate(List[int], []))]"
+#                  when using PyTorch v1.10.2
+import torch
+
+ir = """
+graph():
+  %7 : Long(1, strides=[1], requires_grad=0, device=cpu) = prim::Constant[value={0}]()
+  return (%7)
+"""
+
+torch._C.parse_ir(ir)

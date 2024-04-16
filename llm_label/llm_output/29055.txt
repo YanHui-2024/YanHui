@@ -1,0 +1,21 @@
+ Python string
+# Bug description: When using scripting, strings with unicode characters are not preserved
+
+# Title: Torchscript doesn't allow custom methods on non-module classes (or at least it can't find them)
+"""
+Output:
+torch.jit.Error(code=0, msg='Declaration of the class "tests.my_class" is missing a definition for its PyClassMethod "add".')
+"""
+# Version: PyTorch version: 1.3.0
+# Labels: oncall: jit
+# PR Title: Torchscript doesn't allow custom methods on non-module classes (or at least it can't find them)
+class MyCustomClass(object):
+    @staticmethod
+    def sub():
+        return 3 - 4
+
+def foo(s: str):
+    return len(s)
+torch.jit.script(foo)
+# API: torch.nn.Conv2d
+# Bug description: The error is thrown when trying to script a custom static method on the class object

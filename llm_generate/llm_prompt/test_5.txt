@@ -1,0 +1,64 @@
+# API: torch.nn.Module, autograd on scripted module
+# Bug description: JIT PTX error when loading a TorchScript model that performs torch.exp(x**2), with pytorch 1.7.0 and nightly
+import torch
+device = torch.device('cuda')
+x = torch.tensor([0.],dtype=torch.double,requires_grad=True,device=device)
+
+class Model(torch.nn.Module):
+    def forward(self, x):
+        return torch.exp(x**2)
+
+# this code errors out
+model_jit = torch.jit.script(Model()).to(device).double()
+for j in range(3):
+    out = model_jit(x)
+    _ = torch.autograd.grad(out, x)
+
+
+
+# API: torch.argmax()
+# Bug description: Unhighlighted code when using a list of ints
+#                  when using torch.argmax in PyTorch v1.2.0
+@torch.jit.script
+def fn(x):
+    # type: (List[int], int) -> bool
+    return max(x)
+
+
+# API: static method invocation in jit scripting model
+# Bug description: Trace sanity check fails when using @staticmethod function defined inside __init__.
+#                  It will report an error saying that the static method is not found on that class.
+#                  It seems that static methods are only compiled if they are invoked from a forward, not from __init__().
+#                  The same error occurs with @classmethod also.
+class M(nn.Module):
+    @staticmethod
+    def some_method(x):
+        return x + 10
+
+    def forward(self, x):
+        return self.some_method(x)
+
+torch.jit.script(M())
+
+
+# API: Class attribute in JIT Model
+# Bug description: Unpacking tuple to class attributes fails when tracing with script on PyTorch v1.7.1
+import torch
+
+def pass_through(a: int, b: int):
+    return (a, b)
+
+class JitClass:
+    def __init__(self, a: int, b: int):
+        self.a, self.b = pass_through(a, b)
+
+    def get(self):
+        return self.a + self.b
+
+@torch.jit.script
+def fn(a: int, b: int):
+    o = JitClass(a, b)
+    return o.get()
+
+
+# API:

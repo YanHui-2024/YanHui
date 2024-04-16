@@ -1,0 +1,43 @@
+# API: PyTorch Lightning - Saving `Hparams` via `pl_module.log` fails when using PyTorch v1.7.0 or v1.8.1
+from pytorch_lightning import LightningModule, Trainer
+
+class Foo(LightningModule):
+    def training_step(self, batch, batch_idx):
+        self.log('bar', 3)
+
+foo = Foo()
+trainer = Trainer(gpus=1)
+trainer.fit(foo)
+
+# API: PyTorch Lightning - `ModuleDict` with `nn.ModuleList` as values doesn't work when using PyTorch v1.7.0 or v1.8.1
+from pytorch_lightning import LightningModule, Trainer
+import torch.nn.functional as F
+class Foo(LightningModule):
+    def __init__(self):
+        super().__init__()
+
+        # Doesn't work:
+        self.layers = nn.ModuleDict({"block1": nn.ModuleList([nn.Linear(32, 64)])})
+
+        # Works fine:
+        self.layers = {"block1": nn.ModuleList([nn.Linear(32, 64)])}
+
+    def forward(self, x):
+        out = F.relu(self.layers["block1"](x))
+        return out
+
+foo = Foo()
+trainer = Trainer(gpus=1)
+trainer.fit(foo)
+
+# API: PyTorch Lightning - `nn.Module` that contains a `torch.jit._traceable._TracingFunction` as an attribute doesn't work when using PyTorch v1.7.0 or v1.8.1
+import torch
+from pytorch_lightning import LightningModule, Trainer
+class Foo(LightningModule):
+    def __init__(self):
+        super().__init__()
+        self.layers = nn.ModuleList([torch.jit._traceable._TracingFunction()])
+
+foo = Foo()
+trainer = Trainer(gpus=1)
+trainer.fit(foo)

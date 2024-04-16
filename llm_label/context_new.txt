@@ -1,0 +1,100 @@
+# Title: REGR: Accessing dict in JITed code in 1.11
+# RuntimeError: The following operation failed in the TorchScript interpreter.
+# RuntimeError: KeyError: meta_y_hat
+# Trace: File "test.py", line 36, in forward
+# x, meta = self.activation(x, meta)
+# Version: PyTorch version: 1.11.0+cu102
+# Labels: oncall:jit
+# PR Title: [JIT] fix common_expression_hoisting
+from typing import Final
+import torch
+class LinearActivation(torch.nn.Module):
+    def forward(
+        self, x: torch.Tensor, meta: dict[str, torch.Tensor]
+    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        meta = meta.copy()
+        meta["meta_y_hat"] = x
+        # return x, meta # would make it work
+        return meta["meta_y_hat"], meta  # JIT claims it errors here
+class Test(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.flag: Final = ""
+        self.activation = LinearActivation()
+    def forward(
+        self, x: torch.Tensor, meta: dict[str, torch.Tensor]
+    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        meta = meta.copy()
+        if self.flag != "":  # this branch should not even be compiled
+            # assert False # would make it work
+            score = x[:, -1:]
+            x, meta = self.activation(
+                x[:, :, :-1],  # replacing this with x, would make it work
+                meta,
+            )
+            x = torch.cat((x, score), dim=1)  # removing this line makes it work
+        else:
+            x, meta = self.activation(x, meta)
+        meta["meta_y_hat"] = x  # removing this line makes it work
+        return meta["meta_y_hat"], meta
+if __name__ == "__main__":
+    model = torch.jit.script(Test())
+    x, xs = model.forward(torch.ones(10, 10), {})
+# API: Dict in JIT Model
+# Bug description: a KeyError on model with custom activation
+#                  when accessing the property of Dict using torch.jit.script in PyTorch v1.11
+
+# Title: Support default values on NamedTuple fields
+# RuntimeError: Default values are currently not supported on NamedTuple fields in TorchScript. Fields with default values: [xy]:
+# Trace: File "test/tinytest.py", line 17
+# def forward(self, point: Point):
+# Version: PyTorch version: 1.7.1
+# Labels: oncall:jit
+# PR Title: Support default values on NamedTuple fields
+import torch
+from torch.fx import symbolic_trace
+from collections import namedtuple
+from typing import Dict, NamedTuple, Optional, Tuple
+
+class Point(NamedTuple):
+    x: Optional[torch.Tensor] = None
+    y: Optional[torch.Tensor] = None
+
+class M(torch.nn.Module):
+    def __init__(self):
+        super(M, self).__init__()
+
+    def forward(self, point: Point):
+        return point
+
+p = Point(x=torch.rand(3), y=torch.rand(3))
+scripted = torch.jit.script(M())
+# API: NamedTuple in JIT Model
+# Bug description: a RuntimeError on model accepting a custom type of NamedTuple
+#                  when using torch.jit.script in PyTorch v1.7.1
+
+# Title: torch.jit.trace doesn't work with autocast on Conv node
+# ERROR: Graphs differed across invocations!
+# Trace:
+# Version: PyTorch version: 1.12.1
+# Labels: oncall:jit module:onnx module:amp
+# PR Title: [ONNX] Apply Common Subexpression Elimination pass to ONNX export
+import torch
+class MyModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.cv1 = torch.nn.Conv2d(3, 3, 5, 2, 1)
+    def forward(self, x):
+        x = self.cv1(x)
+        return x
+x = torch.randn(10, 3, 20, 20) * 2
+m = MyModule().eval()
+x = x.cuda()
+m = m.cuda()
+with torch.no_grad():
+    print("outside result: ", torch.jit.trace(m, x))
+    with torch.cuda.amp.autocast(enabled = True, dtype=torch.float16):
+        print("inside result: ", torch.jit.trace(m, x))
+# API: torch.nn.Conv2d
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.12.1

@@ -1,0 +1,6 @@
+# API: (torch.jit.)Chunk, torch.(nn.)Linear, torch.jit.fuse_linear, torch.jit.graph_fuser
+# Bug description: a RuntimeError on module when using torch.jit.graph_fuser in PyTorch v1.0rc1
+x = f(w)
+z = g(x, y)
+a, b = chunk(z)
+c = h(a, b)

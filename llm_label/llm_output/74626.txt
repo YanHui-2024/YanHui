@@ -1,0 +1,60 @@
+ JIT Attribute type
+# Bug description: Jitted module can not access its properties of the correct type, which are defined as a torch.jit.Attribute on construction. The properties work properly during model execution but fail when inspecting a property as it is a JIT Attributes that is stored in the model graph and loaded back in again using the .script method.
+
+# Title: Can't retrace after JIT-ing class with __getattr__
+"""
+Output:
+Traceback (most recent call last):
+  File "repro.py", line 40, in <module>
+    model = Model().eval()
+  File "/home/titaiwang/.cache/torch/checkpoints/pytorch_xla_distributed-1268374869/test_model.py", line 45, in __init__
+    self.weight = nn.Parameter(torch.ones(4))
+  File "torch/nn/modules/module.py", line 490, in __setattr__
+    setattr(self.__class__, name, value)
+RuntimeError: Could not find attribute 'weight' of python class test_model::Model (AttributeError - module 'test_model' has no attribute 'Model')
+"""
+# Version: PyTorch version: 1.5.0
+# Labels: oncall: jit, module: onnx, onnx-triaged
+# PR Title: Can't retrace after JIT-ing class with __getattr__
+from typing import Dict
+import torch
+class Model(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.weight = nn.Parameter(torch.ones(4))
+        print("In init")
+
+    @torch.jit.export
+    def forward(self, x):
+        # type: (Tensor) -> Tensor
+        return torch.relu(x + self.weight)
+model = Model().eval()
+# API: JIT Export
+# Bug description: Can't retrace after JIT-ing class with __getattr__
+
+# Title: Wrong trace results for forward method in a model with the default constructor.
+"""
+Output:
+Traceback (most recent call last):
+  File "repro.py", line 8, in <module>
+    m = torch.jit.script(Model())
+  File "/home/titaiwang/.cache/torch/checkpoints/pytorch_xla_distributed-1268374869/test_model.py", line 50, in __init__
+    self._weight = nn.Parameter(torch.ones((3, 3)))
+RuntimeError: Module 'Model' has no attribute '_weight'. Perhaps you forgot to initialize or call a superclass constructor (in this case torch.nn.Module)
+"""
+# Version: PyTorch version: 1.5.0
+# Labels: oncall: jit, module: onnx, onnx-triaged
+# PR Title: Wrong trace results for forward method in a model with the default constructor.
+class Model(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @torch.jit.export
+    def forward(self, x):
+        # type: (Tensor) -> Tensor
+        self._weight = nn.Parameter(torch.ones((3, 3)))
+        return torch.relu(x + self._weight)
+m = torch.jit.script(Model())
+# API: JIT Export default constructor
+# Bug description: Wrong trace results for forward method in a model with the default constructor.

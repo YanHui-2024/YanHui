@@ -1,0 +1,16 @@
+# Title: [JIT] tensor.device, tensor.dtype, and tensor.shape does not work inside JIT
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.0rc1
+# Labels: oncall: jit
+# PR Title: [JIT] tensor.device, tensor.dtype, and tensor.shape does not work inside JIT
+import torch
+
+@torch.jit.script
+def f(x):
+    return torch.zeros(5, device=x.device)
+
+x = torch.rand(2,3,4)
+print(f(x))

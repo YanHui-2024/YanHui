@@ -1,0 +1,36 @@
+# API: torch.addbmm (general broadcasting, CUDA)
+import torch
+class BMMTestModule(torch.nn.Module):
+    def forward(self, x, y, z):
+        return torch.addbmm(x, y, z)
+
+input = [
+    torch.randn(10),  # 3D tensor
+    torch.randn(10, 8),  # 3D tensor
+    torch.randn(10, 5, 7),  # 3D tensor
+]
+for y in input:
+    print("y.dims = ", y.dim())
+    print("y.size() = ", y.size())
+
+input2 = [
+    torch.randn(10, 8, 4),  # 3D tensor
+]
+for y in input2:
+    print("y.dims = ", y.dim())
+    print("y.size() = ", y.size())
+
+print("---")
+x = torch.randn(10, 5)
+z = torch.randn(4, 7)
+for y in input + input2:
+    print("torch.addbmm(x,y,z) =", torch.addbmm(x, y, z))
+print("---")
+x_cuda = x.to('cuda')
+z_cuda = z.to('cuda')
+for y in input + input2:
+    y_cuda = y.to('cuda', non_blocking=True)
+    print("torch.addbmm(x_cuda,y_cuda,z_cuda) =", torch.addbmm(x_cuda, y_cuda, z_cuda))
+print("---")
+for y in input + input2:
+    print("torch.addbmm(x,y,z,beta=1,alpha=1) = ", torch.addbmm(x, y, z, beta=1, alpha=1))

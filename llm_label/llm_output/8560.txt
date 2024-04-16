@@ -1,0 +1,49 @@
+ JIT compiler
+# Bug description: An error is thrown in the JIT compiler when passing a scalar and a tensor as arguments to JIT script function
+#                  when using torch.jit.script in PyTorch v0.4.0
+
+# Title: [JIT] fusing multiple nodes with non-trivial inputs causes an assertion failure.
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.12.1
+# Labels: oncall: jit, module: onnx, module: amp (automated mixed precision), onnx-triaged
+# PR Title: [JIT] fusing multiple nodes with non-trivial inputs causes an assertion failure.
+import torch
+@torch.jit.script
+def func1(x, y):
+    return x + y.type_as(x)
+y = torch.tensor([0])
+z = torch.zeros((64))
+a = func1(y, z).sum()
+print(a)
+---------------------------------------------------------------------------
+RuntimeError                              Traceback (most recent call last)
+<ipython-input-7-85b9332c770e> in <module>()
+      6 y = torch.tensor([0])
+      7 z = torch.zeros((64))
+----> 8 a = func1(y, z).sum()
+      9 print(a)
+RuntimeError: Assertion failed!
+Traceback (most recent call last):
+  File "aten/src/ATen/native/cudnn/Convolution.cpp", line 642, in at::native_cudnn_convolution_out
+    check_input(gradOutput, "gradOutput");
+  File "aten/src/ATen/native/cudnn/Convolution.cpp", line 597, in check_input
+    AT_ASSERTM((dim >= 0 && dim < 4), "Dimension must be between [0 and 3]!");
+RuntimeError: Dimension must be between [0 and 3]!
+---------------------------------------------------------------------------
+RuntimeError                              Traceback (most recent call last)
+<ipython-input-8-9a5d62cf1755> in <module>()
+----> 1 a = func1(y, z).sum()
+      2 print(a)
+/opt/conda/lib/python3.7/site-packages/torch/_utils.py in reraise(self, orig_exc, context)
+    86:                             "Please send a bug report to Python maintainer with this stack trace.")
+    87:         __context__ = None  # type: Optional[Context]
+--> 88:         raise self.exception from self.value
+    89:
+    90: class _ExceptionWrapper(BaseException):
+RuntimeError: torch/csrc/jit/fusion_compiler.cpp:450: operator(): Assertion `nDim <= uncompressedDim` failed.
+# API: JIT compiler
+# Bug description: An error is thrown in the JIT compiler when passing a scalar and a tensor as arguments to JIT script function
+#                  when using torch.jit.script in PyTorch v1.12.1

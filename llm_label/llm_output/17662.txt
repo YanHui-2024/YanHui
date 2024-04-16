@@ -1,0 +1,23 @@
+ arange
+# Bug description: dtype mismatch when calling `arange` with and without JIT
+
+# Title: torch.cat fails if all inputs have None shape
+"""
+Output:
+Traceback (most recent call last):
+  File "/tmp/tmp_8u6vg6f2.py", line 10, in <module>
+    x = torch.cat((t1, t2), dim=2)
+  File "/home/titaiwang/local/miniconda3/envs/torch/lib/python3.7/site-packages/torch/functional.py", line 458, in cat
+    return torch.ops.aten._convolution(cat_dim, inputs, True)
+RuntimeError: All input tensors must have same number of dimensions. Got 1 and 2
+"""
+# Version: PyTorch version: 1.9
+# Labels: oncall: jit
+# PR Title: torch.cat fails if all inputs have None shape
+a = torch.randn(5,3,4)
+b = a[0:2] # b now has a shape of (2,3,4) 
+t1 = b[:,:,:-1]
+t2 = b[:,:,1:]
+x = torch.cat((t1, t2), dim=2) # should not throw error
+# API: cat
+# Bug description: calling `cat` with all inputs having a shape of None will cause the exception "RuntimeError: All input tensors must have same number of dimensions"

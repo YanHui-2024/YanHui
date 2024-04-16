@@ -1,0 +1,13 @@
+# Title: Freeze module pass fails on torchvision RCNN models
+"""
+Output:
+torch._C._freeze_module(script_module._c)
+RuntimeError: node->kind() == prim::GetAttr INTERNAL ASSERT FAILED at "../torch/csrc/jit/passes/freeze_module.cpp":22, please report a bug to PyTorch. Expected prim::GetAttr nodes
+"""
+# Version: PyTorch version: 1.6.0
+# Labels: oncall: jit
+# PR Title: Freeze module pass fails on torchvision RCNN models
+model = torchvision.models.detection.keypoint_rcnn.keypointrcnn_resnet50_fpn(pretrained=True, min_size=200, max_size=300)
+model.eval()
+script_module = torch.jit.script(model)
+torch._C._freeze_module(script_module._c)

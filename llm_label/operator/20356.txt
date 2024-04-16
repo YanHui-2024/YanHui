@@ -1,0 +1,28 @@
+# Title: Load tensor from file in C++ fails 
+"""
+Output:
+terminate called after throwing an instance of 'c10::Error'
+  what():  [enforce fail at inline_container.cc:137] . PytorchStreamReader failed reading zip archive: failed finding central directory
+frame #0: std::function<std::string ()>::operator()() const + 0x11 (0x7f1da515e691 in /___/libtorch/lib/libc10.so)
+frame #1: c10::ThrowEnforceNotMet(char const*, int, char const*, std::string const&, void const*) + 0x49 (0x7f1da515e4a9 in /__/libtorch/lib/libc10.so)
+frame #2: caffe2::serialize::PyTorchStreamReader::valid(char const*) + 0x6b (0x7f1d9c69735b in /__/libtorch/lib/libcaffe2.so)
+frame #3: caffe2::serialize::PyTorchStreamReader::init() + 0x9d (0x7f1d9c69912d in /___/libtorch/lib/libcaffe2.so)
+frame #4: caffe2::serialize::PyTorchStreamReader::PyTorchStreamReader(std::unique_ptr<caffe2::serialize::ReadAdapterInterface, std::default_delete<caffe2::serialize::ReadAdapterInterface> >) + 0x3b (0x7f1d9c69ab8b in /__/libtorch/lib/libcaffe2.so)
+frame #5: <unknown function> + 0xa9b5bf (0x7f1da5e125bf in /__/libtorch/lib/libtorch.so.1)
+frame #6: torch::jit::load(std::unique_ptr<caffe2::serialize::ReadAdapterInterface, std::default_delete<caffe2::serialize::ReadAdapterInterface> >, c10::optional<c10::Device>, std::unordered_map<std::string, std::string, std::hash<std::string>, std::equal_to<std::string>, std::allocator<std::pair<std::string const, std::string> > >&) + 0x9a (0x7f1da5e15d2a in /__/libtorch/lib/libtorch.so.1)
+frame #7: torch::jit::load(std::string const&, c10::optional<c10::Device>, std::unordered_map<std::string, std::string, std::hash<std::string>, std::equal_to<std::string>, std::allocator<std::pair<std::string const, std::string> > >&) + 0x68 (0x7f1da5e15ec8 in /___/libtorch/lib/libtorch.so.1)
+frame #8: torch::serialize::InputArchive::load_from(std::string const&, c10::optional<c10::Device>) + 0x38 (0x7f1da604c058 in /___/libtorch/lib/libtorch.so.1)
+frame #9: void torch::load<at::Tensor, char const (&) [10]>(at::Tensor&, char const (&) [10]) + 0x86 (0x55a502f5fe97 in ./load)
+frame #10: main + 0x37 (0x55a502f5fb51 in ./load)
+frame #11: __libc_start_main + 0xe7 (0x7f1d9a338b97 in /lib/x86_64-linux-gnu/libc.so.6)
+frame #12: _start + 0x2a (0x55a502f5f96a in ./load)
+
+[1]    30788 abort      ./load
+"""
+# Version: PyTorch version: 1.1.0
+# Labels: high priority, oncall: jit, module: cpp, module: serialization, triaged
+# PR Title: Load tensor from file in C++ fails 
+>>> import torch
+>>> torch.save(torch.tensor([1., 2., 3.]), "tensor.pt")
+>>> torch.load("tensor.pt")
+tensor([1., 2., 3.])

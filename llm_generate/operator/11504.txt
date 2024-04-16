@@ -1,0 +1,6 @@
+# API: torch.normal / torch.distributions
+# Bug description: Tracer throws runtime exception for torch.normal in PyTorch v0.4.1
+def fn(mean, std):
+    return torch.normal(mean, std)
+
+compiled_fn = torch.jit.trace(fn, (torch.zeros(2, 3), torch.ones(2, 3)))

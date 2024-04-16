@@ -1,0 +1,28 @@
+# API: torch.jit.save, torch.jit.load
+# Bug description: TorchScript model loads parameters in CPU even though
+#                  they are originally defined on a GPU (which might not exist)
+'''
+This following save and load of torchscript model does not enforce parameters 
+to be mapped to a CPU when it is originally mapped to a GPU
+'''
+x = nn.Linear(10, 3).cuda() # works if at least one GPU exists or x.cuda() is called even before .train(), otherwise it causes the following error:
+# 'RuntimeError: cudnn_rnn_flatten_tensor expects argmax to have NCDHW format'
+torch.jit.save(x, "./model/model.pt")
+del x
+new_x = torch.load('./model/model.pt')
+print(next(new_x.parameters()).device) # prints 'cpu' even though the original parameter was on GPU
+
+# NOTE: To prevent this error, either of the following solutions can be done:
+'''
+1. Either call x.cuda() before saving it to torchscript (will save as CPU version if no GPU exists):
+>>> x = nn.Linear(10, 3).cuda() # works if at least one GPU exists or x.cuda() is called even before .train(), otherwise it causes the following error:
+# 'RuntimeError: cudnn_rnn_flatten_tensor expects argmax to have NCDHW format'
+>>> torch.jit.save(x, "./model/model.pt")
+2. Or save and load as CPU:
+>>> x = nn.Linear(10, 3) # works if at least one GPU exists or x.cuda() is called even before .train(), otherwise it causes the following error:
+# 'RuntimeError: cudnn_rnn_flatten_tensor expects argmax to have NCDHW format'
+>>> torch.jit.save(x, "./model/model.pt")
+>>> del x
+>>> new_x = torch.load('./model/model.pt', map_location=torch.device("cpu"))
+>>> print(next(new_x.parameters()).device) # prints 'cpu' even though the original parameter was on GPU (since we saved as CPU and loaded as CPU)
+'''

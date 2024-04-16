@@ -1,0 +1,13 @@
+# Title: [jit] del statements aren't supported
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.1.0
+# Labels: oncall: jit, triaged, enhancement, jit-backlog
+# PR Title: [jit] del statements aren't supported
+@torch.jit.script
+def fn(x):
+    # type: (Dict[str, int])
+    x.pop("hi")		# ok
+    del x["hello"]	# torch.jit.frontend.UnsupportedNodeError: del statements aren't supported

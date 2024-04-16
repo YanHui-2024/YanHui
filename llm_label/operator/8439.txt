@@ -1,0 +1,57 @@
+# Title: [JIT] ONNX InstanceNormalization symbolic interferes with regular tracing
+"""
+Output:
+graph(%0 : Float(5, 3, 224, 224)
+      %1 : Float(32, 3, 9, 9)
+      %2 : Float(32)
+      %3 : Float(32)
+      %4 : Float(32)) {
+  %6 : Float(5, 3, 232, 232) = aten::reflection_pad2d[padding=[4, 4, 4, 4]](%0)
+  %12 : Float(5, 32, 224, 224) = aten::_convolution[stride=[1, 1], padding=[0, 0], dilation=[1, 1], transposed=0, output_padding=[0, 0], groups=1, benchmark=0, deterministic=0, cudnn_enabled=1](%6, %1, %2)
+  %51 : Dynamic = onnx::Constant[value=<Tensor>]()
+  %52 : Dynamic = onnx::Constant[value=<Tensor>]()
+  %53 : Float(5, 32, 224, 224) = onnx::InstanceNormalization[epsilon=1e-05](%12, %51, %52)
+  return (%53);
+}
+
+Traceback (most recent call last):
+  File "instance.py", line 29, in <module>
+    traced(x)
+  File "/Users/jamesreed/onnx-fairseq/pytorch/torch/nn/modules/module.py", line 468, in __call__
+    result = self.forward(*input, **kwargs)
+  File "/Users/jamesreed/onnx-fairseq/pytorch/torch/jit/__init__.py", line 690, in forward
+    return self._get_method('forward')(*args, **kwargs)
+RuntimeError: torch/csrc/jit/generated/aten_dispatch.cpp:13384: getDescriptor: Assertion `n->kind().is_aten()` failed: onnx::Constant is not an ATen op
+"""
+# Version: PyTorch version: 0.4.0
+# Labels: oncall: jit
+# PR Title: [JIT] ONNX InstanceNormalization symbolic interferes with regular tracing
+import torch
+
+class ConvLayer(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride):
+        super(ConvLayer, self).__init__()
+        reflection_padding = kernel_size // 2
+        self.reflection_pad = torch.nn.ReflectionPad2d(reflection_padding)
+        self.conv2d = torch.nn.Conv2d(in_channels, out_channels, kernel_size, stride)
+
+    def forward(self, x):
+        out = self.reflection_pad(x)
+        out = self.conv2d(out)
+        return out
+
+class TransformerNet(torch.nn.Module):
+    def __init__(self):
+        super(TransformerNet, self).__init__()
+        # Initial convolution layers
+        self.conv1 = ConvLayer(3, 32, kernel_size=9, stride=1)
+        self.in1 = torch.nn.InstanceNorm2d(32, affine=True)
+
+    def forward(self, x):
+        return self.in1(self.conv1(x))
+
+x = torch.rand(5, 3, 224, 224)
+tn = TransformerNet()
+traced = torch.jit.trace(x)(tn)
+print(traced.__getattr__('forward').graph)
+traced(x)

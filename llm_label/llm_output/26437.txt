@@ -1,0 +1,2 @@
+ NamedTuple in JIT Module
+# Bug description: A RuntimeError on model accepting a namedtuple in PyTorch v1.2.0

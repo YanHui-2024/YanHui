@@ -1,0 +1,33 @@
+ NamedTuple from another file
+# Bug description: Unknown type name 'a.Type':
+#                  when using torch.jit.script in PyTorch v1.3.0
+
+# Title: [jit][script] Support namedtuples from other files
+"""
+Output:
+Traceback (most recent call last):
+  File "b.py", line 10, in <module>
+    torch.jit.script(M())
+  File "/opt/anaconda/envs/test/lib/python3.7/site-packages/torch/jit/__init__.py", line 1218, in script
+    return torch.jit._recursive.create_script_module(obj=obj, _apply_rcb_stack=[], location="<unknown file>")
+  File "/opt/anaconda/envs/test/lib/python3.7/site-packages/torch/jit/_recursive.py", line 215, in create_script_module
+    torch._C._create_methods_and_properties(concrete_type, property_defs, property_rcbs, method_defs, method_rcbs)
+RuntimeError: 
+Default values are currently not supported on NamedTuple fields in TorchScript. Fields with default values: [xy] of a.Type:
+  File "b.py", line 17
+    def forward(self):
+             ~~~~~~ <--- HERE
+        return a.Type(x=torch.randn((3,)), y=(3.25+0j))
+"""
+# Version: PyTorch version: 1.8.0
+# Labels: oncall: jit
+# PR Title: [jit][script] Support namedtuples from other files
+import torch
+import torch.nn as nn
+class M(nn.Module):
+    def forward(self) -> a.Type:
+        return a.Type(x=torch.randn((3,)), y=(3.25+0j))
+m = M()
+sm = torch.jit.script(m)
+# API: NamedTuple from another file
+# Bug description: Default values are currently not supported on NamedTuple fields in TorchScript.

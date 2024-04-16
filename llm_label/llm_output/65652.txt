@@ -1,0 +1,18 @@
+ torch._C._jit_pass_inline
+# Bug description:
+# Trace sanity check fails when the graph contains a node with two outputs
+# The two outputs are not connected to each other within a trace
+# Trace sanity check fails when using multiple GPUs while exporting and running in Eval mode
+def test_multiple_gpu():
+    device = torch.device("cuda", 0)
+    m = Transformer(128, 4, 512).to(device)
+    x = torch.randn(65, 32, 128).to(device)
+    args = (x,)
+    try:
+        trace = torch.jit.trace(m, args, strict=True)
+        graph = trace.graph
+        torch._C._jit_pass_inline(graph)
+    except RuntimeError as e:
+        print(e)
+        print("Error occurs, No computational graph saved.")
+        raise e

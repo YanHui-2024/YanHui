@@ -1,0 +1,27 @@
+# Title: [ONNX] Exporting JIT script with warning subcall fails
+"""
+Output:
+Unsupported prim::Constant kind: `s`. Send a bug report.
+"""
+# Version: PyTorch version: 1.0.0
+# Labels: oncall: jit, module: onnx
+# PR Title: [ONNX] Exporting JIT script with warning subcall fails
+import torch
+
+@torch.jit.script
+def jit_warner(inp):
+    return torch.nn.functional.sigmoid(inp) # triggers a deprecation warning
+
+@torch.jit.script
+def jit_ok(inp):
+    return torch.sigmoid(inp)
+
+class JitWarner(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        
+    def forward(self, x):
+        return jit_warner(x)
+        # return jit_ok(x) # this works
+
+torch.onnx.export(JitWarner(), torch.randn(42), '/dev/null')

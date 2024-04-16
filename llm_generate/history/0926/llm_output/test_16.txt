@@ -1,0 +1,18 @@
+# API: module with non tensor parameters as default
+# Bug description: Error while loading a model with non-tensor parameter in PyTorch v1.3.1
+import torch
+import torchvision
+
+class NonTensorParamModule(torch.nn.Module):
+    def __init__(self, param_list):
+        super().__init__()
+        self.param_list = param_list
+
+    def forward(self, x):
+        return x + self.param_list[0]
+
+
+x = torch.randn(2)
+m = NonTensorParamModule([1, 3])
+scripted_module = torch.jit.trace(m, x)
+scripted_module._save_for_lite_interpreter("non_tensor_param.pt")

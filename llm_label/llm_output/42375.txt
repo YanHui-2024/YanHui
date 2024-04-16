@@ -1,0 +1,3 @@
+ Missing support in torch.jit for sorted on string list?
+# Bug description: missing `sorted` support for str
+#                  when using torch.jit.trace in PyTorch v1.6.0

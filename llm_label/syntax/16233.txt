@@ -1,0 +1,10 @@
+# Title: [jit] Support named tuple return from operators
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.0.0
+# Labels: oncall: jit
+# PR Title: [jit] Support named tuple return from operators
+ret = a.svd()
+U = ret.U  # previously, only ret[0] was supported

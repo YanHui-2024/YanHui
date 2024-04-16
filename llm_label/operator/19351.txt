@@ -1,0 +1,25 @@
+# Title: Printing gc.get_objects() makes Runtime Error when importing torch
+"""
+Output:
+Traceback (most recent call last):
+  File "test.py", line 5, in <module>
+    print(gc.get_objects())
+  File "<frozen importlib._bootstrap>", line 302, in _module_repr
+  File "<frozen importlib._bootstrap>", line 295, in _module_repr
+  File ".../site-packages/torch/_ops.py", line 60, in __getattr__
+    op = torch._C._jit_get_operation(qualified_op_name)
+RuntimeError: No such operator __file__::__file__
+"""
+# Version: PyTorch version: 1.0.1
+# Labels: oncall: jit
+# PR Title: Printing gc.get_objects() makes Runtime Error when importing torch
+import gc
+import torch
+print(len(gc.get_objects))  # Works
+a = gc.get_objects()  # works
+print(gc.get_objects())  # Fails
+for obj in gc.get_objects():
+    print(obj)  # Works until encountering torch
+                    # Though it works on some files
+print(sum(map(sys.getsizeof, gc.get_objects())))  # Works
+print(collections.Counter(map(type, gc.get_objects())))  # Works

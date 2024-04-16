@@ -1,0 +1,123 @@
+ Trace (JIT compilation of code)
+# Bug description: JIT leaks memory in nets with dropout layer 
+#                  when using torch.jit.trace in PyTorch v1.4.0
+
+# Title: RuntimeError on multi-gpu and RNN/LSTM models (multi_gpu_model=False)
+"""
+Output:
+Traceback (most recent call last):
+  File "test.py", line 85, in <module>
+    main()
+  File "test.py", line 61, in main
+    model = RNNEncoder(n_words=len(dictionary), embedding_size=10, hidden_size=64, num_layers=2)
+  File "/home/titaiwang/pytorch-transformer/model.py", line 87, in __init__
+    self.encoder = nn.Embedding(num_embeddings=n_words, embedding_dim=embedding_size)
+  File "torch/nn/modules/module.py", line 493, in __call__
+    result = self.forward(*input, **kwargs)
+  File "/home/titaiwang/pytorch-transformer/model.py", line 105, in forward
+    outputs, last_hidden = self.encoder(src) # B x S x HiddenSize
+RuntimeError: Expected 3-dimensional input for 3-dimensional weight [1267, 10, 64], but got 2-dimensional input of size [3, 69] instead
+"""
+# Version: PyTorch version: 1.5.0
+# Labels: oncall: jit, module: rnn (RNN family), module: lstm (RNN family)
+# PR Title: RuntimeError on multi-gpu and RNN/LSTM models (multi_gpu_model=False)
+import torch.multiprocessing as mp
+from torch import nn, cuda, optim
+cuda.set_device(0)
+class RNNEncoder(nn.Module):
+    def __init__(self, n_words, embedding_size, hidden_size=64, num_layers=2):
+        super().__init__()
+        self.n_words = n_words
+        self.encoder = nn.Embedding(num_embeddings=n_words, embedding_dim=embedding_size)
+        self.rnn = nn.LSTM(input_size=embedding_size, hidden_size=hidden_name, num_layers=2)
+    def forward(self, src): # B x S
+        outputs, last_hidden = self.encoder(src) # B x S x HiddenSize
+        return outputs, last_hidden
+def parallelize_model(model, ngpu):
+    if ngpu > 1:
+        print('parallelizing across {} gpus'.format(ngpu))
+        model = nn.DataParallel(model, range(ngpu)) # data parallelism
+    return model
+# API: Multi-GPU training, DP training
+# Bug description: RuntimeError on multi-gpu and RNN/LSTM models (multi_gpu_model=False)
+#                  when using torch.nn.DataParallel in PyTorch v1.5.0
+
+# Title: Trace fails with AttributeError: 'NoneType' object has no attribute 'is_cuda' after upgrading to torch 1.6
+"""
+Output:
+Traceback (most recent call last):
+  File "/home/titaiwang/pytorch-transformer/model.py", line 275, in forward
+    outputs = model(src_tokens)
+  File "torch/nn/modules/module.py", line 493, in __call__
+    result = self.forward(*input, **kwargs)
+  File "/home/titaiwang/pytorch-transformer/model.py", line 251, in forward
+    return F.embedding(src_tokens, self.weight, padding_idx=self.padding_idx)
+  File "torch/nn/functional.py", line 2886, in embedding
+    weight = embeddings.transpose(1 - dim, dim).contiguous()
+AttributeError: 'NoneType' object has no attribute 'is_cuda'
+"""
+# Version: PyTorch version: 1.6.0
+# Labels: oncall: jit
+# PR Title: Trace fails with AttributeError: 'NoneType' object has no attribute 'is_cuda' after upgrading to torch 1.6
+import numpy as np
+from typing import Dict, Optional, Tuple
+class M(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        embedding = nn.Embedding(10, 2).weight # [V: 10] [H: 2]
+# API: Torch Embedding Layer
+# Bug description: Trace fails with AttributeError: 'NoneType' object has no attribute 'is_cuda' after upgrading to torch 1.6
+#                  when using nn.Embedding in PyTorch v1.6.0
+
+# Title: TypeError: unsupported operand type(s) for -: 'torch.Size' and 'tuple'
+"""
+Output:
+Traceback (most recent call last):
+  File "test.py", line 24, in <module>
+    print("x shape after reshape is {}".format(x_reshaped))
+TypeError: unsupported operand type(s) for -: 'torch.Size' and 'tuple'
+"""
+# Version: PyTorch version: None
+# Labels: oncall: jit, module: linear (fully-connected), onnx-triaged
+# PR Title: TypeError: unsupported operand type(s) for -: 'torch.Size' and 'tuple'
+import torch
+import torch.nn as nn
+import torch.jit
+
+x = torch.rand((3072, 1, 8)) # [C, H, W]
+model_script = """
+def forward(self, x):
+    return self.op(x)
+""".replace("self.", "self")
+@torch.jit.script
+class Model(nn.Module):
+    op: nn.Module
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=(7, 7), stride=(2, 2))
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool1 = nn.MaxPool2d(kernel_size=3, stride=2, padding=0)
+        self.conv2 = nn.Conv2d(64, 192, kernel_size=(3, 3), stride=(1, 1))
+    def forward(self, x: torch.Tensor):
+        x = self.relu(self.maxpool1(self.conv1(x))) # H/2, W/2
+        return self.op(x)
+model = Model()
+# API: Trace script
+# Bug description: TypeError: unsupported operand type(s) for -: 'torch.Size' and 'tuple' when using nn.Conv2d in PyTorch v1.7.0
+@torch.jit.script
+def op(x):
+    return model.conv2(x) # H/2, W/2
+model.op = op
+result = model(x)
+print("x shape after reshape is {}".format(np.array(x.shape))) # [3072, 1, 8]
+# API: Trace script
+# Bug description: TypeError: unsupported operand type(s) for -: 'torch.Size' and 'tuple' when using nn.Conv2d in PyTorch v1.7.0
+@torch.jit.script
+def op(x):
+    return model.conv2(x).view(-1, 384 * 6) # H/2, W/2 --> N x C'
+model.op = op
+result = model(x)
+print("x shape after reshape is {}".format(np.array(x.shape))) # [3072, 1, 8]
+# API: Trace script
+# Bug description: TypeError: unsupported operand type(

@@ -1,0 +1,134 @@
+ torch.jit.trace
+# Bug description: wrong gradient for CUDA tensor
+#                  when using torch.jit.trace in PyTorch v1.1.0
+
+# Title: [jit] wrong output of bool operation with scalar and cuda tensor
+"""
+Output:
+False
+True
+"""
+# Version: PyTorch version: 1.1.0
+# Labels: oncall: jit, triaged
+# PR Title: [jit] wrong output of bool operation with scalar and cuda tensor
+import torch
+def f(y):
+    return (torch.ones(2).bool() != y).sum() > 0
+a = torch.randn((1,), device='cuda')
+jf = torch.jit.trace(f, a)
+print(not jf(True)) # fails
+b = torch.randn((1,), device='cuda', requires_grad=True)
+print(jf(b).item()) # succeeds
+# API: torch.jit.trace
+# Bug description: wrong output of bool operation with scalar and cuda tensor
+#                  when using torch.jit.trace in PyTorch v1.1.0
+
+# Title: [JIT] Error on Conv2d when input size is a multiple of 4 but not a power of 2
+"""
+Output:
+Traceback (most recent call last):
+  File "test/jit_test.py", line 97, in <module>
+    x = torch.randn(16, 3, 15, 15)
+RuntimeError: Given groups=1, weight(3, 16, 3, 3): [3, 16, 3, 3], but input[16, 3, 15, 15]
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "test/jit_test.py", line 99, in <module>
+    jit_model = torch.jit.trace(net, x)
+  File "/usr/local/lib64/python3.8/site-packages/torch/jit/_tracing.py", line 1683, in trace
+    _unwrap_optional_container(out)
+TypeError: Got invalid type <class 'NoneType'> for argument 'input' (Tensor): Expected an instance of tuple types at position #0, but found a type <class 'torch.Tensor'>.
+"""
+# Version: PyTorch version: 1.4.0
+# Labels: oncall: jit, triaged, module: onnx, module: amp (automated mixed precision), onnx-triaged
+# PR Title: [JIT] Error on Conv2d when input size is a multiple of 4 but not a power of 2
+import torch
+class Net(torch.nn.Module):
+    def __init__(self, in_c, out_c):
+        super(Net, self).__init__()
+        self.cv1 = torch.nn.Conv2d(in_c, out_c, 3)
+    def forward(self, x):
+        x = self.cv1(x)
+        return x
+net = Net(3, 8).eval()
+with torch.no_grad():
+    for i in range(0, 64, 4):
+        x = torch.randn(16, 3, i, i) # fails with size 25 and larger
+        jit_model = torch.jit.trace(net, x) # but succeeds for size 19 and smaller
+# API: torch.nn.Conv2d
+# Bug description: Error on Conv2d when input size is a multiple of 4 but not a power of 2
+#                  when using torch.jit.trace in PyTorch v1.4.0
+
+# Title: [torchvision] RuntimeError: invalid argument to aten::addmm with scalar, but not CUDA tensor
+"""
+Output:
+Traceback (most recent call last):
+  File "test/jit_test.py", line 124, in <module>
+    x = torch.randn(3)
+RuntimeError: [enforce fail at shapechecker.cpp:89] unsupported type for reshape, only dense shapes are supported, but got sizes [3]
+"""
+# Version: PyTorch version: 1.2.0
+# Labels: oncall: jit, triaged, module: vision, module: onnx, module: amp (automated mixed precision), onnx-triaged
+# PR Title: [torchvision] RuntimeError: invalid argument to aten::addmm with scalar, but not CUDA tensor
+import torch
+x = torch.randn(3) # fails if no randn
+y = x + x  # works on cpu and gpu
+# API: torchvision.models
+# Bug description: RuntimeError: invalid argument to aten::addmm with scalar, but not CUDA tensor
+#                  when using torchvision models in PyTorch v1.2.0
+
+# Title: [jit] AssertionError when adding new attribute to a nn.Module and calling it later
+"""
+Output:
+Traceback (most recent call last):
+    File "test/jit_test.py", line 43, in <module>
+        x = torch.randn(2)
+    RuntimeError: Given groups=1, weight(2, 64, 5, 5): [2, 64, 5, 5], but input[2, 16, 70, 70]
+"""
+# Version: PyTorch version: 1.3.0
+# Labels: oncall: jit, triaged, module: vision, module: onnx, module: amp (automated mixed precision), onnx-triaged
+# PR Title: [jit] AssertionError when adding new attribute to a nn.Module and calling it later
+import torch
+class Net(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.cv1 = torch.nn.Conv2d(16, 32, 5)
+    def forward(self, x):
+        self._to_add = True # fails if not in front of conv
+        x = self.conv1(x)
+        return x
+net = Net()
+with torch.no_grad():
+    for i in range(0, 64, 8):
+        x = torch.randn((2, 16, i, i)) # fails with size 35 and larger
+        jit_model = torch.jit.trace(net, x) # but succeeds for size 30 and smaller
+# API: torch.nn.Conv2d
+# Bug description: AssertionError when adding new attribute to a nn.Module and calling it later
+#                  when using torch.jit.trace in PyTorch v1.3.0
+
+# Title: [jit] AttributeError when adding new attribute to a nn.Module and calling it later
+"""
+Output:
+Traceback (most recent call last):
+    File "test/jit_test.py", line 45, in <module>
+        x = torch.randn(2)
+RuntimeError: Given groups=1, weight(3, 16, 3, 3): [3, 16, 3, 3], but input[2, 16, 70, 70]
+"""
+# Version: PyTorch version: 1.4.0
+# Labels: oncall: jit, triaged, module: vision, module: onnx, module: amp (automated mixed precision), onnx-triaged
+# PR Title: [jit] AttributeError when adding new attribute to a nn.Module and calling it later
+import torch
+class Net(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.cv1 = torch.nn.Conv2d(16, 32, 5)
+    def forward(self, x):
+        self._to_add = True # fails if not in front of conv
+        x = self.conv1(x)
+        return x
+net = Net()
+with torch.no_grad():
+    for i in range(0, 64, 8):
+        x = torch.randn((2, 16, i, i)) # fails with size 35 and larger
+        jit_

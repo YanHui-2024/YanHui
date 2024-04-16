@@ -1,0 +1,59 @@
+ Union[NoneType, T] in JIT Model
+# Bug description: a RuntimeError on model accepting an optional custom type
+#                  when using torch.jit.script in PyTorch v1.7.1
+
+# Title: [JIT] Support Union[NoneType, T] as input type
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+# PR Title: [JIT] Support Union[NoneType, T] as input type
+import torch
+from torch.fx import symbolic_trace
+class TestModule(torch.nn.Module):
+    def forward(self, x: Tuple[Tuple[int], Optional[float]]):
+        return x
+m = TestModule()
+gm = symbolic_trace(m)
+print("output of trace", gm( ((123), 124.57)), "\n")
+# API: Union[NoneType, T] in JIT Model
+# Bug description: a RuntimeError on model accepting an optional custom type
+#                  when using torch.jit.script in PyTorch v1.7.1
+
+# Title: [JIT] Support Optional[Tuple[List[int]]] as input type
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+# PR Title: [JIT] Support Optional[Tuple[List[int]]] as input type
+class TestModule(torch.nn.Module):
+    def forward(self, x: Optional[Tuple[Optional[List[int]], Optional[float]]]):
+        return x
+m = TestModule()
+gm = symbolic_trace(m)
+print("output of trace", gm( ((123), 124.57)), "\n")
+# API: Optional[Tuple[List[int]]] in JIT Model
+# Bug description: a RuntimeError on model accepting an optional custom type
+#                  when using torch.jit.script in PyTorch v1.7.1
+
+# Title: [JIT] Support Union[NoneType, List[T]] as input type
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+# PR Title: [JIT] Support Union[NoneType, List[T]] as input type
+class TestModule(torch.nn.Module):
+    def forward(self, x: Optional[List[Optional[int]]]):
+        return x
+m = TestModule()
+gm = symbolic_trace(m)
+print("output of trace", gm( [123, 124]), "\n")
+# API: Union[NoneType, List[T]] in JIT Model
+# Bug description: a RuntimeError on model accepting an optional custom type
+#                  when using torch.jit.script in PyTorch v1.7.1

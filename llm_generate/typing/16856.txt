@@ -1,0 +1,11 @@
+# API: JIT model, type is not inferred correctly
+# Bug description: Model fails to convert due to unordered_map type mismatch error.
+#                  This problem occurs when trying to trace using a custom type that has multiple constructors.
+#                  We believe this is a bug in the torch.jit module, and have created an issue with them: https://github.com/pytorch/pytorch/issues/39756
+@torch.jit.script_method
+def foo(
+image_size: Tuple[int, int],  # type: ignore[annotation]
+) -> None:
+@torch.jit.script_method
+    def forward(self, list_of_frame_dictionaries):
+        # type: (List[Dict[str, Tensor]]) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor] # noqa

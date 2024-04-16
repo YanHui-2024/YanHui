@@ -1,0 +1,15 @@
+# Title: [JIT] 1 // 0 in script does not raise error
+"""
+Output:
+$ python test_jit.py
+-9223372036854775808
+"""
+# Version: PyTorch version: 1.0.0
+# Labels: oncall: jit
+# PR Title: [JIT] 1 // 0 in script does not raise error
+@torch.jit.script
+def test():
+    return 1 // 0
+
+
+print(test())

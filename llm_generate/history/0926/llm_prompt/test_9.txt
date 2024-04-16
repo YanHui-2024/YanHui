@@ -1,0 +1,94 @@
+# API: List
+# Bug description: the result of the trace is different from expected (original instance is mutated).
+#                  This happens when using torch.jit.trace in PyTorch v1.1.0
+import torch
+
+def foo():
+    a = [1, 2, 3]
+    b = list(a)
+    a.pop()
+    return a, b
+
+foo_scripted = torch.jit.script(foo)
+
+print(foo_scripted.code)
+print('actual', foo_scripted())
+print('expected', foo())
+print(foo_scripted.graph_for())
+
+
+# API: JIT Attribute
+# Bug description: Assertion error when using attributes on torch.jit
+import torch
+from typing import Dict
+
+class AttributeModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.foo = torch.jit.Attribute(0.1, float)
+
+        # we should be able to use self.foo as a float here
+        assert 0.0 < self.foo
+
+        self.names_ages = torch.jit.Attribute({}, Dict[str, int])
+        self.names_ages["someone"] = 20
+        assert isinstance(self.names_ages["someone"], int)
+
+m = AttributeModule()
+
+
+# API: torch._C._autocast_is_enabled()
+# Bug description: TorchScript compilation fails when _autocast_is_enabled is invoked in JIT mode,
+#                  but it works if executed as a Python script.
+#
+
+import torch
+import torch.nn as nn
+def test_fuse_batch_norm():
+	
+    class ResLike(torch.jit.ScriptModule):
+        def __init__(self, optimize=True):
+            super(ResLike, self).__init__(optimize)
+            self.bn = nn.BatchNorm2d(16)
+    
+        @torch.jit.script_method
+        def forward(self, x, y):
+            return y + torch.relu(self.bn(x))
+    
+    model = ResLike().cuda()
+    model_noopt = ResLike(optimize=False).cuda()
+    model_noopt.load_state_dict(model.state_dict())
+    x = torch.randn(2, 16, 8, 8, device='cuda')
+    y = torch.randn(2, 16, 8, 8, device='cuda')
+    with torch.no_grad():
+        out = model(x, y)
+        graph = model.graph_for(x, y)
+        rep = str(graph)
+    
+        out_noopt = model_noopt(x, y)
+        rep_noopt = str(model_noopt.graph_for(x, y))
+        x = x.half()
+        y = y.half()
+        out_noopt = model_noopt(x,y)
+        print("no jit", out_noopt.abs().max())
+        out_opt = model(x,y)
+        print("jit", out_opt.abs().max())
+    
+
+if __name__ == "__main__":
+    test_fuse_batch_norm()
+
+
+# API: Ellipsis in JITed code
+# Bug description: Error when using fx.symbolic_trace on function having an ellipsis (...)
+import torch
+from torch import fx
+
+def foo(x):
+    return x[..., :]
+
+torch.jit.script(foo)  # ok
+torch.jit.script(fx.symbolic_trace(foo))  # not ok
+
+
+# API:

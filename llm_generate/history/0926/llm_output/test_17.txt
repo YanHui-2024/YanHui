@@ -1,0 +1,10 @@
+# API: Python.function: math.ceil and torch.jit.ScriptFunction: torch.jit.script
+# Bug description: ceil is not supported in TorchScript with the same semantics as python
+import torch
+def foo():    
+    return round(2.5)
+
+sfoo = torch.jit.script(foo)
+print(foo(), sfoo())
+# gives
+# 3, 3.0

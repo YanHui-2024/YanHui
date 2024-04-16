@@ -1,0 +1,29 @@
+ TorchScript for device type object (e.g., torch.device("cpu") )
+# Bug description: JIT compilation fails with annotation of tensor device type in PyTorch v1.3.1
+
+# Title: Scripted module does not use correct data types in forward method
+"""
+Output:
+RuntimeError: The following error happened when you set the attribute of class Module (most recent call last):
+  File "test/test_torchscript.py", line 98, in __setattr__
+    self.__dict__["_initializing"] = _Initializing()
+  RuntimeError: Trying to re-initialize an already initialized module.
+                A common way to achieve this is initializing a Module outside of the nn.Module's constructor and then assign it (self) to a Module instance inside the nn.Module's constructor. Alternatively, if you really need to create your Module in a method such as __init__ or forward, you can use torch._C._reinit_modules() before constructing your new modules.
+        def __init__(self):
+            super().__init__()
+            self.a = TensorType(torch.double)([3, 2]) # should be float64 (torch.float64)
+# API: torch._C._reinit_modules
+# Bug description: When scripting a module, PyTorch does not correctly assign the data types as indicated in the original code. Instead it uses its own internal type guessing algorithm which does not always match what is intended in the original code.
+
+# Title: JIT Compilation Error (PyTorch 1.7.1)
+"""
+Output:
+RuntimeError: The following error happened when you set the attribute of class Module (most recent call last):
+  File "test/test_torchscript.py", line 98, in __setattr__
+    self.__dict__["_initializing"] = _Initializing()
+  RuntimeError: Trying to re-initialize an already initialized module. A common way to achieve this is initializing a Module outside of the nn.Module's constructor and then assign it (self) to a Module instance inside the nn.Module's constructor. Alternatively, if you really need to create your Module in a method such as __init__ or forward, you can use torch._C._reinit_modules() before constructing your new modules.
+        def __init__(self):
+            super().__init__()
+            self.a = TensorType(torch.double)([3, 2]) # should be float64 (torch.float64)
+# API: torch._C._reinit_modules
+# Bug description: When scripting a module, PyTorch does not correctly assign the data types as indicated in the original code. Instead it uses its own internal type guessing algorithm which does not always match what is intended in the original code.

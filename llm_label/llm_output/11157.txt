@@ -1,0 +1,127 @@
+ einsum
+# Bug description: Exception for JIT tracing einsum
+
+# Title: __getitem__ and __setitem__ are not compatible with torchscript
+"""
+Output:
+Traceback (most recent call last):
+  File "<stdin>", line 2, in <module>
+  File "/home/sidharth/anaconda3/envs/pytorch-0.4.1/lib/python3.6/site-packages/torch/jit/_recursive.py", line 518, in create_script_module_impl
+    return create_script_module_impl_impl(nn_module, concrete_type, stubs_fn)
+  File "/home/sidharth/anaconda3/envs/pytorch-0.4.1/lib/python3.6/site-packages/torch/jit/_recursive.py", line 475, in create_script_module_impl_impl
+    module._create_methods_and_properties(property_defs, property_rcbs, method_defs, method_rcbs, method_defaults)
+  File "/home/sidharth/anaconda3/envs/pytorch-0.4.1/lib/python3.6/site-packages/torch/_jit_internal.py", line 289, in _create_methods_and_properties
+    self._compile()
+  File "/home/sidharth/anaconda3/envs/pytorch-0.4.1/lib/python3.6/site-packages/torch/_jit_internal.py", line 298, in _compile
+    return torch._C._compile_for_file(self)
+RuntimeError: 
+Error parsing trace for __setitem__
+  File "test/tinytest.py", line 11
+    self[self.idx] = x + y
+         ~~~~~~~~ <--- HERE
+
+Error while compiling __getitem__
+  File "test/tinytest.py", line 12, in forward
+    return self[idx - 1]
+                   ~~~~ <--- HERE
+"""
+# Version: PyTorch version: 0.4.1
+# Labels: oncall: jit
+# PR Title: __getitem__ and __setitem__ are not compatible with torchscript
+class M(torch.nn.Module):
+    def __init__(self, x : int):
+        super(M, self).__init__()
+        self.x = x
+    
+    def forward(self, idx : int) -> Tensor:
+        self[idx - 1] = idx * torch.ones(2) + self.x
+        return self[idx - 1]
+        
+m = M(3).eval()
+out = m(4)
+print(out)
+torchscript_m = torch.jit.trace(m, (0))
+out_scripted = torchscript_m(5)
+# API: __getitem__ and __setitem__ not compatible with TorchScript
+# Bug description: JIT error when using __getitem__ or __setitem__
+
+# Title: Error calling forward on ModuleList
+"""
+Output:
+Traceback (most recent call last):
+  File "/home/sidharth/anaconda3/envs/pytorch-0.4.1/lib/python3.6/site-packages/torch/_jit_internal.py", line 289, in _create_methods_and_properties
+    self._compile()
+  File "/home/sidharth/anaconda3/envs/pytorch-0.4.1/lib/python3.6/site-packages/torch/_jit_internal.py", line 298, in _compile
+    return torch._C._compile_for_file(self)
+RuntimeError:
+JIT Error (Trace code [main()], Line 37):
+RewriteError: calling forward failed on the eager model. Try removing this call to call the JIT version.
+  File "test/tinytest.py", line 29, in <module>
+    a = ml[0]
+  File "/home/sidharth/anaconda3/envs/pytorch-0.4.1/lib/python3.6/site-packages/torch/_jit_internal.py", line 289, in _create_methods_and_properties
+    self._compile()
+  File "/home/sidharth/anaconda3/envs/pytorch-0.4.1/lib/python3.6/site-packages/torch/_jit_internal.py", line 298, in _compile
+    return torch._C._compile_for_file(self)
+RuntimeError: 
+Error parsing trace for <lambda>
+  File "test/tinytest.py", line 31, in forward
+    return self[0]
+         ~~~~ <--- HERE
+"""
+# Version: PyTorch version: 0.4.1
+# Labels: oncall: jit, module: onnx, modeling: LSTM
+# PR Title: Error calling forward on ModuleList
+import torch.nn as nn
+model = nn.Sequential(torch.rand(3, 2), nn.ReLU(), nn.Linear(4, 3))
+lstm = nn.LSTM(4, 3)
+lstms = []
+for i in range(10):
+    lstms.append(nn.ModuleList([lstm for _ in range(i)]))
+model[2] = torch.rand(3, 2)
+a = lstms[0][0](torch.ones(5, 4), (torch.ones(10, 3), torch.ones(10, 3)))
+# API: LSTM and ModuleList
+# Bug description: Exception calling forward on a LSTM model or ModuleList object
+
+# Title: jit.trace returns unexpectedly unscripted function for no reason
+"""
+Output:
+Traceback (most recent call last):
+  File "test/tinytest.py", line 13, in <module>
+    tracer = torch.jit.trace(func, tuple())
+  File "/home/sidharth/anaconda3/envs/pytorch-0.4.1/lib/python3.6/site-packages/torch/jit/_tracing.py", line 1059, in trace
+    return script_trace(func, inputs,
+  File "/home/sidharth/anaconda3/envs/pytorch-0.4.1/lib/python3.6/site-packages/torch/jit/_tracing.py", line 985, in script_trace
+    trace, torch_out = torch._C._script(func, inputs)
+RuntimeError: 
+Error parsing trace for <lambda>
+  File "test/tinytest.py", line 23, in forward
+    return torch.cat((self.linear(inputs[0]), self.nonlin(x)), dim=1)
+         ~~~~~~~~~~ <--- HERE
+"""
+# Version: PyTorch version: 0.4.1
+# Labels: oncall: jit, module: onnx, modeling: LSTM
+# PR Title: unexpectedly unscripted function for no reason
+def tracer():
+    def func(x):
+        return x * 2
+    trace = torch.jit.trace(func, tuple())
+    return lambda inputs : torch.ones(1) + trace(inputs[0])
+tracer()(tuple([torch.randn((3,4))]))
+# API: LSTM and unscripted function not scriptable in JIT trace
+# Bug description: exception when trying to jit.trace a module with an unscripted lambda in it
+
+# Title: torch._C._free doesn't work on PyTorch 0.4 or lower
+"""
+Output:
+Traceback (most recent call last):
+  File "test/tinytest.py", line 13, in <module>
+    torch._C._free(x)
+AttributeError: module 'torch._C' has no attribute '_free'
+"""
+# Version: PyTorch version: 0.4
+# Labels: oncall: jit
+# PR Title: torch._C._free doesn't work on PyTorch 0.4 or lower
+class Foo(nn.Module):
+    def __init__(self):
+        super().__init__()
+    def forward(self, x : Tensor) -> Tensor:

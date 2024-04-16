@@ -1,0 +1,86 @@
+ List[Tensor]
+# Bug description: Error when passing a list of Tensors as input to nn.Sequential model in PyTorch v1.7.1
+
+# Title: [JIT] nn.Sequential of nn.Module with input type Dict[str, torch.Tensor] inferred to Dict[str, List[torch.Tensor]]
+"""
+Output:
+---------------------
+Traceback (most recent call last):
+  File "tests/test_seq.py", line 32, in <module>
+    res = scripted_model(test_input)
+RuntimeError: Expected all tensors to have compatible shape as each other and to have the same shape as self.debug_tensors (got [3, 2] for tensor at index 0, [4, 1] for tensor at index 1)
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+# PR Title: [JIT] nn.Sequential of nn.Module with input type Dict[str, torch.Tensor] inferred to Dict[str, List[torch.Tensor]]
+import torch
+import torch.nn as nn
+from typing import List
+class ModelWithInputAsDictOfTensor(nn.Module):
+    def __init__(self, x=2):
+        super(ModelWithInputAsDictOfTensor, self).__init__()
+        self.x = 2
+    def forward(self, x: Dict[str, torch.Tensor]) -> List[torch.Tensor]:
+        # print("Receiving type", type(x), len(x))
+        for each in x.values():
+            each *= self.x
+        return [each for _, each in sorted(x.items())]
+model = nn.Sequential(
+    ModelWithInputAsDictOfTensor(),
+    ModelWithInputAsDictOfTensor()
+)
+# Original model
+test_input: Dict[str, torch.Tensor] = {"1":torch.ones((2, 2)), "2":torch.ones((3, 3)), "3":torch.ones((4, 4))}
+res = model(test_input)
+print("---------------------")
+# Scripted model
+scripted_model = torch.jit.script(model)
+print(scripted_model)
+print("---------------------")
+print(scripted_model._get_method('forward').graph)
+# Input as typing.Dict[str, torch.Tensor]
+test_input: Dict[str, torch.Tensor] = {"1":torch.ones((2, 2)), "2":torch.ones((3, 3)), "3":torch.ones((4, 4))}
+res = scripted_model(test_input)
+print("---------------------")
+# Input as torch.jit.annotate(Dict[str, Tensor])
+test_input: Dict[str, torch.Tensor] = torch.jit.annotate(Dict[str, torch.Tensor], {"1":torch.ones((2, 2)), "2":torch.ones((3, 3)), "3":torch.ones((4, 4))})
+res = scripted_model(test_input)
+print("---------------------")
+# API: Dict[str, Tensor] inferred to List[Tensor] in nn.Sequential of nn.Module
+# Bug description: Error when passing a dict type input as argument to nn.Sequential model in PyTorch v1.7.1
+
+# Title: torch._C._free() segfaults if called from C++ JITed module
+"""
+Output:
+Traceback (most recent call last):
+  File "tests/test_free.py", line 30, in <module>
+    free(x)
+  File "/home/titaiwang/pytorch/torch/csrc/utils/python_numbers.h", line 41, in free
+    caffe2::TorchFree(p);
+  File "/home/titaiwang/pytorch/torch/csrc/utils/python_numbers.cpp", line 19, in caffe2::TorchFree
+    return FreePythonNumber<D>(reinterpret_cast<T*>(p));
+  File "/home/titaiwang/pytorch/torch/csrc/utils/python_numbers.h", line 56, in caffe2::detail::FreePythonNumberImpl<float>::operator()(float*) const [with T = float]
+    Py_DecRef((PyObject*)p);
+Segmentation fault (core dumped)
+"""
+# Version: PyTorch version: 1.10.1
+# Labels: oncall, module: onnx, module: jit, module: cuda
+# PR Title: torch._C._free() segfaults if called from C++ JITed module
+import numpy as np
+import torch
+np_array = np.ones([5, 4], dtype=np.float32)
+x = torch.from_numpy(np_array)
+@torch.jit.script
+def free(p: torch.Tensor):
+    import torch
+    if p is not None:
+        print("Freeing ", p, " from script.")
+        # if type(p) == torch._C.ValuePointer[float]:
+        if False:
+            pass
+        else:
+            x = float(torch.mean(x).item())  # 5.0
+            print("Mean of x", x, "is ", x)
+
+# API: Customize segfault error message when freeing Tensor object in C++ JITed module
+# Bug description: Error when calling torch._C._free() on Tensor object from C++ JITed module. It will crash the program with segmentation fault if the object is not freed before program exit.

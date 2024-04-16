@@ -1,0 +1,7 @@
+# API: autograd.grad
+# Bug description: Trace sanity check fails when using `retain_graph` in autograd when using torch.jit.script in PyTorch v1.3.1
+import torch
+
+@torch.jit.script
+def f(x):
+    return torch.autograd.grad([x.sum()], [x], retain_graph=True)

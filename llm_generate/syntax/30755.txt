@@ -1,0 +1,14 @@
+# API: static method invocation in jit scripting model
+# Bug description: Trace sanity check fails when using @staticmethod function defined inside __init__.
+#                  It will report an error saying that the static method is not found on that class.
+#                  It seems that static methods are only compiled if they are invoked from a forward, not from __init__().
+#                  The same error occurs with @classmethod also.
+class M(nn.Module):
+    @staticmethod
+    def some_method(x):
+        return x + 10
+
+    def forward(self, x):
+        return self.some_method(x)
+
+torch.jit.script(M())

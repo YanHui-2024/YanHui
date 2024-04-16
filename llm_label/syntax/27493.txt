@@ -1,0 +1,27 @@
+# Title: [jit] `index_put_` on a tensor slice with the element type does not work
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.2.0
+# Labels: oncall: jit, triaged, small
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# this works
+def fn(x):
+    a = zeros_like(x, dtype=torch.uint8)
+    a[torch.tensor(0)] = torch.tensor(2)
+    return a
+
+# this works
+def fn(x):
+    a = zeros_like(x, dtype=torch.uint8)
+    a[0] = 2
+    return a
+
+# this  doesn't work
+def fn(x):
+    a = zeros_like(x, dtype=torch.uint8)
+    a[torch.tensor(0)] = 2
+    return a
+
+x = torch.jit.script(fn)

@@ -1,0 +1,54 @@
+ N/A
+# Bug description: ASSERT FAILED during fusion
+
+# Title: [JIT] Conv not fusing
+"""
+Output:
+fmassa-mbp:~ fmassa$ python tst3.py
+Conv1:
+    graph(%self : __torch__.torch.nn.___torch_mangle_2.Conv2d, %input.1 : Tensor):
+      %16 : int = prim::Constant[value=2]() # <ipython-input-17-a4f3459b0c8e>:1:0
+        prim::If(%self.padding == 1) (%self, %self.stride, %self.dilation): # some_func_name = @some_func_name
+      %3 : NoneType = prim::Constant()
+      %28 : Tensor = aten::avg_pool2d(%input.1, %self.kernel_size, %self.stride, %self.padding, %self.ceil_mode, True) # <ipython-input-17-a4f3459b0c8e>:1:0
+      %1 : Tensor = aten::mul(%28, %self.weight) # <ipython-input-17-a4f3459b0c8e>:1:0
+      %6 : int = prim::Constant[value=2]() # <ipython-input-17-a4f579d468db>:1:0
+      %7 : int = prim::Constant[value=3]() # <ipython-input-17-a4f579d468db>:1:0
+      %9 : float = prim::Constant[value=0.25]() # <ipython-input-17-a4f579d468db>:1:0
+        torch._ops.aten.max_pool2d(%2, %3, %6, %7, %3, True) # <ipython-input-17-a4f339cbf3e4>:1:0
+      %8 : Tensor = aten::mul(%1, %9) # <ipython-input-17-a4f579d468db>:1:0
+        torch._ops.aten.max_pool2d_with_indices(%2, %3, %6, %7, %3, True) # <ipython-input-17-a4f347b0e9d9>:1:0
+      %10 : Tensor = aten::sub(%8, %9) # <ipython-input-17-a4f579d468db>:1:0
+        torch._ops.aten.mul(%7, %self.weight[%3, %3]) # <ipython-input-17-a4f33b2e3d2d>:1:0
+      %15 : Tensor = aten::mean(%8, %6) # <ipython-input-17-a4f34c925aa1>:1:0
+      %17 : (Tensor, Tensor), Tensor = prim::If(%self.padding == 1)(%self, %self.stride, %self.dilation) # <ipython-input-17-a4f3459b0c8e>:2:0
+      return (%17[1]) # <ipython-input-17-a4f3459b0c8e>:2:0
+Conv2:
+    graph(%self : __torch__.torch.nn.___torch_mangle_3.ConvTranspose2d, %input.1 : Tensor):
+      %7 : int = prim::Constant[value=2]() # <ipython-input-25-0a6e89cef679>:1:0
+        prim::If(%self.padding == 1) (%self, %self.stride, %self.dilation): # some_func_name = @some_func_name
+      %3 : NoneType = prim::Constant()
+      %28 : Tensor = aten::avg_pool2d(%input.1, %self.kernel_size, %self.stride, %self.padding, %self.ceil_mode, True) # <ipython-input-25-0a6e89cef679>:1:0
+      %1 : Tensor = aten::mul(%28, %self.weight) # <ipython-input-25-0a6e89cef679>:1:0
+      %6 : int = prim::Constant[value=2]() # <ipython-input-25-0a6e89cef679>:1:0
+      %7 : int = prim::Constant[value=3]() # <ipython-input-25-0a6e89cef679>:1:0
+      %9 : float = prim::Constant[value=0.25]() # <ipython-input-25-0a6e89cef679>:1:0
+        torch._ops.aten.max_pool2d(%2, %3, %6, %7, %3, True) # <ipython-input-25-0a6e89cef679>:1:0
+      %8 : Tensor = aten::mul(%1, %9) # <ipython-input-25-0a6e89cef679>:1:0
+        torch._ops.aten.max_pool2d_with_indices(%2, %3, %6, %7, %3, True) # <ipython-input-25-0a6ef784e151>:1:0
+      %10 : Tensor = aten::sub(%8, %9) # <ipython-input-25-0a6e89cef679>:1:0
+        torch._ops.aten.mul(%7, %self.weight[%3, %3]) # <ipython-input-25-0a6efbc5eeec>:1:0
+      %15 : Tensor = aten::mean(%8, %6) # <ipython-input-25-0a6e4b7c9f43>:1:0
+      %17 : (Tensor, Tensor), Tensor = prim::If(%self.padding == 1)(%self, %self.stride, %self.dilation) # <ipython-input-25-0a6e89cef679>:2:0
+      return (%17[1]) # <ipython-input-25-0a6e89cef679>:2:0
+Conv3:
+    graph(%self : __torch__.torch.nn.___torch_mangle_4.ConvTranspose2d, %input.1 : Tensor):
+      %7 : int = prim::Constant[value=2]() # <ipython-input-30-8c6d0a58f9e0>:1:0
+        prim::If(%self.padding == 1) (%self, %self.stride, %self.dilation): # some_func_name = @some_func_name
+      %3 : NoneType = prim::Constant()
+      %28 : Tensor = aten::avg_pool2d(%input.1, %self.kernel_size, %self.stride, %self.padding, %self.ceil_mode, True) # <ipython-input-30-8c6d0a58f9e0>:1:0
+      %1 : Tensor = aten::mul(%28, %self.weight) # <ipython-input-30-8c6d0a58f9e0>:1:0
+      %6 : int = prim::Constant[value=2]() # <ipython-input-30-8c6d0a58f9e0>:1:0
+      %7 : int = prim::Constant[value=3]() # <ipython-input-30-8c6d0a58f9e0>:1:0
+      %9 : float = prim::Constant[value=0.25]() # <ipython-input-30-8c6d0a58f9e0>:1:0
+        torch._ops.aten.max_pool2

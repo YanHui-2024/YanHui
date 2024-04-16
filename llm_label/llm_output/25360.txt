@@ -1,0 +1,63 @@
+ JIT Module
+# Bug description: Assertion error while using jit scripting to save a model with a tensor of bool type variable
+#                  when using torch.jit.script in PyTorch v1.2.0
+
+# Title: TorchScript error for nested class
+"""
+Output:
+Traceback (most recent call last):
+  File "test/tinytest.py", line 4, in <module>
+    module = torch.jit.script(M())
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_frontend.py", line 94, in script
+    self._run_generated_code() # type: ignore[attr-defined]
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/_C._jit_tree_views.py", line 43, in run_generated_code
+    _C._run_mains(code)
+RuntimeError: JIT compilation error: Expected to unbox a tensor for __getitem__ but got 'None' instead!
+[b;5] @ __module.M.B.__init__(self, x) = torch::autocast([is_scripting=False, is_training=True], [aten::_convolution, aten::addmm, aten::addmm, aten::addmm, aten::_convolution]):
+    %__module.M.B.self = %20 : __torch__.torch.nn.modules.module.___torch_mangle_17.Module = prim::GetAttr[name="B"](%28) # /home/ansley/pytorch/test/tinytest.py:5:4
+    %__module.M.B.x = %23 : Tensor, CPU, grad_fn=<TanhBackward> = prim::GetAttr[name="x"](%__module.M.B.self) # /home/ansley/pytorch/test/tinytest.py:5:4
+    return (%21 : __torch__.torch.nn.modules.linear.___torch_mangle_6.Linear, %22 : Tensor = prim::CallMethod[arity=1](%20, "B", %__module.M.B.x)) # /home/ansley/pytorch/test/tinytest.py:5:4
+    %29 : __torch__.torch.nn.modules.batchnorm.___torch_mangle_16.BatchNorm1d, %28 : Tensor = prim::CallMethod[arity=1](%20, "B", %__module.M.B.x)) # /home/ansley/pytorch/test/tinytest.py:5:4
+    return (%26 : __torch__.c10.FloatTensor = prim::CallMethod[arity=1](%27, "A", %__module.M.B.x), ) # /home/ansley/pytorch/test/tinytest.py:5:4
+    return (%36 : Tensor = prim::CallMethod[arity=1](%0, "A", %1)) # /home/ansley/pytorch/test/tinytest.py:5:4
+    %5 : __torch__.c10.FloatTensor = prim::Constant[value=<__torch__.c10.FloatTensor>]() # /home/ansley/pytorch/test/tinytest.py:5:4
+    return (%36 : Tensor = prim::CallMethod[arity=1](%0, "A", %1)) # /home/ansley/pytorch/test/tinytest.py:5:4
+    %28 : __torch__.c10.LongTensor = prim::Constant[value=<__torch__.c10.LongTensor>]() # /home/ansley/pytorch/test/tinytest.py:5:4
+    %39 : __torch__.c10.FloatTensor = prim::Constant[value=<__torch__.c10.FloatTensor>]() # /home/ansley/pytorch/test/tinytest.py:5:4
+    return (%26 : __torch__.c10.FloatTensor, %39 : Tensor = prim::CallMethod[arity=1](%27, "A", %__module.M.B.x)) # /home/ansley/pytorch/test/tinytest.py:5:4
+    return (%26 : __torch__.c10.FloatTensor) # /home/ansley/pytorch/test/tinytest.py:5:4
+    %34 : __torch__.c10.DoubleTensor = prim::Constant[value=<__torch__.c10.DoubleTensor>]() # /home/ansley/pytorch/test/tinytest.py:5:4
+    return (%26 : __torch__.c10.FloatTensor, %39 : Tensor = prim::CallMethod[arity=1](%27, "A", %__module.M.B.x)) # /home/ansley/pytorch/test/tinytest.py:5:4
+    return (%26 : __torch__.c10.FloatTensor) # /home/ansley/pytorch/test/tinytest.py:5:4
+    %38 : __torch__.c10.ShortTensor = prim::Constant[value=<__torch__.c10.ShortTensor>]() # /home/ansley/pytorch/test/tinytest.py:5:4
+    return (%26 : __torch__.c10.FloatTensor, %39 : Tensor = prim::CallMethod[arity=1](%27, "A", %__module.M.B.x)) # /home/ansley/pytorch/test/tinytest.py:5:4
+    return (%26 : __torch__.c10.FloatTensor) # /home/ansley/pytorch/test/tinytest.py:5:4
+  File "jit/trace_module.py", line 82, in _run_generated_code
+    return func(*args[start:end])  # type: ignore[attr-defined]
+TypeError: __init__() got an unexpected keyword argument 'x'
+"""
+# Version: PyTorch version: 1.3.0
+# Labels: oncall: jit, triaged
+# PR Title: TorchScript error for nested class
+import torch as th                                                                                                
+                                                                                                                  
+class A(th.nn.Module):                                                                                           
+    def __init__(self, x):                                                                                        
+        super().__init__()                                                                                        
+                                                                                                                  
+class B(A):                                                                                                      
+    pass                                                                                                          
+                                                                                                                  
+class M(th.nn.Module):                                                                                           
+    def __init__(self, x):                                                                                        
+        super().__init__()                                                                                        
+        self.register_buffer("A", th.zeros(3,).bool())                                                            
+        # self.A = th.zeros(3)  # will result in the same error
+        # if we try this - a new error pops up: "expected scalar type Half but found Double"
+    def forward(self, x):                                                                                         
+        return B(x)(x)                                                                                            
+                                                                                                                  
+mod = M()
+smod = th.jit.script(mod)
+# API: JIT Module
+# Bug description: Runtime error while tracing a nested class as jit script

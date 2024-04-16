@@ -1,0 +1,27 @@
+# API: layerNorm
+# Bug description: Error printing a model containing LayerNorm.
+#                  This is a minimal script to reproduce the issue.
+import torch
+from torch import nn
+class Test(nn.Module):
+def __init__(self):
+super().__init__()
+self.layer_norm = nn.LayerNorm(5)
+def forward(self, x):
+pass
+t = Test()
+print(t)
+import torch
+from torch.nn import LayerNorm
+from torch.jit import ScriptModule
+
+
+class Test(ScriptModule):
+    def __init__(self, dim):
+        super().__init__()
+        self.layer_norm = LayerNorm(dim)
+
+
+if __name__ == '__main__':
+    m = Test(100)
+    print(m)

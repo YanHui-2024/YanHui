@@ -1,0 +1,2 @@
+ Class attribute in JIT Model
+# Bug description: Unpacking tuple to class attributes fails when tracing with script on PyTorch v1.7.1

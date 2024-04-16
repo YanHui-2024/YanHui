@@ -1,0 +1,82 @@
+# API: torch._C._get_device_index(device)
+# Bug description: AttributeError when device is 'cuda:0'
+import torch
+torch._C._get_device_index('cuda:0')
+
+"""
+## Test case 5
+# Title: CUDA: out-of-memory error in multi-GPU execution mode - PyTorch 1.4
+# Links: https://discuss.pytorch.org/t/cuda-out-of-memory-error-in-multi-gpu-execution-mode-pytorch-1-4/63825, https://github.com/pytorch/pytorch/issues/22907
+"""
+# Version: PyTorch version 1.4.0
+# Labels: cuda, multi_gpu, oom (out of memory)
+import torch                           # to create tensors and model
+import numpy as np
+from matplotlib import pyplot as plt   # to visualize the output
+model=torch.hub.load('pytorch/vision:v0.5.0', 'resnet18', pretrained=False)
+model=model.cuda()                     # loading to cuda is mandatory for multi-gpu usage
+x=np.random.randn(2,3,224,224).astype('float32')  # creating two random numpy arrays (each array with the shape of input)
+y=np.random.randn(2,3,224,224).astype('float32')
+x_tensor=torch.from_numpy(x)
+y_tensor=torch.from_numpy(y)
+model.eval()                           # evaluation mode
+# creating a dataloder
+dataloader = torch.utils.data.DataLoader(
+    # create your dataset and apply all the transforms
+    dataset, batch_size=32, shuffle=False, num_workers=1, pin_memory=True)
+
+# multi-GPU usage (requires nvidia driver >= 418.67)
+model = nn.DataParallel(model)
+device = torch.device("cuda") # to use only one GPU uncomment lines below and comment the line above
+# os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
+# os.environ["CUDA_VISIBLE_DEVICES"]="0, 1"    # uncomment to only use 2 specific GPUs (instead of all)
+model = model.to(device)
+optimizer=torch.optim.Adam(model.parameters(), lr=0.001)
+loss_fn = nn.CrossEntropyLoss()
+for i, (x, y) in enumerate(dataloader): # dataloader returns an iterable over the data loader objects. The loop iterates once for each batch of data provided by the data loader object
+  with torch.set_grad_enabled(True):
+    optimizer.zero_grad()              # zero gradients to clear any previous values
+    x = x.to(device)                   # loading to GPU
+    y = y.cuda(non_blocking=False)     # loading to cuda is mandatory for multi-gpu usage
+    x = torch.autograd.Variable(x, requires_grad=True)  # autograd variable allows us to keep track of all the intermediate values
+    y_hat = model(x)                   # forward pass (returns a prediction on the outputs of the model)
+    loss = loss_fn(y_hat, y.cuda())    # compute our cost function, with our output and labels
+    loss.backward()                    # perform a backpropagation algorithm step (compute gradients for every parameter)
+    optimizer.step()                   # update the weights of our model by using the computed gradients
+  if i%10 == 0:                       # print some progress indicator to stdout, just so we dont get bored waiting
+    print('Loss: ', loss.item())
+
+"""
+## Test case 6
+# Title: AttributeError: 'module' object has no attribute '_jit_override_can_fuse_on_gpu'
+# Links: https://github.com/pytorch/pytorch/issues/18402
+"""
+import torch                                # import the library
+# load an example model
+model = torchvision.models.resnet50(True)   # loading to GPU is mandatory for multi-gpu usage
+device=torch.cuda.current_device()          # we need this variable for later (it will contain the index of your current gpu device. For example: 2, if you have a rtx 3080 and an Nvidia Quadro P500)
+model = torch.nn.DataParallel(model).to(device) # loading to GPU is mandatory for multi-gpu usage
+optimizer=torch.optim.Adam(model.parameters(), lr=0.001)  # create our optimizer with the model parameters (the weights of your model)
+loss_fn = torch.nn.CrossEntropyLoss()                     # set our loss function to be cross-entropy loss
+dataloader = ...                                          # create a dataloader, load an example dataset, etc... (we will not cover these steps in this tutorial)
+# create a training loop
+for i, (x, y) in enumerate(dataloader):
+  with torch.set_grad_enabled(True):
+    optimizer.zero_grad()                     # zero gradients to clear any previous values
+    x = x.to(device)                          # loading to GPU is mandatory for multi-gpu usage
+    y = y.cuda(non_blocking=False)            # loading to cuda is mandatory for multi-gpu usage
+    pred = model(x)                           # forward pass (returns a prediction on the outputs of the model)
+    loss = loss_fn(pred, y)                   # compute our cost function, with our output and labels
+    loss.backward()                           # perform a backpropagation algorithm step (compute gradients for every parameter)
+    optimizer.step()                          # update the weights of our model by using the computed gradients
+  if i%10 == 0:                               # print some progress indicator to stdout, just so we dont get bored waiting
+    print('Loss: ', loss.item())
+
+"""
+## Test case 7 (Not a bug report)
+# Title: AttributeError: module 'torch' has no attribute '_jit_override_can_fuse_on_gpu'
+# Links: https://github.com/pytorch/pytorch/issues/18402, https://discuss.pytorch.org/t/attributeerror-module-torch-has-no-attribute-jit-script-trace/96534
+# Description: Importing torch and jit at the same time
+import torch                    # import library
+from torch._C import _jit_override_can_fuse_on_gpu     # call a function from C
+"""

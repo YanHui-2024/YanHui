@@ -1,0 +1,2 @@
+ List Comprehension
+# Bug description: List comprehension doesn't work with torch.jit.trace in PyTorch v1.1.0

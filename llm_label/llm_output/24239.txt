@@ -1,0 +1,97 @@
+ torch.Tensor.long() in JIT Model
+# Bug description: JIT infers List[Tensor] inccorectly to List[int]
+#                  when using torch.jit.script in PyTorch v1.2.0
+
+# Title: Traced model fails if the forward function takes an input parameter that is a list of integers for which a type annotation exists [GitHub issue #46859]
+"""
+Output:
+Traceback (most recent call last):
+  File "test_issue46859.py", line 17, in <module>
+    traced = torch.jit.trace(model, example)
+  File "/opt/.miniconda/lib/python3.7/site-packages/torch/jit/_tracing.py", line 920, in trace
+    return Tracer(self._inference).call_module(meth, m, args=args, kwargs=kwargs)
+  File "/opt/.miniconda/lib/python3.7/site-packages/torch/jit/_tracing.py", line 1280, in call_method
+    raise RuntimeError("Can't traced a method with no type annotations.")
+RuntimeError: Can't trace a method with no type annotations.
+The original call is:
+at test_issue46859.py:10:5
+def forward(self, ints) -> None:
+    ~~~~~~~~~~~ <--- HERE
+    self.ints = []
+
+    for i in range(0, 3):
+        if len(ints[i]) > 0:
+            self.ints.append(ints[i][-1])
+"""
+# Version: PyTorch version: 1.6.0
+# Labels: oncall: jit
+# PR Title: Traced model fails if the forward function takes an input parameter that is a list of integers for which a type annotation exists [GitHub issue #46859]
+class M(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+    def forward(self, ints: List[int]) -> None:  # self.ints = []
+        ~~~~~~~~~~~ <--- HERE
+        self.ints = []
+
+        for i in range(0, 3):
+            if len(ints[i]) > 0:
+                self.ints.append(ints[i][-1])
+# API: List[int] as method argument in JIT Model
+# Bug description: Traced model fails if the forward function takes an input parameter that is a list of integers for which a type annotation exists [GitHub issue #46859]
+#                  when using torch.jit.trace in PyTorch v1.6.0
+
+# Title: Torchscript compilation fails with a Runtime Error for the following model.
+"""
+Output:
+Traceback (most recent call last):
+   File "test_issue48527.py", line 9, in <module>
+     m = M().eval()
+   File "/opt/.miniconda/lib/python3.7/site-packages/torch/nn/modules/module.py", line 1190, in _call_impl
+     result = forward_call(*input, **kwargs)
+   File "test_issue48527.py", line 6, in forward
+     x1 = self.foo(x, x > 1).to(torch.int)
+ RuntimeError: The following operation failed to compile:
+    aten::bitwise_not(Tensor) -> (Tensor): /home/titaiwang/pytorch/test_issue48527.py:6, in forward (at test_issue48527.py:6), bitwise_not is only supported on Long
+    aten::gt(Tensor, Tensor) -> (bool): /home/titaiwang/pytorch/test_issue48527.py:6, in forward (at test_issue48527.py:6), gt is only supported on Long
+    aten::to(Tensor) -> (Tensor): /home/titaiwang/pytorch/test_issue48527.py:7, in forward (at test_issue48527.py:7), to is only supported on Long
+  The following code was run before the exception occurred:
+    from __main__ import M
+    m = M()
+    out = m(torch.randn([10], device='cpu'))
+    for idx, val in enumerate(out):
+        print(val)
+  This could be caused by one of the following reasons:
+  1) The model has unsupported ops, or excludes supported but not fully-compatible ops (for example, adaptive pooling layer).
+     Try with torch.jit.optimize_for_inference and see if that works.
+  2) The model contains one or more nested top level modules. Nested top level modules are currently unsupported.
+  Code snippet for the failing module:
+    import torch
+    def main():
+        class M(torch.nn.Module):
+            def forward(self, x):
+                return (x > 0).to(dtype=torch.int)
+
+        m = M().eval()
+
+        out = m(torch.randn([10], device='cpu'))
+        for idx, val in enumerate(out):
+            print(val)
+if __name__ == '__main__':
+    main()
+"""
+# Version: PyTorch version: 1.5.0
+# Labels: oncall: jit, module: tracing, module: optimizing, module: quantization, onnx-triaged
+# PR Title: Torchscript compilation fails with a Runtime Error for the following model.
+import torch
+def main():
+    class M(torch.nn.Module):
+        def forward(self, x):
+            return (x > 0).to(dtype=torch.int)
+
+    m = M().eval()
+
+    out = m(torch.randn([10], device='cpu'))
+    for idx, val in enumerate(out):
+        print(val)
+if __name__ == '__main__':
+    main()

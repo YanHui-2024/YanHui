@@ -1,0 +1,112 @@
+ JIT scripting of Module that contains no pre-activation LayerNorm fails in PyTorch version 1.7.0+ and succeeds otherwise
+# Bug description: As of pytorch version 1.6, the layer norm is executed on cpu only (on cuda it throws an exception). The issue is fixed as soon as the scripting happens before any inference
+
+# Title: NamedTuple Support for TorchScript
+"""
+Output:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check_onnx
+    raise RuntimeError(msg) from e
+RuntimeError: Torch script error for module:
+Traceback (most recent call last):
+  File "/home/david/.local/lib/python3.8/site-packages/torch/_C._tensorrt.py", line 560, in check

@@ -1,0 +1,164 @@
+ torch.nn.EmbeddingBag.from_pretrained(embeddings, state=None, padding_idx=None)
+# Bug description: `TypeError` when passing in the argument `state` to `torch.nn.EmbeddingBag.from_pretrained()` 
+#                  which has an overload with same name but diff parameters.
+#                  `TypeError` only occurs when calling scripted model, and not on eager execution of EmbeddingBag.
+## Cause
+
+The error is due to the parameter `state` has already been declared in this method as a `dict`, which means that it shadows away an argument with same name and hides it from outer scope.
+
+## Solution
+
+Avoid naming parameters/variables with names which may collide with arguments of the class/function you're defining, and make sure such names are not declared in the parameter list or local variables as they will shadowed outside of this method.
+
+# Title: "__call__" does not exist on type "ScriptMethod"
+"""
+Output:
+Traceback (most recent call last):
+  File "test/script_class_test.py", line 18, in <module>
+    class ScriptClass(torch.jit.ScriptModule):
+  File "<unknown>", line 3, in __init__
+  File "test/script_class_test.py", line 20, in forward
+    return self.__call__(args[0])
+TypeError: '__call__' does not exist on type 'ScriptMethod'
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: C++
+# PR Title: "__call__" does not exist on type "ScriptMethod"
+import torch
+class ScriptClass(torch.jit.ScriptModule):
+    def __init__(self, x: int):
+        super().__init__()
+        self.x = x
+
+    @torch.jit.script_method
+    def forward(self, args: torch.Tensor) -> torch.Tensor:
+        return self.__call__(args[0])
+# API: __call__ (instance method)
+# Bug description: AttributeError occurs when calling instance method through ScriptModule
+## Cause
+
+The `__call__` is a special name reserved for overriding PyTorch Module's `__call__` method. ScriptModule does not have an attribute named `__call__`. So `__call__(args[0])` failed because it couldn't find any `__call__` in the module.
+## Solution
+
+Use another name to call `forward()`. The following code works:
+```py
+class ScriptClass(torch.jit.ScriptModule):
+    def __init__(self, x: int):
+        super().__init__()
+        self.x = x
+    
+    @torch.jit.script_method
+    def forward(self, args: torch.Tensor) -> torch.Tensor:
+        return self._forward(args[0])  # use _forward to call `forward` in ScriptModule
+```
+
+# Title: RuntimeError: unsupported operand type(s) for &: 'int' and 'str'
+"""
+Output:
+Traceback (most recent call last):
+   File "test/test.py", line 14, in <module>
+      x = torch.randn((2,)) > a_threshold
+RuntimeError: unsupported operand type(s) for &: 'int' and 'str'
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: C++
+# PR Title: RuntimeError: unsupported operand type(s) for &: 'int' and 'str'
+import torch
+a_threshold = 13
+x = torch.randn((2,)) > a_threshold
+print("x: ", x)
+print(type(x))
+# API: bitwise operation over int and str
+## Cause
+
+`int` bit-wise operations are only supported on `byte`, `short`, `int` or `long`. `str` is not supported.
+The following does not work:
+```py
+a_threshold = 13
+x = torch.randn((2,)) > a_threshold # x has shape (2,), and dtype=torch.float64
+print("x: ", x)
+print(type(x))
+# print(x & "test") # TypeError
+```
+## Solution
+
+Use a valid data type for `a_threshold` instead of `str`. For example:
+```py
+a_threshold = 13.0
+x = torch.randn((2,)) > a_threshold # x has shape (2,), and dtype=torch.float64
+print("x: ", x)
+print(type(x))
+# print(x & "test") # TypeError
+```
+
+# Title: RuntimeError: unsupported operand type(s) for /: 'int' and 'str'
+"""
+Output:
+Traceback (most recent call last):
+   File "test/test.py", line 14, in <module>
+      x = torch.randn((2,)) > a_threshold
+RuntimeError: unsupported operand type(s) for /: 'int' and 'str'
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: C++
+# PR Title: RuntimeError: unsupported operand type(s) for /: 'int' and 'str'
+import torch
+a_threshold = 13
+x = torch.randn((2,)) > a_threshold
+print("x: ", x)
+print(type(x))
+# API: division over int and str
+## Cause
+
+Division operators `/` and `//` are only supported on data types such as `byte`, `short`, `int`, or `long`. `str` is not supported.
+The following does not work:
+```py
+a_threshold = 13
+x = torch.randn((2,)) > a_threshold # x has shape (2,), and dtype=torch.float64
+print("x: ", x)
+print(type(x))
+# print(x / "test") # TypeError
+```
+## Solution
+
+Use a valid data type for `a_threshold` instead of `str`. For example:
+```py
+a_threshold = 13.0
+x = torch.randn((2,)) > a_threshold # x has shape (2,), and dtype=torch.float64
+print("x: ", x)
+print(type(x))
+# print(x / "test") # TypeError
+```
+# Title: AttributeError: 'ScriptModule' object has no attribute '_tracing_state'
+"""
+Output:
+Traceback (most recent call last):
+  File "debug.py", line 12, in <module>
+    print(script_model._tracing_state)  # AttributeError: 'ScriptModule' object has no attribute '_tracing_state'
+AttributeError: 'ScriptModule' object has no attribute '_tracing_state'
+"""
+# Version: PyTorch version: 1.7.0, onnx version: latest
+# Labels: triaged
+# PR Title: AttributeError: 'ScriptModule' object has no attribute '_tracing_state'
+def forward(self, input):
+    print("input: ", type(input))  # <class 'torch.Tensor'>
+    print("scripted input: ", self._tracing_state)  # AttributeError
+# API: scripted model has no attribute `_tracing_state` when calling the forward method
+## Cause
+
+`_tracing_state` is an attribute reserved for tracing a model. But it doesn't exist in `ScriptModule`.
+Tracing a model is different from executing/calling its `forward` method normally.
+Torch script will create a new instance of the module and call each node as if they are called normally. So `_tracing_state` should not be accessed when tracing a `ScriptModule`.
+## Solution
+
+Don't use `_tracing_state` in `forward()` when calling it while tracing a model.
+# Title: AttributeError: 'ScriptModule' object has no attribute '_forward_hooks' or '_backward_hooks'
+"""
+Output:
+Traceback (most recent call last):
+  File "test/scriptmodule.py", line 15, in <module>
+    print("forward hooks: ", model._forward_hooks)
+AttributeError: 'ScriptModule' object has no attribute '_forward_hooks'
+"""
+# Version: PyTorch version: 1.7.0, onnx version: latest
+# Labels: triaged

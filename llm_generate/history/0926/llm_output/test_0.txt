@@ -1,0 +1,33 @@
+# API: JIT: tracing with an optimizer
+# Bug description: a RuntimeError on model accepting a custom type of NamedTuple
+#                  when using torch.jit.script in PyTorch v1.7.1
+import torch
+class Optimizer(object):
+    def __init__(self, parameters_list, lr):
+        self.parameters = parameters_list
+        self.lr = lr
+    def zero_grad(self):
+        for p in self.parameters:
+            if hasattr(p,'grad'):
+                p.grad=None
+    def step(self):
+        with torch.no_grad():
+            for p in self.parameters:
+                p-=self.lr*p.grad
+
+def func(x,opt):
+    s = 0
+    opt.zero_grad()
+    s += x
+    s += x
+    return s
+x = torch.ones(2,2)
+opt = Optimizer([x],1e-3)
+func = torch.jit.trace(lambda x: func(x,opt), x,optimized=False,check_trace=False,strict=True)
+print('x',x) # tensor([[1., 1.], [1., 1.]]) as expected
+y = func(x)
+print('y',y) # tensor([[2., 2.], [2., 2.]]) as expected
+print('x',x) # still tensor([[1., 1.], [1., 1.]]) surprisingly x doesn't change!
+opt.step()
+print('x',x) # again tensor([[1., 1.], [1., 1.]]) now x have changed, it is not a bug anymore but this should be fixed in PyTorch to check the gradients are properly computed before updating parameters (and this would also ensure that only one pass through trace model is necessary)
+

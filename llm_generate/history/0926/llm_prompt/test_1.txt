@@ -1,0 +1,79 @@
+# API: torch.nn.functional.softmax
+# Bug description: Bad error message when creating a class instance in script functions
+#                  in PyTorch v1.0.0
+import torch
+import torch.nn as nn
+
+@torch.jit.script
+def f(x):
+    return nn.Softmax(dim=-1)(x)
+
+
+# API: (torch.jit.)Chunk, torch.(nn.)Linear, torch.jit.fuse_linear, torch.jit.graph_fuser
+# Bug description: a RuntimeError on module when using torch.jit.graph_fuser in PyTorch v1.0rc1
+x = f(w)
+z = g(x, y)
+a, b = chunk(z)
+c = h(a, b)
+
+
+# API: InstanceNorm2d
+# Bug description:
+#                  onnx::InstanceNormalization is not an ATen op when using torch.jit.trace in PyTorch v0.4.0
+import torch
+
+class ConvLayer(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride):
+        super(ConvLayer, self).__init__()
+        reflection_padding = kernel_size // 2
+        self.reflection_pad = torch.nn.ReflectionPad2d(reflection_padding)
+        self.conv2d = torch.nn.Conv2d(in_channels, out_channels, kernel_size, stride)
+
+    def forward(self, x):
+        out = self.reflection_pad(x)
+        out = self.conv2d(out)
+        return out
+
+class TransformerNet(torch.nn.Module):
+    def __init__(self):
+        super(TransformerNet, self).__init__()
+        # Initial convolution layers
+        self.conv1 = ConvLayer(3, 32, kernel_size=9, stride=1)
+        self.in1 = torch.nn.InstanceNorm2d(32, affine=True)
+
+    def forward(self, x):
+        return self.in1(self.conv1(x))
+
+x = torch.rand(5, 3, 224, 224)
+tn = TransformerNet()
+traced = torch.jit.trace(x)(tn)
+print(traced.__getattr__('forward').graph)
+traced(x)
+
+
+# API: torch.nn.Module.add_module
+# Bug description: RuntimeError on model accepting a custom type of NamedTuple as input when using torch.jit.trace in PyTorch v1.2.0 and below
+class MyModule(torch.nn.Module):
+    # __constants__ = ['sub'] # adding just this line works
+    def __init__(self, sub):
+        super(MyModule, self).__init__()
+        # either of the following lines fails
+        self.add_module('sub', sub)
+        # or
+        self.sub = sub
+    
+    def forward(self, x):
+        x = x.relu()
+        if self.sub is not None:
+            x = self.sub(x)
+        return x+1
+
+m1 = MyModule(torch.nn.ReLU())
+m2 = MyModule(None)
+print(m1(torch.rand(5)))
+print(m2(torch.rand(5)))
+print(torch.jit.script(m1).code) # succeeds
+print(torch.jit.script(m2).code) # fails
+
+
+# API:

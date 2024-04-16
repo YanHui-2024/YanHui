@@ -1,0 +1,14 @@
+# Title: [JIT][script] JIT for torch.norm ignores argument defaults
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.1.0
+# Labels: oncall: jit, triaged, jit-backlog
+# PR Title: [JIT][script] JIT for torch.norm ignores argument defaults
+import torch
+
+@torch.jit.script
+def norm_test():
+  t = torch.ones(10, 5)
+  return torch.norm(t, p=2, dim=1)

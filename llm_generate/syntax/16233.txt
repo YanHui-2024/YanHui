@@ -1,0 +1,11 @@
+# API: NamedTuple in JIT Functionalities
+# Bug description: AttributeError on function returning an instance of namedtuple
+#                  when using torch.jit.trace in PyTorch v1.0.0
+import torch
+from collections import namedtuple
+ret = namedtuple("ret", ["U"])(torch.eye(2,2)) # ret is a named tuple
+def f():
+return ret
+x = torch.jit.trace(f, {})
+ret = a.svd()
+U = ret.U  # previously, only ret[0] was supported

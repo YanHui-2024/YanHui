@@ -1,0 +1,77 @@
+ onnx.topk
+# Bug description: argsort not found when ONNX exporting [JIT]
+#                  when using torch.jit.trace in PyTorch v1.4.0
+
+# Title: Exporting Conv2d with padding to CUDA from JIT causes crash in nvrtc
+"""
+Output:
+ERROR: Graphs differed across invocations!
+        Graph diff:
+                  graph(%self.1 : __torch__.MyModule,
+                        %x : Float(2, 3, 60, 64)):
+                    %cv1 : __torch__.torch.nn.modules.conv.___torch_mangle_18.Conv2d = prim::GetAttr[name="cv1"](%self.1)
+                    %4 : int = prim::Constant[value=15]()
+                +   %9 : Tensor = prim::Constant[value=0.01 * 367.1429 408.8429  186.3988 [ CUDAHalfType{3} ]](), scope: __module.cv1 # /home/titaiwang/pytorch/torch/nn/modules/conv.py:459:0
+                +   %10 : Tensor = prim::Constant[value=<Tensor>](), scope: __module.cv1 # /home/titaiwang/pytorch/torch/nn/modules/conv.py:459:0
+                ?             ^
+                +   return (%22)
+                ?             ^
+        First diverging operator:
+        Node diff:
+                  %cv1 : __torch__.torch.nn.modules.conv.___torch_mangle_17.Conv2d = prim::GetAttr[name="cv1"](%self.1)
+                ?                                                         ^
+                + %cv1 : __torch__.torch.nn.modules.conv.___torch_mangle_18.Conv2d = prim::GetAttr[name="cv1"](%self.1)
+                ?                                                         ^
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit, module: onnx, triaged
+# PR Title: Exporting Conv2d with padding to CUDA from JIT causes crash in nvrtc
+import torch
+from torch import nn
+from collections import namedtuple
+from typing import Dict, NamedTuple, Optional, Tuple
+class Point(NamedTuple):
+    x: Optional[torch.Tensor] = None
+    y: Optional[torch.Tensor] = None
+Point = Point
+class M(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.cv1 = nn.Conv2d(3, 3, (5, 5), 2, 1)
+    def forward(self, x, meta: Dict[str, Optional[torch.Tensor]]):
+        meta = {k: v for k, v in meta.items() if not isinstance(v, torch.Tensor)}
+        meta['xy'] = Point(*x)
+        #meta["meta_y_hat"] = x  # removing this line makes it work
+        return self.cv1(x), meta
+scripted = nn.jit.script(M())
+# API: NamedTuple in JIT Model
+# Bug description: a RuntimeError on model with custom type of NamedTuple
+#                  when using torch.jit.trace in PyTorch v1.7.0
+import argparse
+parser = argparse.ArgumentParser(description='Export the ONNX for the ResNet-50')
+args, _ = parser.parse_known_args()
+# CUDA
+if args.cuda and torch.cuda.is_available():
+    print("found cuda!")
+else:
+    raise Exception("Found no CUDA support!")
+# LIBTORCH
+print('Building libtorch...')
+from torch.utils import cpp_extension
+cpp = cpp_extension.load('libtorch', ['libtorch/csrc/libtorch.cc'], verbose=True)
+# ONNX
+print('Building onnx...')
+import tempfile, subprocess, os
+with tempfile.TemporaryDirectory() as dir:
+    # download protoc compiler
+    os.system("wget https://sh.rustup.rs -O rustup && sh rustup")
+    os.system('bash -c "source $HOME/.cargo/env; ./rustup self upgrade 2> /dev/null"')
+    print(os.environ['PATH'])
+    os.system("RUSTUP_TOOLCHAIN=nightly cargo install protoc-c --use-toml")
+    # generate onnx code
+    pbfile = os.path.join('.', 'onnx/onnx.proto')
+    genfile = os.path.join(dir, 'onnx-gen.cpp')
+    subprocess.call(['protoc', '--plugin=protoc-gen-grpc=grpc_cpp_plugin', '-I', '/usr/local/include', '--grpc_out=.', '-I', 'third_party/onnx/bazel-genfiles', '--cpp_out=.', pbfile])
+    with open('src/onnx.pb.h', 'w') as f:
+        subprocess.call(['protoc', '--cpp_out=./src', pbfile], stdout = f)
+print('Done building onnx!')

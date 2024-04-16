@@ -1,0 +1,166 @@
+ 
+# Bug description: [JIT] Scripting arguments for call are not valid
+#                  during torch.jit.script on this specific combination of inputs.
+"""
+Output:
+> RuntimeError: 
+> arguments for call are not valid:
+>   
+>   expected a value of type bool? for argument 'is_training' but found int
+>     @weak_script_method
+>     def forward(self, input):
+>         batch = input.size()[0]
+>         result = None
+>        ?s = self.stage1(input).view(-1, 5 * 5 * 24)
+>   
+>   for operator aten::view_as(Tensor self, Tensor other) -> (Tensor):
+>   expected a value of type int[]? for argument 'size' but found long
+>     @weak_script_method
+>     def forward(self, input):
+>         batch = input.size()[0]
+>         result = None
+>        ?s = self.stage1(input).view(-1, 5 * 5 * 24)
+>   
+>   for operator aten::view_as(Tensor self, Tensor other) -> (Tensor):
+>   expected a value of type long? for argument 'size' but found int[]
+>     @weak_script_method
+>     def forward(self, input):
+>         batch = input.size()[0]
+>         result = None
+>        ?s = self.stage1(input).view(-1, 5 * 5 * 24)
+>   
+>   for operator aten::view_as(Tensor self, Tensor other) -> (Tensor):
+>   expected a value of type int? for argument 'size' but found long[]
+>     @weak_script_method
+>     def forward(self, input):
+>         batch = input.size()[0]
+>         result = None
+>        ?s = self.stage1(input).view(-1, 5 * 5 * 24)
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+# PR Title: [JIT] Scripting arguments for call are not valid
+import torch
+class MyModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.linear = nn.Linear(1, 2)
+
+    def forward(self, x, y):
+        if (x == 0): return (True, 3)
+        else: return (False, True)
+model = MyModule()
+example_inputs = torch.randn(1, 1)
+scripted = torch.jit.trace(model, example_inputs)
+# API: torch.nn.Linear and if-else statement
+# Bug description: [JIT] Scripting arguments for call are not valid
+#                  during torch.jit.trace on this specific combination of inputs.
+"""
+Output:
+RuntimeError: 
+arguments for call are not valid:
+   
+   expected a value of type int? for argument 'size' but found long[]
+     @weak_script_method
+     def forward(self, input):
+         batch = input.size()[0]
+         result = None
+        ?s = self.stage1(input).view(-1, 5 * 5 * 24)
+   
+   for operator aten::view_as(Tensor self, Tensor other) -> (Tensor):
+   expected a value of type int[]? for argument 'size' but found long
+     @weak_script_method
+     def forward(self, input):
+         batch = input.size()[0]
+         result = None
+        ?s = self.stage1(input).view(-1, 5 * 5 * 24)
+   
+   for operator aten::view_as(Tensor self, Tensor other) -> (Tensor):
+   expected a value of type long? for argument 'size' but found int[]
+     @weak_script_method
+     def forward(self, input):
+         batch = input.size()[0]
+         result = None
+        ?s = self.stage1(input).view(-1, 5 * 5 * 24)
+   
+   for operator aten::view_as(Tensor self, Tensor other) -> (Tensor):
+   expected a value of type int? for argument 'size' but found long[]
+     @weak_script_method
+     def forward(self, input):
+         batch = input.size()[0]
+         result = None
+        ?s = self.stage1(input).view(-1, 5 * 5 * 24)
+   
+   for operator aten::view_as(Tensor self, Tensor other) -> (Tensor):
+   expected a value of type long? for argument 'size' but found int[]
+     @weak_script_method
+     def forward(self, input):
+         batch = input.size()[0]
+         result = None
+        ?s = self.stage1(input).view(-1, 5 * 5 * 24)
+   
+   for operator aten::view_as(Tensor self, Tensor other) -> (Tensor):
+   expected a value of type int? for argument 'size' but found long[]
+     @weak_script_method
+     def forward(self, input):
+         batch = input.size()[0]
+         result = None
+        ?s = self.stage1(input).view(-1, 5 * 5 * 24)
+   
+   for operator aten::view_as(Tensor self, Tensor other) -> (Tensor):
+   expected a value of type long? for argument 'size' but found int[]
+     @weak_script_method
+     def forward(self, input):
+         batch = input.size()[0]
+         result = None
+        ?s = self.stage1(input).view(-1, 5 * 5 * 24)
+   
+   for operator aten::view_as(Tensor self, Tensor other) -> (Tensor):
+   expected a value of type int? for argument 'size' but found long[]
+     @weak_script_method
+     def forward(self, input):
+         batch = input.size()[0]
+         result = None
+        ?s = self.stage1(input).view(-1, 5 * 5 * 24)
+   
+   for operator aten::view_as(Tensor self, Tensor other) -> (Tensor):
+   expected a value of type long? for argument 'size' but found int[]
+     @weak_script_method
+     def forward(self, input):
+         batch = input.size()[0]
+         result = None
+        ?s = self.stage1(input).view(-1, 5 * 5 * 24)
+   
+   for operator aten::view_as(Tensor self, Tensor other) -> (Tensor):
+   expected a value of type int? for argument 'size' but found long[]
+     @weak_script_method
+     def forward(self, input):
+         batch = input.size()[0]
+         result = None
+        ?s = self.stage1(input).view(-1, 5 * 5 * 24)
+   
+   for operator aten::view_as(Tensor self, Tensor other) -> (Tensor):
+   expected a value of type long? for argument 'size' but found int[]
+     @weak_script_method
+     def forward(self, input):
+         batch = input.size()[0]
+         result = None
+        ?s = self.stage1(input).view(-1, 5 * 5 * 24)
+   
+   for operator aten::view_as(Tensor self, Tensor other) -> (Tensor):
+   expected a value of type int? for argument 'size' but found long[]
+     @weak_script_method
+     def forward(self, input):
+         batch = input.size()[0]
+         result = None
+        ?s = self.stage1(input).view(-1, 5 * 5 * 24)
+   
+   for operator aten::view_as(Tensor self, Tensor other) -> (Tensor):
+   expected a value of type int? for argument 'size' but found long[]
+     @weak_script_method
+     def forward(self, input):
+         batch = input.size()[0]
+         result = None
+        ?s = self.stage1(input).view(-1, 5 * 5 * 24)
+"""
+# Title: Scripting arguments for call

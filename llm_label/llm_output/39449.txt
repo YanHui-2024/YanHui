@@ -1,0 +1,53 @@
+ torch.jit.ScriptModule.__call__, type: type error, oncall: jit
+# Bug description: JIT does not recognize that the argument to range should be an integer?
+
+# Title: [JIT] Inferred Tensor string representation should include the fact that it is inferred when there's an explicit type annotation on a function input
+"""
+Output:
+RuntimeError: 
+all inputs of range must be ints, found Tensor in argument 0:
+  File "<ipython-input-13-8c4279680b35>", line 2
+def foo(x: torch.Tensor, y):  # Missing "y: int"
+    for _ in range(y):
+             ~~~~~~~ <--- HERE
+        x = x + 1
+    return x
+"""
+# Version: PyTorch version: 1.5.0
+# Labels: oncall: jit, module: bootcamp, triaged
+# PR Title: [JIT] Inferred Tensor string representation should include the fact that it is inferred when there's an explicit type annotation on a function input
+def foo(x: torch.Tensor, y):  # Missing "y: int"
+    for _ in range(y):
+        x = x + 1
+    return x
+        
+x = torch.ones(())
+foo_script = torch.jit.script(foo)
+print(foo_script(x, 2))
+# API: torch.jit.ScriptModule.__call__, type: type error, oncall: jit
+# Bug description: JIT does not recognize that the argument to range should be an integer?
+
+# Title: __repr__ for TensorType doesn't print device information for some tensors (e.g., a returned tensor from a method call)
+"""
+Output:
+Device:  cuda:0 (Unnamed), Device Index: 0, Processor ID: 2, Bus ID: unknown
+all inputs of range must be ints, found Tensor in argument 0:
+  File "<ipython-input-13-8c4279680b35>", line 2
+def foo(x: torch.Tensor, y):  # Missing "y: int"
+    for _ in range(y):
+             ~~~~~~~ <--- HERE
+        x = x + 1
+    return x
+"""
+# Version: PyTorch version: 1.5.0
+# Labels: oncall: jit, module: bootcamp, triaged
+# PR Title: __repr__ for TensorType doesn't print device information for some tensors (e.g., a returned tensor from a method call)
+def foo(x: torch.Tensor, y):  # Missing "y: int"
+    for _ in range(y):
+        x = x + 1
+    return x
+        
+x = torch.ones(())
+foo_script = torch.jit.script(foo)
+print("Device: ", x.device, foo_script._c._get_debug_state())
+print(foo_script(x, 2))

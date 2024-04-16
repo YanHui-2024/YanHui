@@ -1,0 +1,27 @@
+# API: Scalar type Float64.
+# Bug description: Tracing/Scripting a float64 value fails with the error "RuntimeError: No Python implementation for 'to' in __cuda_array_to_tensor__"
+def test_script():
+	torch.jit.script(torch.randn((3, 4), dtype=torch.float64))
+
+# API: Call to forward from inside a nn.Module.forward fails.
+# Bug description : Tracing/Scripting of an nn.Module with its own call to forward in the constructor fails with a RuntimeError (Call to forward method is not allowed).
+class SubNet(torch.nn.Module):
+	def __init__(self, parent_net: torch.nn.Module) -> None:
+		super().__init__()
+		self._parent_net = parent_net
+
+	def forward(self, x):
+		x = self._parent_net(x)
+		return x
+
+# API: Using torch.jit.load for loading a traced script fails when the source model is also loaded in that session. This happens only with CUDA tensors and modules.
+import io
+model1 = torch.nn.Linear(5, 5).cuda()
+f_model = torch.jit.script(model1)
+
+buffer = io.BytesIO()
+torch.jit.save(f_model, buffer)
+buffer.seek(0)
+
+model2 = torch.nn.Linear(5, 5).cuda()
+f_model = torch.jit.load(buffer, _extra_files=dict(my_model=model2))

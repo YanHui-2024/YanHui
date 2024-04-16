@@ -1,0 +1,8 @@
+# API: Tensor.view (), flatten()
+import torch
+
+@torch.jit.script
+def foo(x):
+    return x.flatten(-2, -1).transpose(-1, -2)[0]
+
+foo(torch.zeros((3, 4, 5)))

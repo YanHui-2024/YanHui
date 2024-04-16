@@ -1,0 +1,6 @@
+# API: adaptive_avg_pool1d of pytorch.functional module of jit-scripting
+# Bug description: jit does not properly handle IntList[x] params
+#                  when using torch.jit.script in PyTorch None
+@torch.jit.script
+def func(x):
+  return torch.nn.functional.adaptive_avg_pool1d(x, output_size=1)

@@ -1,0 +1,15 @@
+# Title: [JIT] Support Union[NoneType, T] as input type
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+# PR Title: [JIT] Support Union[NoneType, T] as input type
+class TestModule(torch.nn.Module):
+    def forward(self, x: torch.Tensor, k: Optional[int]):
+        return x
+
+m = TestModule()
+gm = torch.fx.symbolic_trace(m)
+scripted_gm = torch.jit.script(gm)

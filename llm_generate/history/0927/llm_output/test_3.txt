@@ -1,0 +1,16 @@
+# API: Saving and loading ScriptModules
+# Bug description: JIT trace cache is being shared across processes when using the
+#                  multiprocessing module. The JIT compiler caches traced functions to avoid recompiling them every time a
+#                  new process is spawned, but this means that two processes cannot run simultaneously without risk of deadlocks, as
+#                  they would both attempt to acquire the cache lock at the same time.
+def f(x):
+    return x + 1
+f_traced = torch.jit.trace(f, (torch.rand(2),))
+torch.save(f_traced, 'f_saved')
+
+# API: Unpickling script modules
+import dill as pickle # noqa
+import torch
+import io
+with io.BytesIO() as f:
+    pickle.dump(f_traced, f)

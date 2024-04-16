@@ -1,0 +1,67 @@
+ Printing Tensor from traced module results in TypeError: rsplit() takes no keyword arguments
+# Bug description: RuntimeError on model with custom activation
+#                  when calling __repr__ on JIT-compiled modules using PyTorch v1.0.0
+
+# Title: Differences in jit-scripted and non-jit-scripted models
+"""
+Output:
+Traceback (most recent call last):
+  File "test.py", line 35, in <module>
+    print(torch.equal(model_nonJIT(x), model_JIT(x)))
+RuntimeError: The following operations failed to autodiff correctly and were assigned to nondifferentiable (no explicit log).
+  aten::addmm(Tensor self, Tensor mat1, Tensor mat2) -> Tensor [invalid]
+      x = torch.addmm(x, x, weight)
+             ~~~~~~~ <--- HERE
+    return x + input
+  File "test.py", line 56, in forward_nonJIT
+    return input + input
+RuntimeError: The following operations failed to autodiff correctly and were assigned to nondifferentiable (no explicit log).
+  aten::add(Tensor self, Tensor other) -> Tensor [invalid]
+        x = torch.add(x, x)
+            ~~~~~~~ <--- HERE
+    return x + input
+"""
+# Version: PyTorch version: 1.6.0
+# Labels: oncall: jit
+# PR Title: Differences in jit-scripted and non-jit-scripted models
+class MyModel(torch.nn.Module):
+    def forward_JIT(self, input) -> torch.Tensor:
+        # the next line would fail if run without JIT
+        return input + input
+    def forward_nonJIT(self, input) -> torch.Tensor:
+        x = input + input
+        # the next line would fail in both modes of execution if run with JIT
+        return x + input
+# Instantiate module and log it
+model_JIT = MyModel()
+with torch.autograd.set_detect_anomaly(True):
+    model_nonJIT = torch.jit.script(MyModel())
+    # perform a forward pass for each mode of execution
+    x = torch.randn(3, 4)
+    print(torch.equal(model_nonJIT(x), model_JIT(x)))
+# API: Differences in jit-scripted and non-jit-scripted models
+# Bug description: RuntimeError on model with custom activation
+#                  when calling __repr__ on JIT-compiled modules using PyTorch v1.6.0
+
+# Title: Error on backward when autocast is used in a module
+"""
+Output:
+Traceback (most recent call last):
+  File "test_jit_traceable.py", line 13, in <module>
+    for x in [torch.rand(10, requires_grad=True)]:
+  File "/private/var/containers/Bundle/Application/9756A408-2BDE-40C6-B1F1-D340B34C90C9/Testing_iOS.app/Frameworks/Python.framework/Versions/3.5/lib/python3.5/site-packages/torch/_utils.py", line 278, in __getattr__
+    raise AttributeError(msg)
+AttributeError: module 'torch' has no attribute '_result_type'
+"""
+# Version: PyTorch version: 1.0.0
+# Labels: oncall: jit
+# PR Title: Error on backward when autocast is used in a module
+with torch.autocast('cpu', 'cuda'):
+    for x in [torch.rand(10, requires_grad=True)]:
+        print(x)  # prints the Tensor, no problem
+        result = MyModule().forward(x)
+        assert not isinstance(result, torch._C.Value)
+        result.sum().backward()
+# API: Error on backward when autocast is used in a module
+# Bug description: RuntimeError on model with custom activation
+#                  when calling __repr__ on JIT-compiled modules using PyTorch v1.0.0

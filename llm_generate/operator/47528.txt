@@ -1,0 +1,12 @@
+# API: torch.nn.Conv2d + ZeroPad2d
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.7.0
+import torch
+from torch import nn
+
+class Pad(torch.nn.Module):
+    def forward(self, x):
+        pad_op =  nn.ZeroPad2d(padding=(10, 20, 0, 0))
+        return pad_op(x)
+
+m = torch.jit.script(Pad())

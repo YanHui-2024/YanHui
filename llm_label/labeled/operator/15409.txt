@@ -1,0 +1,9 @@
+# API: torch.nn.functional.softmax
+# Bug description: Bad error message when creating a class instance in script functions
+#                  in PyTorch v1.0.0
+import torch
+import torch.nn as nn
+
+@torch.jit.script
+def f(x):
+    return nn.Softmax(dim=-1)(x)

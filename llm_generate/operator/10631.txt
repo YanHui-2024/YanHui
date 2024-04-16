@@ -1,0 +1,7 @@
+# API: Casting method (int) in JITTed Code
+# Bug description: unknown builtin op: @torch.jit.script def cast_to_int(x):   return x.int()
+import torch
+
+@torch.jit.script
+def cast_to_int(x):
+    return x.int()

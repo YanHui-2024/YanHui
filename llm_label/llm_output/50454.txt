@@ -1,0 +1,98 @@
+ Trace
+# Bug description: a segmentation fault after calling `inlined_graph.nodes()`
+#                  when using torch.jit in PyTorch v1.7.1
+
+# Title: Tracing custom class with __call__ fails
+"""
+Output:
+Traceback (most recent call last):
+  File "trace_class_with_custom_attribute.py", line 24, in <module>
+    model = torch.jit.script(model)
+AttributeError: 'MyModel' object has no attribute 'forward'
+"""
+# Version: PyTorch version: 1.12.1
+# Labels: oncall: jit
+# PR Title: Tracing custom class with __call__ fails
+class MyModule(nn.Module):
+    def forward(self, x):
+        return x * 42
+my_module = MyModel()
+x = torch.randn(3)
+with torch.jit.optimized_execution(True):
+    traced = torch.jit.trace(my_module, example)
+# API: Trace
+# Bug description: error on tracing custom class with __call__ fails in PyTorch v1.12.1
+
+# Title: Tracing with optimizations enabled segfaults
+"""
+Output:
+Traceback (most recent call last):
+  File "test_tracing.py", line 53, in <module>
+    traced = torch.jit.trace(m, input)
+RuntimeError: Traceback of TorchScript (most recent call last):
+  File "<unknown file>", line 11, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 42, in forward
+  File "test_tracing.py", line 11, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 28, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 42, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 28, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 42, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 28, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 42, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 28, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 42, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 28, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 42, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 28, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 42, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 28, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 42, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 28, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 42, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 28, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 42, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 28, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6893 for ways to circumvent this limitation
+Traceback of TorchScript (most recent call last):
+  File "test_tracing.py", line 42, in forward
+RuntimeError: ONNX export does not support two-way recurrence, see https://github.com/pytorch/pytorch/issues/6

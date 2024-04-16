@@ -1,0 +1,24 @@
+# Title: [jit] wrong gradient for CUDA tensor
+"""
+Output:
+tensor(6.)
+tensor(2.)
+"""
+# Version: PyTorch version: 1.1.0
+# Labels: oncall: jit, triaged
+# PR Title: [jit] wrong gradient for CUDA tensor
+import torch
+
+def f(z):
+    return (torch.ones(2) * z ** 2 - z).sum()
+
+torch.set_default_tensor_type(torch.cuda.FloatTensor)
+jf = torch.jit.trace(f, torch.tensor(1.))
+
+z = torch.tensor(1., requires_grad=True)
+y = jf(z)
+print(torch.autograd.grad(y, (z,))[0])
+
+z = torch.tensor(1., requires_grad=True)
+y = f(z)
+print(torch.autograd.grad(y, (z,))[0])

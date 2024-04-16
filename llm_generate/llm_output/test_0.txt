@@ -1,0 +1,20 @@
+# API: JIT Compilation Unit
+# Bug description: When calling a function that has an argument with an attribute, the type check fails.
+import torch
+
+class Foo:
+    def __init__(self):
+        self.x = 5
+    
+def bar(foo : Foo):
+    return foo.x * 2
+
+cu = torch.jit.CompilationUnit()
+cu.define('''
+            def bar(foo : Foo) -> int:
+                if foo is not None and foo.x is not None:
+                    return foo.x * 2
+                else:
+                    raise RuntimeError("")
+        ''')
+print(cu.bar(Foo()))

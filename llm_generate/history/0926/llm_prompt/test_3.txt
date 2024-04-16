@@ -1,0 +1,262 @@
+# API: torch.jit.trace
+# Bug description: Broadcasting rand_like inside fusion group produces wrong results
+#                  when using torch.jit.trace in PyTorch v1.0rc1
+import torch
+import torch.jit
+
+def fn1(x, y):
+    r = torch.rand_like(y)
+    return r*x
+
+def traceandprint(f, inputs):
+   traced_fn = torch.jit.script(f, inputs)
+   out = traced_fn(*inputs)
+   print(traced_fn.graph_for(*inputs))
+   return traced_fn, out
+
+
+x=torch.ones(5,5, device="cuda")
+y=torch.ones(5, device="cuda")
+fn, out = traceandprint(fn1, (x,y))
+print(fn(x,y))
+print(fn1(x,y))
+
+
+# API: scripting
+# Bug description: Fail on autodiff in JIT code, with backtrace to ir/IR.cpp line 1110.
+#                  Failure happens when the second pass of backward scripting is run, after graph was copied and reconstructed.
+#                  This failure can also be reproduced by only running method() once.
+# PRIORITY: p2 (Highest priority if you are impacted by this)
+# TRIAGE STATUS: need to be triaged as it breaks the backward pass.
+@torch.jit.script
+def meth(x, weight, b1):
+bias = b1 * 3
+return torch.nn.functional.linear(x, weight, bias)
+M = 10
+K = 10
+N = 10
+x = torch.rand(M, K, requires_grad=True)
+weight = torch.rand(K, N, requires_grad=True)
+bias = torch.rand(M, N, requires_grad=True)
+meth(x, weight, bias).backward()
+meth(x, weight, bias).backward()
+import torch
+
+@torch.jit.script
+def method1(x, weight, b1, b2):
+    bias = b1 * b2
+    return torch.nn.functional.linear(x, weight, bias)
+
+M = 10
+K = 10
+N = 10
+
+x = torch.rand(M, K, requires_grad=True)
+weight = torch.rand(K, N, requires_grad=True)
+b1 = torch.rand(M, N, requires_grad=True)
+b2 = torch.rand(M, N, requires_grad=True)
+
+method1(x, weight, b1, b2)
+method1(x, weight, b1, b2)
+
+
+# API: torch.nn.LSTMCell
+# Bug description: Trace sanity check fails when running with LSTMCell and/or LSTM in JIT mode
+#                  when using torch.jit.trace in PyTorch v1.0.0
+import torch
+import torch.nn.functional as F
+from torch import nn
+
+class LSTM(nn.Module):
+
+    def __init__(self, d_in, d_hid, num_layers=1):
+        super().__init__()
+        self.rnn = nn.LSTMCell(d_in, d_hid)
+
+    def forward(self, input, hidden):
+        for emb_t in input.split(1, dim=1):
+            hidden = self.rnn(emb_t.squeeze(1), hidden)
+        return hidden
+
+B, T, C = 1, 5, 3 # batch_size, seq_len, channels
+f = LSTM(C, C)
+z = torch.randn((B, T, C))
+h = torch.randn((B, C))
+c = torch.randn((B, C))
+
+inputs = (z, (h, c))
+y = f(*inputs)
+
+print('tracing')
+tf = torch.jit.trace(f, inputs)
+ty = tf(*inputs)
+
+print('saving')
+tf.save('tf.pt')
+
+print('loading')
+tfl = torch.jit.load('tf.pt')
+tyl = tfl(*inputs)
+
+
+# API: torch._C._jit_pass_inline
+# Bug description:
+# Trace sanity check fails when the graph contains a node with two outputs
+# The two outputs are not connected to each other within a trace
+# Trace sanity check fails when using multiple GPUs while exporting and running in Eval mode
+def test_multiple_gpu():
+device = torch.device("cuda", 0)
+m = Transformer(128, 4, 512).to(device)
+x = torch.randn(65, 32, 128).to(device)
+args = (x,)
+try:
+trace = torch.jit.trace(m, args, strict=True)
+graph = trace.graph
+torch._C._jit_pass_inline(graph)
+except RuntimeError as e:
+print(e)
+print("Error occurs, No computational graph saved.")
+raise e
+import torch
+import torch.nn as nn
+from torch.utils.tensorboard._pytorch_graph import parse
+
+
+class KVTransform(nn.Module):
+    def __init__(self, num_heads, head_dim):
+        super(KVTransform, self).__init__()
+        self.num_heads = num_heads
+        self.head_dim = head_dim
+
+    def forward(self, x):
+        n, b, _ = x.size()
+        x = x.contiguous().view(n, b * self.num_heads, self.head_dim).transpose(0, 1)
+        return x
+
+
+class QTransform(nn.Module):
+    def __init__(self, num_heads, head_dim, scaling):
+        super(QTransform, self).__init__()
+        self.num_heads = num_heads
+        self.head_dim = head_dim
+        self.scaling = scaling
+
+    def forward(self, x):
+        n, b, _ = x.size()
+        x = x * self.scaling
+        x = x.contiguous().view(n, b * self.num_heads, self.head_dim).transpose(0, 1)
+        return x
+
+
+class AttnOutputTransform(nn.Module):
+    def __init__(self, num_heads, dim):
+        super(AttnOutputTransform, self).__init__()
+        self.num_heads = num_heads
+        self.dim = dim
+
+    def forward(self, x):
+        n = x.size()[1]
+        b = torch.div(x.size()[0], self.num_heads, rounding_mode="floor")
+        x = x.transpose(0, 1).contiguous().view(n, b, self.dim)
+        return x
+
+
+class SelfAttentionFullModule(nn.Module):
+    def __init__(self, dim, heads=8, qkv_bias=False, dropout_p=0.1):
+        super(SelfAttentionFullModule, self).__init__()
+        self.num_heads = heads
+        self.head_dim = dim // heads
+        self.scaling = float(self.head_dim) ** 0.5
+
+        self.to_q = nn.Linear(dim, dim, bias=qkv_bias)
+        self.to_k = nn.Linear(dim, dim, bias=qkv_bias)
+        self.to_v = nn.Linear(dim, dim, bias=qkv_bias)
+        self.attn_dropout = nn.Dropout(dropout_p)
+        self.to_out = nn.Linear(dim, dim)
+
+        self.softmax = nn.Softmax(2)
+
+        self.q_pre_transform = QTransform(self.num_heads, self.head_dim, self.scaling)
+        self.kv_pre_transform = KVTransform(self.num_heads, self.head_dim)
+        self.post_transform = AttnOutputTransform(self.num_heads, dim)
+
+    def forward(self, x):
+        q = self.to_q(x)
+        k = self.to_k(x)
+        v = self.to_v(x)
+
+        q = self.q_pre_transform(q)
+        k = self.kv_pre_transform(k)
+        v = self.kv_pre_transform(v)
+
+        attn_weights = torch.bmm(q, k.transpose(1, 2))
+        attn_weights = self.softmax(attn_weights)
+        attn_weights = self.attn_dropout(attn_weights)
+
+        attn_output = torch.bmm(attn_weights, v)
+        attn_output = self.post_transform(attn_output)
+
+        attn_output = self.to_out(attn_output)
+        return attn_output
+
+
+class TransformerModelLayer(nn.Module):
+    def __init__(self, dim, heads, dim_feedforward, dropout_p=0.1):
+        super(TransformerModelLayer, self).__init__()
+        self.self_attn = SelfAttentionFullModule(dim, heads=heads, dropout_p=dropout_p)
+        self.norm1 = nn.LayerNorm(dim)
+        self.norm2 = nn.LayerNorm(dim)
+        self.dropout1 = nn.Dropout(dropout_p)
+        self.dropout2 = nn.Dropout(dropout_p)
+
+        self.feedforward = nn.Sequential(
+            nn.Linear(dim, dim_feedforward),
+            nn.GELU(),
+            nn.Dropout(dropout_p),
+            nn.Linear(dim_feedforward, dim),
+        )
+
+    def forward(self, x):
+        x2 = self.self_attn(x)
+        x = x + self.dropout1(x2)
+        x = self.norm1(x)
+
+        x2 = self.feedforward(x)
+        x = x + self.dropout2(x2)
+        x = self.norm2(x)
+        return x
+
+
+class Transformer(nn.Module):
+    def __init__(self, dim, heads, dim_feedforward, depth=8):
+        super(Transformer, self).__init__()
+        layers = []
+        for _ in range(depth):
+            layers.append(TransformerModelLayer(dim, heads, dim_feedforward))
+        self.net = nn.Sequential(*layers)
+
+    def forward(self, x):
+        x = self.net(x)
+        return x
+
+
+m = Transformer(128, 1, 256, depth=2).to(0)
+x = torch.randn(65, 32, 128).to(0)
+args = (x,)
+
+with torch.onnx.select_model_mode_for_export(m, torch.onnx.TrainingMode.EVAL):
+    try:
+        trace = torch.jit.trace(m, args, strict=True)
+        graph = trace.graph
+        torch._C._jit_pass_inline(graph)
+    except RuntimeError as e:
+        print(e)
+        print("Error occurs, No computational graph saved.")
+        raise e
+
+list_of_nodes = parse(graph, trace, args)
+for i, node in enumerate(list_of_nodes):
+    print(i, node.name)
+
+
+# API:

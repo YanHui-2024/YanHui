@@ -1,0 +1,5 @@
+# API: MaxPool with return_indices: true
+# Bug description: Trace sanity check fails when return_indices=True in module signature
+#                  when using torch.jit.trace in PyTorch v1.6.0
+model = torch.nn.MaxPool1d(2, stride=1, return_indices=True)
+torch.jit.script(model)

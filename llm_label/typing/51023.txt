@@ -1,0 +1,12 @@
+# Title: Typing not preserved on reassignment
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit, TSRootCause:TypeChecking, TSUsability
+# PR Title: 
+@torch.jit.script
+def fn():
+    x: int = "foo"
+    return x

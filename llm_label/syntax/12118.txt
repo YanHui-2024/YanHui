@@ -1,0 +1,19 @@
+# Title: JIT segfaults when a Python call throws.
+"""
+Output:
+zsh: segmentation fault  python3 tmp.py
+"""
+# Version: PyTorch version: 0.4.1
+# Labels: oncall: jit
+# PR Title: JIT segfaults when a Python call throws.
+import torch                
+                            
+def pyfn(x):                
+    raise RuntimeError('eh')
+                            
+                            
+@torch.jit.script           
+def f(x):                   
+    return pyfn(x)          
+                            
+f(torch.randn(2, 2))        

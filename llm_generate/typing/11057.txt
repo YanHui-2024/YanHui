@@ -1,0 +1,7 @@
+# API: torch._C._functional_trace()
+# Bug description: Traceback is not informative when tracing a function with unsupported return type
+import torch
+
+@torch.jit.trace(torch.rand(3, 4))
+def foo(x):
+    pass

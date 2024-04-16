@@ -1,0 +1,20 @@
+# API: `len(Tensor)`
+# Bug description: `torch.jit.trace` fails when there is a len in the scripted function, but succeeds when it's not there
+#                  no error message shown on calling `foo`, just fails to trace the whole model with this issue
+# PR Title: `len(Tensor)` doesn't work in script
+import torch
+tensor = torch.IntTensor(4, 2).zero_()
+print(len(tensor))  # prints 4
+@torch.jit.script
+def foo(tensor):
+print(len(tensor)) # this is dispatching to aten::len(Tensor[])
+foo(tensor)  # prints 1
+import torch
+
+tensor = torch.IntTensor(4, 2).zero_()
+print(len(tensor))  # prints 4
+
+@torch.jit.script
+def foo(tensor):
+    print(len(tensor)) # this is dispatching to aten::len(Tensor[])
+foo(tensor)  # prints 1

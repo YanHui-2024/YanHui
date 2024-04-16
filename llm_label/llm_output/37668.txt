@@ -1,0 +1,28 @@
+ NamedTuple in JIT Model
+# Bug description: a RuntimeError when accessing the field of NamedTuple using torch.jit.script in PyTorch v1.5.0
+
+# Title: JIT compilation error with namedtuple fields
+"""
+Output:
+Traceback (most recent call last):
+  File "test_torch_script.py", line 4, in <module>
+    x = torch.jit.trace(m, inputs)
+RuntimeError: Error when compiling model to TorchScript: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu! Pass the __device__ option to torch.jit.script to specify which device to use. (code for node at 1:1)
+"""
+# Version: PyTorch version: 1.4.0
+# Labels: oncall, model: jit
+# PR Title: JIT compilation error with namedtuple fields
+from torch import namedtuple
+A = namedtuple("A", ["x"])
+B = namedtuple("B", ["y"])
+class Model(torch.nn.Module):
+    def forward(self, a: A, b: B) -> A:
+        return a
+a = A(10)
+b = B(20)
+m = torch.jit.trace(Model(), (a, b))
+inputs = {"a": a, "b": b}
+x = m.graph.findNode("aten::to")
+print(x.output().type())
+# API: namedtuple in JIT Model
+# Bug description: a RuntimeError when running a JIT compiled model that has arguments of type torch._C.NamedTupleType with PyTorch v1.4.0

@@ -1,0 +1,3 @@
+ torch.Tensor.__getitem__(self, int i) -> Tensor
+# Bug description: Unable to jit.script `a[0].item() == 1`
+#                  when using PyTorch v1.0.1

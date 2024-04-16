@@ -1,0 +1,8 @@
+# API: List of bool in JIT model
+# Bug description: A RuntimeError on JIT model when trying to create a list of bool values with "List[bool]" type annotation
+#                  when using torch.jit.script in PyTorch v1.2.0
+@torch.jit.script
+def fn(x: List[bool]):
+    x.clear()
+
+fn([True, False])

@@ -1,0 +1,102 @@
+ Scripting optional attributes with List type annotation
+# Bug description: Attribute assignment fails for `Optional[List]` annotated variable using `torch.jit.annotate()` in PyTorch v1.7.1
+
+# Title: [jit] scripting a list of objects
+"""
+Output:
+ERROR: Graphs differed across invocations!
+        Graph diff:
+                  graph(%self, %x : List[__torch__.torch.nn.modules.linear.Linear],
+                        %y : Tensor):
+            +   %25 : int = prim::Constant[value=0]()
+                      ~~~~~~~ <--- HERE
+                ?         ^
+    First diverging operator:
+    Node diff:
+          - graph(%self, %x : List[__torch__.torch.nn.modules.linear.Linear],
+                *  %y : Tensor):
+    ?                     ^
+"""
+# Version: PyTorch version: 1.7.0 (torch==1.7.0+cu102, torchvision==0.8.1+cu102), CUDA 10.2, cuDNN 7.6, OS X
+# Labels: oncall: jit, module: onnx, module: amp (automated mixed precision), onnx-triaged
+# PR Title: [jit] scripting a list of objects
+x = torch.rand(2)
+model_list = []
+for i in range(10):
+    model_list.append(torch.nn.Linear(3, 4))
+m = torch.jit.script(model_list)
+m = m.cuda()
+x = x.cuda()
+with torch.no_grad():
+    out = m(x)
+# API: JIT scripting a list of models (or other custom types?) in PyTorch 1.7.0?
+# Bug description: Attribute type error when using `torch.jit.script` to create model containing List of models (or other custom classes, e.g. nested lists) in PyTorch v1.7.0?
+
+# Title: jit.trace(nn.Module(), (input_size,)) vs nn.Module().forward(torch.rand(*input_size)))
+"""
+Output:
+Traceback (most recent call last):
+  File "test/tinytest.py", line 12, in <module>
+    scripted = torch.jit.script(M())
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_tracing.py", line 219, in script
+    result = tracer.trace(module)
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_tracing.py", line 622, in trace
+    self._check_attrs(module)  # noqa: T484
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_tracing.py", line 207, in _check_attrs
+    raise RuntimeError("JIT currently does not support saving modules with " + attr)
+RuntimeError: JIT currently does not support saving modules with __call__ methods defined in them. Please define the forward method on this class instead of using `__call__` (see https://github.com/pytorch/pytorch/issues/6128 for more info).
+"""
+# Version: PyTorch version: 1.7.0 (torch==1.7.0+cu102, torchvision==0.8.1+cu102), CUDA 10.2, cuDNN 7.6, OS X
+# Labels: oncall: jit
+# PR Title: [jit] trace(nn.Module(), (input_size,)) vs nn.Module().forward(torch.rand(*input_size)))
+from torch import nn as nn
+class M(nn.Module):
+    def __init__(self):
+        super(M, self).__init__()
+
+    # This method works with jit trace on 1.7.0 but fails when it's
+    # converted to a scripted model:
+    def forward(self, x):
+        return x * x
+#     __call__ = forward
+m = M().double().cuda()
+input_size = (4, 2)
+out = torch.rand(*input_size).double().cuda()
+scripted = torch.jit.trace(M(), input_size)
+with torch.no_grad():
+    out = m(x)
+# API: Calling `forward` directly from custom classes vs calling the same method through a `script`ed model (and trace with PyTorch 1.7.0)?
+# Bug description: Attribute error when trying to use JIT on class containing `__call__()` method in PyTorch v1.7.0?
+
+# Title: Error when using jit tracing for a function that uses **kwargs
+"""
+Output:
+ERROR: Graphs differed across invocations!
+        Graph diff:
+                  graph(%x : __torch__.Optional(__torch__.float32),
+                        %y : __torch__.Optional(__torch__.int64)):
+            +   %10 : bool = prim::Constant[value=False]()
+                ?         ^
+                +   return (%x, %y)
+                ?         ^
+        First diverging operator:
+        Node diff:
+                  graph(%x : __torch__.Optional(__torch__.float32),
+                        %y : __torch__.Optional(__torch__.int64)):
+            +   %10 : bool = prim::Constant[value=False]()
+                ?         ^
+    First diverging operator:
+    Node diff:
+          - graph(%x : __torch__.Optional(__torch__.float32),
+                        %y : __torch__.Optional(__torch__.int64)):
+    ?                     ^
+"""
+# Version: PyTorch version: 1.5.0 (torch==1.5.0+cu101, torchvision==0.3.0+cu101), CUDA 10.1, cuDNN 7.6, OS X
+# Labels: oncall: jit, module: onnx, module: amp (automated mixed precision)
+# PR Title: Error when using JIT tracing for a function that uses **kwargs
+def my_fn(*args, **kwargs):
+    return args[0]
+with torch.jit.optimized_execution(True):
+    out = torch.jit.trace(my_fn, (torch.tensor([1.]), 2))
+# API: JIT tracing a function that has **kwargs argument in PyTorch v1.5.0?
+# Bug description: Attribute error when trying to use JIT on function containing `__call__()` method with **kwargs arguments and tracing it with PyTorch v1.5.0?

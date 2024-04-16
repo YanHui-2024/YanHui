@@ -1,0 +1,28 @@
+ torch._C._functional_trace()
+# Bug description: Traceback is not informative when tracing a function with unsupported return type
+
+# Title: AttributeError: Can't get attribute 'ModuleList' on <class 'torch.nn.modules.module'>
+"""
+Output:
+Traceback (most recent call last):
+  File "test.py", line 2, in <module>
+    import torchvision
+  File "/Users/jamesreed/.virtualenvs/torch-gpu/lib/python3.6/site-packages/torchvision/__init__.py", line 1, in <module>
+    from . import transforms
+  File "/Users/jamesreed/.virtualenvs/torch-gpu/lib/python3.6/site-packages/torchvision/transforms/__init__.py", line 8, in <module>
+    from .transforms import (
+  File "/Users/jamesreed/.virtualenvs/torch-gpu/lib/python3.6/site-packages/torchvision/transforms/transforms.py", line 56, in <module>
+    from torchvision.models.detection import FasterRCNN, MaskRCNN, KeypointRCNN
+  File "/Users/jamesreed/.virtualenvs/torch-gpu/lib/python3.6/site-packages/torchvision/models/detection/__init__.py", line 20, in <module>
+    from . import faster_rcnn
+  File "/Users/jamesreed/.virtualenvs/torch-gpu/lib/python3.6/site-packages/torchvision/models/detection/faster_rcnn.py", line 42, in <module>
+    import torchvision._C as _C
+AttributeError: Can't get attribute 'ModuleList' on <class 'torch.nn.modules.module'>
+"""
+# Version: PyTorch version: 0.4.1
+# Labels: oncall: jit, module: torchvision
+# PR Title: AttributeError: Can't get attribute 'ModuleList' on <class 'torch.nn.modules.module'>
+import torchvision
+from . import transforms
+# API: ModuleList
+# Bug description: Traceback is not informative when trying to use a custom model from the 0.4.1 release of PyTorch

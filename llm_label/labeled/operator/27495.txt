@@ -1,0 +1,13 @@
+# API: builtin function attributes do not recursively compile
+# Bug description: JIT compilation of a module with an attribute that is a builtin function with a default argument fails when the argument is used within the attribute
+#                  when using torch.jit.script or torch.jit.trace in PyTorch v1.2.0
+def double(x):
+    return x * 2
+
+class Double(nn.Module):
+    def __init__(self):
+        super(Double, self).__init__()
+        self.dble = double
+
+    def forward(self, input):
+        return self.dble(input)

@@ -1,0 +1,18 @@
+import torch
+from dataclasses import dataclass
+from typing import Tuple
+
+# API: scripted class with @dataclass decorator and unpacking tuple
+# Bug description: TorchScript compilation fails when a scripted dataclass is used within __init__() method of a scripted model on PyTorch 1.7.0 and nightly
+@torch.jit.script
+@dataclass(frozen=True)
+class Info:
+    # ...
+    pass
+
+class Model:
+    def __init__(self, info: Tuple[Info]):
+        self.infos = [i for i in info]  # error here
+    def forward(self, x):
+        return self.infos
+

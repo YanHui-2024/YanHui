@@ -1,0 +1,17 @@
+# API: List
+# Bug description: the result of the trace is different from expected (original instance is mutated).
+#                  This happens when using torch.jit.trace in PyTorch v1.1.0
+import torch
+
+def foo():
+    a = [1, 2, 3]
+    b = list(a)
+    a.pop()
+    return a, b
+
+foo_scripted = torch.jit.script(foo)
+
+print(foo_scripted.code)
+print('actual', foo_scripted())
+print('expected', foo())
+print(foo_scripted.graph_for())

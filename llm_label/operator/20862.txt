@@ -1,0 +1,10 @@
+# Title: torch.jit.trace crash in presence of hooks, even in well determined models.
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.1.0
+# Labels: oncall: jit
+# PR Title: torch.jit.trace crash in presence of hooks, even in well determined models.
+if orig._backward_hooks or orig._forward_hooks or orig._forward_pre_hooks:
+    raise ValueError("Modules that have hooks assigned can't be compiled")

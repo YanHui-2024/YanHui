@@ -1,0 +1,5 @@
+# API: Numpy tensordot
+# Bug description: np.tensordot throws an error when using the first argument is an empty array and the second is not
+#                  using numpy version: 1.19.4
+>>> np.tensordot(np.zeros(()), np.zeros(()), 0)
+array(0.)

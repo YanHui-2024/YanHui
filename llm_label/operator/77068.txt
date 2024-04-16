@@ -1,0 +1,37 @@
+# Title: torch.jit.Attribute is broken
+"""
+Output:
+TypeError                                 Traceback (most recent call last)
+Input In [87], in <cell line: 16>()
+     13         self.names_ages["someone"] = 20
+     14         assert isinstance(self.names_ages["someone"], int)
+---> 16 m = AttributeModule()
+
+Input In [87], in AttributeModule.__init__(self)
+      7 self.foo = torch.jit.Attribute(0.1, float)
+      9 # we should be able to use self.foo as a float here
+---> 10 assert 0.0 < self.foo
+     12 self.names_ages = torch.jit.Attribute({}, Dict[str, int])
+     13 self.names_ages["someone"] = 20
+
+TypeError: '<' not supported between instances of 'float' and 'Attribute'
+"""
+# Version: PyTorch version: 1.11.0
+# Labels: oncall: jit
+# PR Title: 
+import torch
+from typing import Dict
+
+class AttributeModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.foo = torch.jit.Attribute(0.1, float)
+
+        # we should be able to use self.foo as a float here
+        assert 0.0 < self.foo
+
+        self.names_ages = torch.jit.Attribute({}, Dict[str, int])
+        self.names_ages["someone"] = 20
+        assert isinstance(self.names_ages["someone"], int)
+
+m = AttributeModule()

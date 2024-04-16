@@ -1,0 +1,133 @@
+# API: torch.nn.Conv2d
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.12.1
+import torch
+
+class MyModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.cv1 = torch.nn.Conv2d(3, 3, 5, 2, 1)
+
+    def forward(self, x):
+        x = self.cv1(x)
+        return x
+
+x = torch.randn(10, 3, 20, 20) * 2
+m = MyModule().eval()
+x = x.cuda()
+m = m.cuda()
+
+with torch.no_grad():
+    print("outside result: ", torch.jit.trace(m, x))
+    with torch.cuda.amp.autocast(enabled = True, dtype=torch.float16):
+        print("inside result: ", torch.jit.trace(m, x))
+
+
+# API: Python function signature for `torch.tensordot` in Python
+# Bug description: when passing a tuple of int as the dimension pair, TorchScript JIT compilation fails
+In [1]: import torch
+
+In [2]: x, y = torch.randn(3, 4), torch.randn(4, 3)
+
+In [3]: torch.tensordot(x, y, dims=((1,), (0,)))
+Out[3]: 
+tensor([[-0.2011,  0.1324,  0.7855],
+        [ 0.4894, -2.1793, -0.4989],
+        [ 2.4699,  0.4472, -0.5411]])
+
+In [5]: @torch.jit.script
+   ...: def f(x, y):
+   ...:     return torch.tensordot(x, y, dims=((1,), (0,)))
+   ...: 
+---------------------------------------------------------------------------
+RuntimeError: 
+Arguments for call are not valid.
+The following variants are available:
+  
+  aten::tensordot(Tensor self, Tensor other, int[] dims_self, int[] dims_other) -> (Tensor):
+  Argument dims_self not provided.
+  
+  aten::tensordot.out(Tensor self, Tensor other, int[] dims_self, int[] dims_other, *, Tensor(a!) out) -> (Tensor(a!)):
+  Argument dims_self not provided.
+
+The original call is:
+  File "<ipython-input-5-61613126bcad>", line 3
+@torch.jit.script
+def f(x, y):
+    return torch.tensordot(x, y, dims=((1,), (0,)))
+           ~~~~~~~~~~~~~~~ <--- HERE
+
+
+In [6]: @torch.jit.script
+   ...: def f(x, y):
+   ...:     return torch.tensordot(x, y, dims_self=[1], dims_other=[0])
+
+In [7]: torch.tensordot(x, y, dims_self=[1], dims_other=[0])
+---------------------------------------------------------------------------
+TypeError                                 Traceback (most recent call last)
+<ipython-input-7-be1bfc130a4a> in <module>
+----> 1 torch.tensordot(x, y, dims_self=[1], dims_other=[0])
+
+TypeError: tensordot() got an unexpected keyword argument 'dims_self'
+
+
+# API: torch.jit.script, save, load
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.12.1
+import torch
+import io
+from typing import List
+import torch.utils.collect_env
+torch.utils.collect_env.main()
+
+class OrderModuleShort(torch.nn.Module):
+    def forward(self, arg: List[torch.Tensor]):
+        return [(arg[1],), (arg[0].argmax(),)]
+
+class OrderModuleLong(torch.nn.Module):
+    def forward(self, long_arg_name: List[torch.Tensor]):
+        return [(long_arg_name[1],), (long_arg_name[0].argmax(),)]
+
+def evaluate(cls):
+    om = cls()
+    sm = torch.jit.script(om)
+    print(sm.code)
+    print(sm.graph)
+    buffer = io.BytesIO()
+    torch.jit.save(sm, buffer)
+    buffer.seek(0)
+    lm = torch.jit.load(buffer)
+
+    for name, mod in [
+            ("original", om),
+            ("scripted", sm),
+            ("loaded", lm),
+        ]:
+        try:
+            mod([torch.zeros(0)])
+        except Exception as exn:
+            print()
+            print(name)
+            print(exn)
+
+
+print("---short:")
+evaluate(OrderModuleShort)
+print()
+print("---long:")
+evaluate(OrderModuleLong)
+
+
+# API: Ellipsis in JITed code
+# Bug description: Error when using fx.symbolic_trace on function having an ellipsis (...)
+import torch
+from torch import fx
+
+def foo(x):
+    return x[..., :]
+
+torch.jit.script(foo)  # ok
+torch.jit.script(fx.symbolic_trace(foo))  # not ok
+
+
+# API:

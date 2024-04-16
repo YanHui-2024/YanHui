@@ -1,0 +1,6 @@
+# API: torch.Tensor
+# Bug description: Runtime error when using fusing abs node on cuda in PyTorch v1.0rc1
+@torch.jit.script
+def x(a):
+     return a.abs()*2
+x(torch.randn(5, device='cuda'))

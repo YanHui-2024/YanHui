@@ -1,0 +1,2 @@
+ torch.nn.ModuleDict
+# Bug description: Module interface subtype checking does not work correctly in PyTorch 1.7.0

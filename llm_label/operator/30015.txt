@@ -1,0 +1,121 @@
+# Title: JIT fails for multihead attention
+"""
+Output:
+---------------------------------------------------------------------------
+RuntimeError                              Traceback (most recent call last)
+<ipython-input-66-6d725915459d> in <module>
+     53 data = torch.Tensor(vue_clip_emb).view(1, -1, 100)
+     54 lengths = torch.tensor([74])
+---> 55 output = ts_model_multihead.forward(data=data, lengths=lengths)
+     56 print(output)
+
+RuntimeError: 
+
+
+new_type INTERNAL ASSERT FAILED at caffe2/torch/csrc/jit/passes/shape_analysis.cpp:280, please report a bug to PyTorch. 
+The above operation failed shape propagation in this context:
+at /mnt/xarfuse/uid-156246/70539c06-ns-4026531840/torch/nn/functional.py:3312:12
+                                                  dtype=attn_mask.dtype,
+                                                  device=attn_mask.device)], dim=1)
+            if key_padding_mask is not None:
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...  <--- HERE
+                key_padding_mask = torch.cat(
+                    [key_padding_mask, torch.zeros((key_padding_mask.size(0), 1),
+
+The above operation failed shape propagation in this context:
+at /mnt/xarfuse/uid-156246/70539c06-ns-4026531840/torch/nn/functional.py:3303:4
+    q = q * scaling
+
+    if bias_k is not None and bias_v is not None:
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...  <--- HERE
+        if static_k is None and static_v is None:
+            k = torch.cat([k, bias_k.repeat(1, bsz, 1)])
+
+The above operation failed shape propagation in this context:
+at <ipython-input-60-415a6b53c56b>:127:8
+          L is the target sequence length, S is the source sequence length.
+        """
+        if not self._qkv_same_embed_dim:
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...  <--- HERE
+            return nn.functional.multi_head_attention_forward(
+                query, key, value, self.embed_dim, self.num_heads,
+"""
+# Version: PyTorch version: 1.3.1
+# Labels: oncall: jit, triaged
+# PR Title: JIT fails for multihead attention
+import torch
+import torch.nn as nn
+
+def _lengths2mask(lengths: torch.Tensor, seq_len: int, lt=torch.tensor(True)) -> torch.Tensor:
+    """
+    Input lengths is a tensor of shape (batch_size) with value in [0, seq_len],
+    Return a tensor of shape (batch_size x seq_len) with binary value
+    """
+    if lt:
+        return torch.lt(
+            torch.arange(seq_len, device=lengths.device)[None, :],
+            lengths[:, None].long(),
+        )
+    else:
+        return torch.ge(
+            torch.arange(seq_len, device=lengths.device)[None, :],
+            lengths[:, None].long(),
+        )
+
+class AttentionMultihead(nn.Module):
+    def __init__(self, dim_in, method, use_variable_lengths=False, num_heads=1):
+        super(AttentionMultihead, self).__init__()
+
+        # choose from supported attention methods
+        assert method in ("multihead")
+        self.method = method
+        self.use_variable_length = use_variable_lengths
+        
+        self.attention = nn.MultiheadAttention(
+            embed_dim=dim_in, num_heads=num_heads
+        )
+
+        # record output dim
+        self.dim_out = dim_in
+
+    def forward(self, data: torch.Tensor, lengths: torch.Tensor):
+        assert data.dim() == 3, "Require input shape (batch_size x seq_len x embed_dim)"
+        
+        if self.use_variable_length is True:
+            mask = _lengths2mask(lengths.clamp(min=1), data.size(1), torch.tensor(False))
+        else:
+            mask = None
+
+        data = data.transpose(0, 1)
+        attn_output, attn_weights = self.attention(
+            data, data, data, key_padding_mask=mask, need_weights=True, attn_mask=None
+        )
+        # transpose output data to (batch_size, seq_length, embed_dim)
+        attn_output = attn_output.transpose(0, 1)
+        
+        return attn_output, lengths, attn_weights
+
+    
+class DeployAttentionMultihead(torch.nn.Module):
+    def __init__(self, dim_in=100, length=torch.tensor([300])[0]):
+        super(DeployAttentionMultihead, self).__init__()
+        self.length = length
+        self.use_variable_length = True
+        self.attention = AttentionMultihead(dim_in=dim_in, method="multihead", use_variable_lengths=True, num_heads=5)
+        
+    def forward(self, data: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
+        attn_output, lengths, attn_weights = self.attention(data, lengths)
+        return attn_output
+    
+model = DeployAttentionMultihead()
+
+ts_model_multihead = torch.jit.script(model)
+print(ts_model_multihead.code)
+
+# run ts model of multihead
+
+vue_clip_emb = [0.0840825,5.65534,2.23576,2.21367,1.5883,0.493749,0,1.49034,1.54749,1.15795,0.118591,2.54162,2.70971,2.10865,0.115242,0.0115912,5.39253,2.83803]
+data = torch.Tensor(vue_clip_emb).view(1, -1, 100)
+lengths = torch.tensor([74])
+output = ts_model_multihead.forward(data=data, lengths=lengths)
+print(output)

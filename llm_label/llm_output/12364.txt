@@ -1,0 +1,77 @@
+ torch.jit.trace(x)
+# Bug description: Trace sanity check fails when tensor.dtype is accessed inside JIT tracing
+
+# Title: [JIT] Attribute error when accessing a model attribute via forward call in nn.ModuleList
+"""
+Output:
+Traceback (most recent call last):
+  File "test/tinytest.py", line 32, in <module>
+    scripted = torch.jit.script(M())
+RuntimeError: Attempting to use the following unsupported features in 'forward':
+Attribute access by index for value: nn.ModuleList (in forward)
+    at torch/_C._nn
+        @file: ./torch/csrc/api/include/torch/script/python_jit_annotations.h
+        @line: 879
+        @method: __getitem__
+RuntimeError: Compilation error: Unsupported: unsupported annotation __getitem__ for type nn.ModuleList at torch/_C._nn
+    at test/tinytest.py:32
+"""
+# Version: PyTorch version: 1.0rc1
+# Labels: oncall: jit
+# PR Title: Attribute error when accessing a model attribute via forward call in nn.ModuleList
+import torch
+class M(torch.nn.Module):
+    def __init__(self, foo: str):
+        super(M, self).__init__()
+        self.foo = foo
+    def forward(self) -> None:
+        print('hello')
+        return None
+m = M(foo='bar')
+scripted = torch.jit.script(m)
+# API: Module with nn.ModuleList accessing attribute via forward call
+# Bug description: Attribute error thrown when trying to access an attribute of a module in a list which is accessed inside the forward function
+
+# Title: JIT cannot properly compile some models with nn.GroupNorms
+"""
+Output:
+Traceback (most recent call last):
+  File "test/tinytest.py", line 12, in <module>
+    scripted = torch.jit.script(M())
+  File "/home/titan/miniconda3/envs/pytorch-v1/lib/python3.7/site-packages/torch/nn/modules/_functions.py", line 56, in forward
+    return torch.nn.functional.group_norm(input, num_groups=num_groups, weight=weight, bias=bias, eps=eps)
+RuntimeError: expected group_norm to be on CPU but got device type cuda (see "torch.cuda.is_available()" in Python)
+"""
+# Version: PyTorch version: 1.0rc1
+# Labels: oncall: jit
+# PR Title: JIT cannot properly compile some models with nn.GroupNorms
+import torchvision
+model = torchvision.models.resnet50()
+model[0].conv2 = torch.nn.Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1)) # to avoid error on the first layer for this test
+scripted = torch.jit.script(model)
+# API: models with nn.GroupNorms
+# Bug description: JIT cannot properly compile some models with nn.GroupNorms
+
+# Title: TorchScript tracing is not consistent on CPU with pytorch 1.0rc1 or 0.4.1 (in torchvision)
+"""
+Output:
+Traceback (most recent call last):
+  File "test/tinytest.py", line 6, in <module>
+    trace_data = scripted(x)
+RuntimeError: The following operators are not implemented by the TorchScript compiler:
+aten::fmax
+aten::fmin
+"""
+# Version: PyTorch version: 1.0rc1
+# Labels: oncall, onprem: cuda, onprem: cpu, onprem: macos, onprem: win
+# PR Title: TorchScript tracing is not consistent on CPU with pytorch 1.0rc1 or 0.4.1 (in torchvision)
+import numpy as np
+import torch
+x = torch.rand(2,3).view(-1)
+print('numpy:', [max(v.data[0], v.data[1]) for v in x])
+scripted = torch.jit.trace(model.eval(), (x))
+trace_data = scripted(x)
+print('scripted:', trace_data)
+print([max(v.data, v.data + 1) for v in x])
+# API: models with nn.GroupNorms
+# Bug description: TorchScript tracing is not consistent on CPU with pytorch 1.0rc1 or 0.4.1 (in torchvision)

@@ -1,0 +1,2 @@
+ torch.nn.Module.add_module
+# Bug description: RuntimeError on model accepting a custom type of NamedTuple as input when using torch.jit.trace in PyTorch v1.2.0 and below

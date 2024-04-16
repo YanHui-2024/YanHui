@@ -1,0 +1,50 @@
+# API: Basic Types (Dicts) in JIT Model
+# Bug description: Dictionary is not supported by the torch.jit module in PyTorch v1.4.0
+my_list : List[int] = list()
+
+
+# API: JIT script
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.0.0
+import torch
+
+@torch.jit.script
+def jit_warner(inp):
+    return torch.nn.functional.sigmoid(inp) # triggers a deprecation warning
+
+@torch.jit.script
+def jit_ok(inp):
+    return torch.sigmoid(inp)
+
+class JitWarner(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        
+    def forward(self, x):
+        return jit_warner(x)
+        # return jit_ok(x) # this works
+
+torch.onnx.export(JitWarner(), torch.randn(42), '/dev/null')
+
+
+# API: torch.jit.script
+# Bug description: RuntimeError on torch.jit.script in PyTorch v1.5.0
+import torch
+
+@torch.jit.script
+def f(x):  # ? x 6
+    return x.t()[[0, 1, 5]]  # 3 x ?
+
+print(f(torch.zeros((2, 6))))
+
+
+# API: keyword argument
+return a == b or a + key == b
+if __name__ == '__main__':
+x = torch.jit.script(compare)
+assert x(torch.ones(2), torch.zeros(2))
+assert not x(torch.ones(2), torch.ones(2), key=1)
+def compare(a, b, *, key=None):
+
+
+# API:

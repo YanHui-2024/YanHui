@@ -1,0 +1,92 @@
+ torch.onnx.export for pytorch trace model and onnx runtime.
+# Bug description: Sequence length and real_seq_length has different values/memory in tracemodel that causes problem with onnxruntime run.
+
+# Title: Pytorch Shape Inference fails for dynamic batches
+"""
+Output:
+RuntimeError: RuntimeError: Error while creating output tensors for the operator matmul at (node index 18): Unknown dim of shape 500, expected a value of at least 1.
+RuntimeError: RuntimeError: Error while creating output tensors for the operator matmul at (node index 18): Unknown dim of shape 2, expected a value of at least 1.
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit, module: onnx
+# PR Title: Pytorch Shape Inference fails for dynamic batches
+import torch
+from torch import nn
+from typing import Optional
+def matmul(t1: torch.Tensor, t2: Optional[torch.Tensor] = None) -> torch.Tensor:   => changed to def matmul(self, t1: torch.Tensor, t2: Optional[torch.Tensor] = None) -> torch.Tensor
+    return self._matmul_impl(t1, t2=None)
+class TestModel(nn.Module):
+    def __init__(self, hidden_size: int):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.linear_a = nn.Linear(in_features=hidden_size, out_features=10)
+        self.linear_b = nn.Linear(in_features=10, out_features=4)
+    def forward(self,  # type: ignore[override]
+                encoder_outputs: torch.Tensor,
+                ):
+        hidden_states = matmul(encoder_outputs)
+        logits = self.linear_b(hidden_states).unsqueeze(-1)    <= changed to     logits = self.linear_a(matmul(hidden_states)).unsqueeze(-1)
+        probabilities = nn.functional.softmax(logits, dim=-1)
+        return probabilities                               <=     probabilities = nn.functional.softmax(self.linear_b(matmul(hidden_states)), dim=-1)
+# Call export and export_to_onnx
+encoder_outputs = torch.rand(500, 2, 13)
+model = TestModel(8).eval()
+torch.onnx.export(                        => changed to   onnx.export(
+    model, (encoder_outputs), "test.onnx",
+    verbose=False, opset_version=12, export_params=True)
+# Check
+import onnxruntime as ort
+ort_session = ort.InferenceSession("test.onnx")                       => import onnxruntime as ort
+inputs = {ORT_NAME: encoder_outputs.cpu().numpy()}
+result = ort_session.run(None, inputs)
+print(result[0])
+# API: torch.onnx.export for pytorch model and onnx runtime.
+# Bug description: Sequence length is dynamic while exporting the model to onnx. Shape inference fails in that case.
+
+# Title: Pytorch JIT Graph contains unsupported operators with multiple inputs/outputs.
+"""
+Output:
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/home/titaiwang/pytorch/torch/fx/__init__.py", line 607, in __call__
+    return Graph(_to_graph_inputs(self.root), _to_graph_outputs(args))
+  File "/home/titaiwang/pytorch/torch/fx/symbolic_trace.py", line 436, in _to_graph_outputs
+    out = symbolic_trace(args).graph
+  File "/home/titaiwang/pytorch/torch/fx/utils.py", line 327, in symbolic_trace
+    tracer.run(root)
+  File "/home/titaiwang/pytorch/torch/fx/symbolic_tracer.py", line 194, in run
+    out = func(*args)
+  File "/home/titaiwang/pytorch/torch/fx/nodes.py", line 203, in _call_method
+    self._prepare(args[0], method=name, other=other)
+  File "/home/titaiwang/pytorch/torch/fx/symbolic_tracer.py", line 757, in _prepare
+    out = self._prepare_impl(module, other)
+  File "/home/titaiwang/pytorch/torch/fx/symbolic_tracer.py", line 828, in _prepare_impl
+    return module(*args, **kwargs)
+RuntimeError: RuntimeError: Error while creating output tensors for the operator matmul at (node index 10): Unknown dim of shape 5, expected a value of at least 1.
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit
+# PR Title: Pytorch JIT Graph contains unsupported operators with multiple inputs/outputs.
+import torch
+from torch import nn
+def matmul(t1: torch.Tensor, t2: Optional[torch.Tensor] = None) -> torch.Tensor:
+    return self._matmul_impl(t1, t2=None)
+class TestModel(nn.Module):
+    def __init__(self, hidden_size: int):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.linear_a = nn.Linear(in_features=hidden_size, out_features=10)
+        self.linear_b = nn.Linear(in_features=10, out_features=4)
+    def forward(self,  # type: ignore[override]
+                encoder_outputs: torch.Tensor,
+                ):
+        hidden_states = matmul(encoder_outputs)
+        logits = self.linear_b(hidden_states).unsqueeze(-1)
+        probabilities = nn.functional.softmax(logits, dim=-1)
+        return probabilities
+model = TestModel(8)
+encoder_outputs = torch.rand(500, 2, 13)
+output = model(encoder_outputs).graph.copy()
+print(output)
+# API: Unsupported operators in JIT graph
+# Bug description: FX Graph contains unsupported operator with multiple inputs/outputs.

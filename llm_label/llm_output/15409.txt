@@ -1,0 +1,3 @@
+ torch.nn.functional.softmax
+# Bug description: Bad error message when creating a class instance in script functions
+#                  in PyTorch v1.0.0

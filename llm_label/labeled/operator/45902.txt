@@ -1,0 +1,7 @@
+# API: torchvision
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.12.1
+model = torchvision.models.detection.keypoint_rcnn.keypointrcnn_resnet50_fpn(pretrained=True, min_size=200, max_size=300)
+model.eval()
+script_module = torch.jit.script(model)
+torch._C._freeze_module(script_module._c)

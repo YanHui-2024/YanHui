@@ -1,0 +1,29 @@
+ split_with_sizes()
+# Bug description: TypeError raised on torch.split_with_sizes() in tracing mode
+
+# Title: PyTorch jit.trace does not have __dir__ method and therefore lacks auto-complete (IPython)
+"""
+Output:
+Traceback (most recent call last):
+  File "tmp/a.py", line 2, in <module>
+    torch.jit.trace(f, x)
+TypeError: trace(): not all arguments converted during bytes re-encoding.
+"""
+# Version: PyTorch version: 1.9.0
+# Labels: high priority, oncall: jit
+# PR Title: 
+from torch import nn
+import pytest
+class DummyModel(nn.Module):
+    def forward(self, x):
+        return None
+dummymodel = DummyModel()
+def f(x):
+    for _ in range(10):
+        y = 2 * dummymodel(x) + 1
+    return y
+
+import torch
+torch.jit.trace(f, torch.randn(5))
+# API: trace() (not working), __dir__()
+# Bug description: PyTorch jit.trace does not have __dir__ method and therefore lacks auto-complete (IPython)

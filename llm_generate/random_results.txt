@@ -1,0 +1,121 @@
+test cases: 48
+
+#2:
+RuntimeError: Only tensors, lists, tuples of tensors, or dictionary of tensors can be output from traced functions
+
+#3:
+NameError: name 'torch' is not defined
+
+#4:
+torch.jit.frontend.NotSupportedError: Compiled functions can't take variable number of arguments or use keyword-only arguments with defaults:
+
+#6:
+NameError: name 'torch' is not defined
+
+#8:
+NameError: name 'torch' is not defined
+
+#9:
+NameError: name 'stride' is not defined
+
+#10:
+NameError: name 'torch' is not defined
+
+#11:
+NameError: name 'torch' is not defined
+
+#12:
+NameError: name 'io' is not defined. Did you mean: 'id'?
+
+#13:
+NameError: name 'torch' is not defined
+
+#14:
+NameError: name 'torch' is not defined
+
+#15:
+NameError: name 'nn' is not defined
+
+#16:
+NameError: name 'torch' is not defined
+
+#17:
+NameError: name 'torch' is not defined
+
+#18:
+ValueError: not enough values to unpack (expected 2, got 1)
+
+#19:
+SyntaxError: 'return' outside function
+
+#21:
+IndentationError: expected an indented block after class definition on line 4
+
+#22:
+NameError: name 'nn' is not defined
+
+#23:
+SyntaxError: invalid syntax
+
+#24:
+NameError: name 'torch' is not defined
+
+#25:
+NameError: name 'torch' is not defined
+
+#26:
+SyntaxError: invalid syntax
+
+#27:
+NameError: name 'torch' is not defined
+
+#28:
+Expected a value of type 'Tensor' for argument 'input' but instead found type 'int'.
+
+#29:
+NameError: name 'nn' is not defined
+
+#31:
+NameError: name 'torch' is not defined
+
+#32:
+RuntimeError: Attempted to use Dict without contained types. Please add contained type, e.g. Dict[int, int]
+
+#33:
+NameError: name 'nn' is not defined
+
+#34:
+NameError: name 'torchvision' is not defined
+
+#35:
+NameError: name 'torch' is not defined
+
+#36:
+NameError: name 'x' is not defined
+
+#37:
+RuntimeError: mat1 and mat2 shapes cannot be multiplied (1x81920 and 1x1)
+
+#38:
+NameError: name 'torch' is not defined
+
+#39:
+RuntimeError: Input type (torch.cuda.FloatTensor) and weight type (torch.FloatTensor) should be the same
+
+#40:
+NameError: name 'Optional' is not defined
+
+#41:
+NameError: name 'torch' is not defined
+
+#42:
+TypeError: module() takes at most 2 arguments (3 given)
+
+#43:
+NameError: name 'torch' is not defined
+
+#45:
+AttributeError: 'C' object has no attribute 'save'
+
+#46:
+TypeError: function() argument 'code' must be code, not str

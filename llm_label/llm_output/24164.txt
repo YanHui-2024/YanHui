@@ -1,0 +1,86 @@
+ torch.nn.Module, nn.functional.relu, torch.jit.trace
+# Bug description: TypeError when using multiple return values on forward method of module
+#                  when using torch.jit.trace in PyTorch v1.2.0
+
+# Title: RuntimeError when compiling a model which calls `to`
+"""
+Output:
+Traceback (most recent call last):
+  File "test/torchscript_test.py", line 58, in <module>
+    compiled_model = torch.jit.compile(model)
+  File "/Users/michaelp/Code/Text-to-Speech/venv/lib/python3.7/site-packages/torch/jit/_tracing.py", line 141, in compile
+    return script_module._recursive_compile(tuple(f), self)
+  File "/Users/michaelp/Code/Text-to-Speech/venv/lib/python3.7/site-packages/torch/jit/_scripting.py", line 182, in _recursive_compile
+    return torch._C._try_compile_string(self)
+RuntimeError: The jitter failed to compile the provided code. Please see the error messages above for more info. Common reasons include syntax or semmantic errors and symbol shadowing.
+Compilation Failed!
+compiling:
+graph(%self : __torch__.torchvision.models.densenet.___torch_mangle_1.DenseNet,
+  %x.1 : Tensor): # userspace s:9, e:342476
+    %8 : int = prim::Constant[value=0]()
+    %5 : None = torch::dtype_cast(%8, %8)
+    %7 : Tensor = aten::to(%x.1, %5) # bang-bang!
+    return (%7)
+RuntimeError: Compilation failed!
+"""
+# Version: PyTorch version: 1.2.0
+# Labels: oncall: jit, triaged, module: onnx
+# PR Title: RuntimeError when compiling a model which calls `to`
+from torchvision import models
+import torch
+class Dummy(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+    def forward(self, x):
+        return self.relu(x)
+model = models.densenet121(pretrained=True).eval()
+compiled_model = torch.jit.compile(model)
+# API: DenseNet121 from torchvision.models, relu in nn module of model, torch.jit.trace
+# Bug description: TypeError when using multiple return values on forward method of module
+#                  when using torch.jit.compile in PyTorch v1.2.0
+
+# Title: RuntimeError when compiling a model which uses `torch.nn.functional.pad` with constant_value arguments
+"""
+Output:
+Traceback (most recent call last):
+  File "test/torchscript_test.py", line 98, in <module>
+    torched = torch.jit.compile(model)
+  File "/Users/michaelp/Code/Text-to-Speech/venv/lib/python3.7/site-packages/torch/jit/_frontend.py", line 165, in compile
+    return _script_dict[_compile](src)
+  File "/Users/michaelp/Code/Text-to-Speech/venv/lib/python3.7/site-packages/torch/jit/_frontend.py", line 128, in _compile_internal
+    return torch._C._jit_script_compile(src)
+RuntimeError: The jitter failed to compile the provided code. Please see the error messages above for more info. Common reasons include syntax or semmantic errors and symbol shadowing.
+
+Compilation Failed!
+compiling:
+graph(%self : __torch__.torchvision.models.densenet.___torch_mangle_1.DenseNet,
+  %x.1 : Tensor): # userspace s:9, e:342476
+    %8 : int = prim::Constant[value=0]()
+    %5 : None = torch::dtype_cast(%8, %8)
+    %7 : Tensor = aten::to(%x.1, %5) # bang-bang!
+    %9 : Tensor[] = prim::ListConstruct(%7, %7) # 2
+    %10 : (Tensor[], Tensor[]) = prim::TupleConstruct(%9, %9) # 2
+    %13 : int[] = prim::Constant[value=[0,0]]()
+    %14 : int[] = prim::Constant[value=[0,0]]()
+    %16 : Tensor = aten::constant_pad_nd(%7, %10) # bang-bang!
+    return (%16)
+RuntimeError: Compilation failed!
+"""
+# Version: PyTorch version: 1.2.0
+# Labels: oncall: jit
+# PR Title: RuntimeError when compiling a model which uses `torch.nn.functional.pad` with constant_value arguments
+from torchvision import models
+import torch
+class Dummy(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv = torch.nn.Conv2d(3, 64, kernel_size=7)
+        self.relu = lambda x: torch.nn.functional.relu(x)
+    def forward(self, x):
+        out = self.conv(x)
+        return self.relu(out)
+model = Dummy().eval()
+torched = torch.jit.compile(model)
+# API: DenseNet121 from torchvision.models, relu in nn module of model, torch.jit.trace
+# Bug description: TypeError when using multiple return values on forward method of module
+#                  when using torch.jit.trace in PyTorch v1.2.0

@@ -1,0 +1,25 @@
+# API: torchvision.models.resnet18
+# Bug description: Attribute Error when calling a function from an imported module
+import torch.nn as nn
+from torchvision import models
+from torch.utils.data import Dataset, DataLoader
+
+class SimpleDataset(Dataset):
+    def __init__(self, num_samples):
+        self.num_samples = num_samples
+
+    def __len__(self):
+        return self.num_samples
+
+    def __getitem__(self, idx):
+        return torch.randn(2), idx * 2 + 100 # random data and dummy targets
+
+dataloader = DataLoader(SimpleDataset(256))
+model = models.resnet18()
+loss = nn.CrossEntropyLoss()
+optimizer = torch.optim.SGD(params=model.parameters(), lr=0.001)
+for i, (x, y) in enumerate(dataloader):
+    x = x.to('cuda:0')
+    output = model(x)
+    print("i am here!") # this statement is never executed
+    loss(output, y).backward()

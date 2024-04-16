@@ -1,0 +1,40 @@
+ torch.nn.LPPool2d and torch.nn.functional.lp_pool2d
+# Bug description: torch.jit.script has too strict type checks for LPPool2D and lp_pool2d in PyTorch v1.9.0
+
+# Title: JIT module is not tracable with some parameter values in PyTorch 1.9
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.9.0
+# Labels: oncall: jit, model: conv
+# PR Title: JIT module is not tracable with some parameter values in PyTorch 1.9
+import torch
+model = torch.nn.Linear(2, 3)
+x = torch.randn(4, 2)
+torch.jit.trace_module(model, {"forward": x}) # fails: RuntimeError: Error while tracing "forward" in torch._utils._rebuild_type(<class 'torch.nn.modules.linear.Linear'>): Invalid type for argument 0 (torch.Size([4, 2])). Expected type: torch.Tensor
+# API: torch.nn.modules.linear.Linear and torch.jit.trace_module
+# Bug description: JIT module is not tracable with some parameter values in PyTorch v1.9
+
+# Title: TorchScript: no support for custom types in annotations
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.9.0
+# Labels: oncall: jit, module: onnx (automated mixed precision), module: torchvision, module: pytorch3d
+# PR Title: TorchScript: no support for custom types in annotations
+import torch
+class Foo(torch.jit.Attribute):  # fails: RuntimeError: Error while tracing "<class 'pytorch_unet.model.unet'>": Attribute foo has unsupported type <class 'pytorch_unet.model.Foo'>
+    __name__ = "foo"
+    __type__ = Foo
+    _recursive_attrs_ = {"bar"}  # fails: RuntimeError: Error while tracing "<class 'pytorch_unet.model.unet'>": Attribute foo has unsupported attribute bar
+class Bar(torch.jit.Attribute):
+    __name__ = "foo"
+    __type__ = Foo
+    _recursive_attrs_ = {"bar"}
+x = torch.randn(1, 2)
+print(torch.jit.script(Foo)) # fails: RuntimeError: Error while tracing "<class 'pytorch_unet.model.Bar'>": Attribute bar has unsupported type <class 'pytorch_unet.model.Bar'>
+# API: torch.jit.Attribute, torch.jit.script and TorchScript module creation
+# Bug description: TorchScript: no support for custom types in annotations in PyTorch v1.9
+

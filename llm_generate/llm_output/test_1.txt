@@ -1,0 +1,268 @@
+# API: torch.jit.load(), module = trace('script', 'example')
+## Cause: syntax error on file
+## Bug description:
+## Error message is not friendly for `SyntaxError` in scripting files, but shows correct position of error as well as line number.
+
+script = """1234567890
+@torch._C._jit_internal._recursive.wrap_cpp_module(module)
+module.__file__ = "example"
+return module"""
+
+with open("example", "w") as f:
+    print(script, file=f)  # line number is on this line
+
+module = torch.jit.load('example')
+
+# API: torchvision.models.detection._utils.BBoxTransform()
+## Cause: TypeError in forward method
+## Bug description: incorrect type annotations for input parameters, which leads to `TypeError` on runtime.
+# from torchvision.ops import boxes as box_ops
+from torchvision.ops import BBoxTransform
+import numpy as np
+bbox = torch.rand(10,4)
+src = [np.zeros((32, 32), dtype=np.float32)]
+image_size = (565, 565)
+
+
+class M:
+    def __init__(self):
+        pass
+    
+    def forward(self, src, boxes):
+        # type: (List[Tensor], Tensor) -> Tuple[Tensor, List[Tensor]]
+        
+        # from torchvision.ops import boxes as box_ops
+        transform = BBoxTransform()
+
+# API: AttributeError on call to `namedtuple`
+## Cause: Typo in calling `namedtuple()`
+# Bug description: TypeError and AttributeError messages are not very clear, and do not convey the real cause of the error.
+
+### SyntaxError on calling `namedtuple()` as in
+```
+from collections import namedtuple
+MyNamedTuple = namedtuple(
+    "MyNamedTuple",
+)
+```
+#### Cause: extra parentheses around arguments to `namedtuple`
+#### Bug description: Error message does not give a hint about where error is occurring.
+
+### Missing parameter in `namedtuple()` as in
+```
+from collections import namedtuple
+MyNamedTuple = namedtuple(
+    "MyNamedTuple",
+)("foo")
+```
+#### Cause: no comma before first argument after `namedtuple` declaration
+#### Bug description: Error message is not very helpful. 
+
+### Incorrect parameter in `namedtuple()` as in
+```
+from collections import namedtuple
+MyNamedTuple = namedtuple(
+    "MyNamedTuple",
+)("foo")
+```
+#### Cause: extra parentheses around arguments to `namedtuple`
+#### Bug description: Error message does not give a hint about where error is occurring.
+
+### Missing parameters in `collections.namedtuple()` call as in
+```
+from collections import namedtuple
+MyNamedTuple = namedtuple(
+    "MyNamedTuple", 
+)("foo")
+```
+#### Cause: missing comma before first argument after `namedtuple` declaration
+#### Bug description: Error message does not give a hint about where error is occurring.
+
+### Incorrect parameters in `collections.namedtuple()` call as in
+```
+from collections import namedtuple
+MyNamedTuple = namedtuple(
+    "MyNamedTuple", 
+)("foo")
+```
+#### Cause: extra parentheses around arguments to `namedtuple`
+#### Bug description: Error message does not give a hint about where error is occurring.
+
+### Missing parameters in `collections.namedtuple()` call as in
+```
+from collections import namedtuple
+MyNamedTuple = namedtuple(
+    "MyNamedTuple", "field1 field2"
+)("foo")
+```
+#### Cause: missing comma before first argument after `namedtuple` declaration
+#### Bug description: Error message does not give a hint about where error is occurring.
+
+### Missing parameters in `collections.namedtuple()` call as in
+```
+from collections import namedtuple
+MyNamedTuple = namedtuple(
+    "MyNamedTuple", "field1 field2"
+)("foo")
+```
+#### Cause: extra parentheses around arguments to `namedtuple`
+#### Bug description: Error message does not give a hint about where error is occurring.
+
+### Missing parameters in `collections.namedtuple()` call as in
+```
+from collections import namedtuple, OrderedDict
+MyNamedTuple = namedtuple(
+    "MyNamedTuple", 
+)("foo")
+```
+#### Cause: missing comma before first argument after `namedtuple` declaration
+#### Bug description: Error message does not give a hint about where error is occurring.
+
+### Incorrect parameters in `collections.namedtuple()` call as in
+```
+from collections import namedtuple, OrderedDict
+MyNamedTuple = namedtuple(
+    "MyNamedTuple", 
+)("foo")
+```
+#### Cause: extra parentheses around arguments to `namedtuple`
+#### Bug description: Error message does not give a hint about where error is occurring.
+
+### Multiple calls to `collections.namedtuple()` call as in
+```
+from collections import namedtuple, OrderedDict
+MyNamedTuple = namedtuple(
+    "MyNamedTuple", 
+)("foo")
+```
+#### Cause: extra parentheses around arguments to `namedtuple`
+#### Bug description: Error message does not give a hint about where error is occurring.
+
+### Duplicate parameters in `collections.namedtuple()` call as in
+```
+from collections import namedtuple, OrderedDict
+MyNamedTuple = namedtuple(
+    "MyNamedTuple", 
+)("foo")
+```
+#### Cause: extra parentheses around arguments to `namedtuple`
+#### Bug description: Error message does not give a hint about where error is occurring.
+
+### Missing parameters in `collections.namedtuple()` call as in
+```
+from collections import namedtuple, OrderedDict
+MyNamedTuple = namedtuple(
+    "MyNamedTuple", (
+        "field1 field2"
+    )
+)("foo")
+```
+#### Cause: missing comma before first argument after `namedtuple` declaration
+#### Bug description: Error message does not give a hint about where error is occurring.
+
+### Missing parameters in `collections.namedtuple()` call as in
+```
+from collections import namedtuple, OrderedDict
+MyNamedTuple = namedtuple(
+    "MyNamedTuple", (
+        "field1 field2"
+    )
+)("foo")
+```
+#### Cause: extra parentheses around arguments to `namedtuple`
+#### Bug description: Error message does not give a hint about where error is occurring.
+
+### Missing parameters in `collections.namedtuple()` call as in
+```
+from collections import namedtuple, OrderedDict
+MyNamedTuple = namedtuple(
+    "MyNamedTuple", (
+        ("field1 field2")
+    )
+)("foo")
+```
+#### Cause: missing comma before first argument after `namedtuple` declaration
+#### Bug description: Error message does not give a hint about where error is occurring.
+
+### Missing parameters in `collections.namedtuple()` call as in
+```
+from collections import namedtuple, OrderedDict
+MyNamedTuple = namedtuple(
+    "MyNamedTuple", (
+        ("field1 field2")
+    )
+)("foo")
+```
+#### Cause: extra parentheses around arguments to `namedtuple`
+#### Bug description: Error message does not give a hint about where error is occurring.
+
+### Unsupported syntax in `collections.namedtuple()` call as in
+```
+from collections import namedtuple, OrderedDict
+MyNamedTuple = namedtuple(
+    "MyNamedTuple", (
+        ("field1 field2"), 
+        {"foo": "bar"}
+    )
+)("foo")
+```
+#### Cause: multiple comma's
+#### Bug description: Error message is not very helpful. 
+
+### Unsupported syntax in `collections.namedtuple()` call as in
+```
+from collections import namedtuple, OrderedDict
+MyNamedTuple = namedtuple(
+    "MyNamedTuple", (
+        ("field1 field2"), 
+        {"foo": "bar"}
+    )
+)("foo")
+```
+#### Cause: extra parentheses around arguments to `namedtuple`
+#### Bug description: Error message is not very helpful. 
+
+### Unsupported syntax in `collections.namedtuple()` call as in
+```
+from collections import namedtuple, OrderedDict
+MyNamedTuple = namedtuple(
+    "MyNamedTuple", (
+        ("field1 field2"), {"foo": "bar"} 
+    )
+)("foo")
+```
+#### Cause: extra parentheses around arguments to `namedtuple`
+#### Bug description: Error message is not very helpful. 
+### Unsupported syntax in `collections.namedtuple()` call as in
+```
+from collections import namedtuple, OrderedDict
+MyNamedTuple = namedtuple(
+    "MyNamedTuple", (
+        ("field1 field2"), {"foo": "bar"} 
+    )
+)("foo")
+```
+#### Cause: extra parentheses around arguments to `namedtuple`
+#### Bug description: Error message is not very helpful. 
+### Unsupported syntax in `collections.namedtuple()` call as in
+```
+from collections import namedtuple, OrderedDict
+MyNamedTuple = namedtuple(
+    "MyNamedTuple", (
+        ("field1 field2"), {"foo": "bar"} 
+    )
+)("foo")
+```
+#### Cause: extra parentheses around arguments to `namedtuple`
+#### Bug description: Error message is not very helpful.
+### Unsupported syntax in `collections.namedtuple()` call as in
+```
+from collections import namedtuple, OrderedDict
+MyNamedTuple = namedtuple(
+    "MyNamedTuple", (
+        ("field1 field2"), {"foo": "bar"} 
+    )
+)("foo")
+```
+#### Cause: extra parentheses around arguments to `namedtuple`
+#### Bug description: Error message is not very helpful. 

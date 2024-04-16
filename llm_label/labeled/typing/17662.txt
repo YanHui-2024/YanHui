@@ -1,0 +1,9 @@
+# API: arange
+# Bug description: dtype mismatch when calling `arange` with and without JIT
+import torch
+
+def f():
+    return torch.arange(5)
+
+print(f().dtype)
+print(torch.jit.script(f)().dtype)

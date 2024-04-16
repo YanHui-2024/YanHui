@@ -1,0 +1,12 @@
+# Title: [JIT] ScriptModule is not able to take optimize=False as a flag when you have PYTORCH_JIT=0
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.0.0
+# Labels: oncall: jit
+# PR Title: [JIT] ScriptModule is not able to take optimize=False as a flag when you have PYTORCH_JIT=0
+import torch
+class ConstantTensor(torch.jit.ScriptModule):
+    def __init__(self):
+        super(ConstantTensor, self).__init__(optimize=False)

@@ -1,0 +1,42 @@
+# API: RuntimeError for model containing torch.nn.TransformerEncoderLayer
+# Bug description: a RuntimeError when using torch.jit.script on a simple transformer encoder layer model
+import torch
+from torch import nn, Tensor
+
+class TransformerDoubler(nn.Module):
+    def forward(self, input: Tensor) -> Tensor:
+        return input * 2
+
+encoder_layer = nn.TransformerEncoderLayer(4, 8, dropout=0., batch_first=True)
+doubler = TransformerDoubler()
+model = doubler
+
+for _ in range(10):
+    model = encoder_layer(model)
+model = torch.jit.script(model)
+
+# API: JIT not supporting tuple unpacking (with or without named tuple)
+# Bug description: a Runtime Error when using PyTorch v 1.7.1
+from typing import NamedTuple, Tuple
+class Q1(NamedTuple):
+    a: int = 0
+    b: float = 0.0
+    
+class Q2(NamedTuple):
+    x: Tensor = torch.tensor([1., 1.])
+
+class Q3(NamedTuple):
+    c: Tuple[int, ...] = (1, 2)
+
+class Model(nn.Module):
+    def forward(self, input_tuple: Tuple[Tensor],
+                nt1: Tensor, nt2: NamedTuple) -> Tuple[Q1, Q2]:
+        return nt1 + input_tuple[0]
+
+model = Model()
+model.eval()
+example_input = (torch.rand(3), torch.rand(5))
+example_nt1 = (4, 8.0)
+example_nt2: Q2 = Q2(torch.rand(5))
+scripted = torch.jit.script(model)
+scripted(*example_input, example_nt1, example_nt2)

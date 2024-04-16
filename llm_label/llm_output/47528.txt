@@ -1,0 +1,43 @@
+ torch.nn.Conv2d + ZeroPad2d
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.7.0
+
+# Title: RuntimeError: The 'torch' module does not have attribute '_C'
+"""
+Output:
+Traceback (most recent call last):
+  File "test.py", line 2, in <module>
+    from torch import _C as C
+ImportError: cannot import name '_C' from 'torch' (/usr/local/lib/python3.7/dist-packages/torch/__init__.py)
+"""
+# Version: PyTorch version: 1.2.0
+# Labels: oncall: jit, module: c10
+# PR Title: RuntimeError: The 'torch' module does not have attribute '_C'
+import torch
+from torch import _C as C
+print(C.__version__) # 1.2.0+cu92
+# API: torch._C
+# Bug description: AttributeError on importing torch._C in PyTorch v1.2.0
+
+# Title: Runtime error: "RuntimeError: Unsupported object type" when trying to use a JIT compiled model with CUDA tensors of different types.
+"""
+Output:
+Traceback (most recent call last):
+  File "/home/mattia/code/gitlab_repos/pytorch/fairseq/models/transformer.py", line 405, in forward
+    encoder_out = self.encoder(src_tokens, src_lengths=src_lengths)
+  File "/home/mattia/code/gitlab_repos/pytorch/fairseq/.venv/lib/python3.6/site-packages/torch/jit/_trace.py", line 825, in wrapper
+    exec(code, env)
+  File "/home/mattia/code/gitlab_repos/pytorch/fairseq/.venv/lib/python3.6/site-packages/torch/jit/_trace.py", line 1081, in <module>
+    result = fun(*args)
+RuntimeError: Unsupported object type
+"""
+# Version: PyTorch version: 1.5.0
+# Labels: oncall: jit
+# PR Title: Runtime error: "RuntimeError: Unsupported object type" when trying to use a JIT compiled model with CUDA tensors of different types.
+from __future__ import annotations
+import torch
+from torch import nn, Tensor
+class Model(nn.Module):
+    def forward(self, x, y: Tensor) -> Tensor:
+        return x + y
+torch.jit.script(Model())

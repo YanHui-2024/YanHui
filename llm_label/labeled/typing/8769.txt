@@ -1,0 +1,4 @@
+# API: Autograd
+# Bug description: The code should be jit-able, but cannot be compiled.
+def test(input):
+    a = torch.zeros((input.size(0), 50), dtype=torch.double)

@@ -1,0 +1,30 @@
+# Title: [jit] ScriptModule attribute type annotation doesn't work for `Optional[List[int]] = None`
+"""
+Output:
+Wrong type for attribute assignment. Expected None but got List[int]:
+  File "/private/home/suo/scratch/test.py", line 13
+    def forward(self, x: List[int]):
+        self.foo = x
+        ~~~~~~~~~~~~ <--- HERE
+        return 1
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+# PR Title: 
+import torch
+from typing import Optional, List
+
+
+class ToScript(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.foo = torch.jit.annotate(Optional[List[int]], None)
+        # also doesn't work
+        # self.foo : Optional[List[int]] = None
+
+    def forward(self, x: List[int]):
+        self.foo = x
+        return 1
+
+
+torch.jit.script(ToScript())

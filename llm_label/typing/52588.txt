@@ -1,0 +1,80 @@
+# Title: [JIT] nn.Sequential of nn.Module with input type List[torch.Tensor] inferred to torch.Tensor
+"""
+Output:
+[tensor([[4., 4.],
+        [4., 4.]]), tensor([[4., 4., 4.],
+        [4., 4., 4.],
+        [4., 4., 4.]]), tensor([[4., 4., 4., 4.],
+        [4., 4., 4., 4.],
+        [4., 4., 4., 4.],
+        [4., 4., 4., 4.]])]
+RecursiveScriptModule(
+  original_name=Sequential
+  (0): RecursiveScriptModule(original_name=ModelWithInputAsListOfTensor)
+  (1): RecursiveScriptModule(original_name=ModelWithInputAsListOfTensor)
+)
+---------------------
+Traceback (most recent call last):
+  File "tests/test_seq.py", line 32, in <module>
+    res = scripted_model(test_input)
+  File "/Users/linus/anaconda3/lib/python3.7/site-packages/torch/nn/modules/module.py", line 727, in _call_impl
+    result = self.forward(*input, **kwargs)
+RuntimeError: forward() Expected a value of type 'Tensor (inferred)' for argument 'input' but instead found type 'list'.
+Inferred 'input' to be of type 'Tensor' because it was not annotated with an explicit type.
+Position: 1
+Value: [tensor([[1., 1.],
+        [1., 1.]]), tensor([[1., 1., 1.],
+        [1., 1., 1.],
+        [1., 1., 1.]]), tensor([[1., 1., 1., 1.],
+        [1., 1., 1., 1.],
+        [1., 1., 1., 1.],
+        [1., 1., 1., 1.]])]
+Declaration: forward(__torch__.torch.nn.modules.container.Sequential self, Tensor input) -> (Tensor[])
+Cast error details: Unable to cast Python instance to C++ type (compile in debug mode for details)
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+# PR Title: [JIT] nn.Sequential of nn.Module with input type List[torch.Tensor] inferred to torch.Tensor
+import torch
+import torch.nn as nn
+from typing import List
+
+class ModelWithInputAsListOfTensor(nn.Module):
+    def __init__(self):
+        super(ModelWithInputAsListOfTensor, self).__init__()
+        self.x = 2
+
+    def forward(self, x: List[torch.Tensor]) -> List[torch.Tensor]:
+        # print("Receiving type", type(x), len(x), type(x[0]))
+        # print("Receiving list of tensor", len(x), type(x[0]))
+        for each in x:
+            each *= self.x
+        return x
+
+model = nn.Sequential(
+    ModelWithInputAsListOfTensor(),
+    ModelWithInputAsListOfTensor()
+)
+
+# Original model
+test_input: List[torch.Tensor] = [torch.ones((2, 2)), torch.ones((3, 3)), torch.ones((4, 4))]
+res = model(test_input)
+print(res)
+
+# Scripted model
+scripted_model = torch.jit.script(model)
+print(scripted_model)
+
+print("---------------------")
+
+# Input as typing.List[torch.Tensor]
+test_input: List[torch.Tensor] = [torch.ones((2, 2)), torch.ones((3, 3)), torch.ones((4, 4))]
+res = scripted_model(test_input)
+print(res)
+
+print("---------------------")
+
+# Input as torch.jit.annotate(List[torch.Tensor])
+test_input = torch.jit.annotate(List[torch.Tensor], [torch.ones((2, 2)), torch.ones((3, 3)), torch.ones((4, 4))])
+res = scripted_model(test_input)
+print(res)

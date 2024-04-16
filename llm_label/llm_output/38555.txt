@@ -1,0 +1,28 @@
+ torch.Tensor.reshape (), flatten()
+# Bug description: TorchScript does not handle Tensor.reshape properly.
+
+# Title: JIT compilation fails when calling `torch.kthvalue` on batched inputs for a while now
+"""
+Output:
+Traceback (most recent call last):
+  File "test_kthvalue_batching.py", line 40, in <module>
+    res = t1[:, :, idx].clone()
+  File "/home/titaiwang/.conda/envs/pytorch-v1/lib/python3.8/site-packages/torch/_utils.py", line 627, in __getattr__
+    return super(VariableMeta, cls).__getattr__(name)
+AttributeError: 'Variable' object has no attribute '_view_as_depthwise'
+"""
+# Version: PyTorch version: 1.8.0
+# Labels: high priority, oncall: jit
+# PR Title: JIT compilation fails when calling `torch.kthvalue` on batched inputs for a while now
+import torch
+class KTHValueModule(torch.nn.Module):
+    def forward(self, x, k=1):
+        return x[:, :, -2].clone()
+t = torch.randn([4, 8, 3], dtype=torch.float)
+mod = KTHValueModule().eval()
+res_ref = mod(t, 1)
+# Now try to jit compile it
+jitted_fn = torch.jit.script(KTHValueModule())
+res = jitted_fn(t, 1)
+assert torch.allclose(res, res_ref), "JIT result differs from eager."
+print("OK!")

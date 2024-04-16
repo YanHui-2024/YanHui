@@ -1,0 +1,26 @@
+ Numpy tensordot
+# Bug description: np.tensordot throws an error when using the first argument is an empty array and the second is not
+#                  using numpy version: 1.19.4
+
+# Title: jit scripting in 1.7 fails for python package function returning a lambda.
+"""
+Output:
+Traceback (most recent call last):
+  File "test_scripting.py", line 23, in <module>
+    scripted = torch.jit.script(fn)
+  File "/home/titaiwang/.local/lib/python3.7/site-packages/torch/jit/_script.py", line 1489, in script
+    return _run_compilation_pipeline(model=obj, arg_spec=[],
+  File "/home/titaiwang/.local/lib/python3.7/site-packages/torch/jit/_script.py", line 2514, in wrap_cpp_class
+    return cls._recompile(model)
+  File "/home/titaiwang/.local/lib/python3.7/site-packages/torch/jit/_script.py", line 3806, in _recompile
+    recompilation_blocker, jit_future):
+  File "/home/titaiwang/.local/lib/python3.7/site-packages/torch/jit/_script.py", line 1452, in <listcomp>
+    compiled = torch._C._compile_and_run(code)
+RuntimeError: Error while trying to compile Python function <function _get_func at 0x7fa5e8d609a8>: Error(code=13, msg=): unable to resolve reference to undefined function <lambda>() - if you want to forward-declare this name to TorchScript consider adding a ':forward_decl' (torch_upgraders.py) or '@torch_upgrader.forward_if_in(<python package>)' decorator to the definition
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: high priority, oncall: jit, module: regression
+# PR Title: 
+def fn():
+    return lambda : 123
+scripted = torch.jit.script(fn)()

@@ -1,0 +1,6 @@
+# API: TorchScript
+# Bug description: Tuple index operator doesn't seem to work on a scripted function
+#                  when using torch.jit.script in PyTorch v1.0rc1
+@torch.jit.script
+def f(x):
+    return torch.sort(x)[0]

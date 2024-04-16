@@ -1,0 +1,101 @@
+ Capturing loop-carried dependencies across nested blocks in JITed code.
+# Bug description: A bug where jit.script doesn't capture a loop carried dependency in an outer block when it is returned in the inner block and passed to an outer block's function call.
+#                  When using torch.jit.script on this function, a RuntimeError will be thrown saying that "capture_bug() needs to return output". It seems like this issue is specific to a for loop and it has something to do with capturing the current loop variable into outer blocks when the current block's body returns something. This reproduces fine in 1.0
+#                  using torch.jit.script on capture_bug() without any options works as expected and doesn't throw an error, but this is not a solution for the general case since I want to be able to use torch.jit.script here without modifying capture_bug() itself (which could have multiple loops or other constructs)
+print(capture_bug(torch.randn(3)))
+# API: Capturing loop-carried dependencies across nested blocks in JITed code.
+# Bug description: A bug where jit.script doesn't capture a loop carried dependency in an outer block when it is returned in the inner block and passed to an outer block's function call.
+#                  When using torch.jit.trace on this function, the return value of trace(capture_bug) will be a tuple with a size of 2, where only the first output is correct (outputing what you would expect) and the second output (%16 which should just be a ByteTensor representing a bool) is the error. This reproduces fine in 1.0
+#                  using torch.jit.trace on capture_bug() without any options works as expected and doesn't throw an error, but this is not a solution for the general case since I want to be able to use torch.jit.script here without modifying capture_bug() itself (which could have multiple loops or other constructs)
+# Version: PyTorch version: 0.4.0
+# Labels: oncall: jit, module: onnx
+import numpy as np
+class TestModule(torch.nn.Module):
+    def __init__(self, N, M):
+        super(TestModule, self).__init__()
+        self.N = N
+        self.M = M
+        self.weight = torch.nn.Parameter(torch.randn(N, M))
+
+    def forward(self, input):
+        output = []
+        for i in range(self.N):
+            if i == 0:
+                output_i = input[0].unsqueeze(1) * self.weight[i]
+                output.append(output_i.unsqueeze(0))
+            else:
+                # output_i = torch.cat((output[-1], input[i].unsqueeze(1) * self.weight[i]), dim=1)
+                output_i = torch.nn.functional.relu(input[i])
+                output.append(output_i.unsqueeze(0))
+        return torch.cat(tuple(output), dim=0).sum()
+def main():
+    # N = 1024
+    # M = 64
+    N = 3
+    M = 5
+    module = TestModule(N, M)
+    input_np = np.random.randn(M).astype("float32")
+    inputs = torch.tensor([input_np for i in range(N)]).float()
+    traced = torch.jit.trace(module, (inputs))
+    print(traced(inputs))
+if __name__ == "__main__":
+    main()
+# API: Capturing loop-carried dependencies across nested blocks in JITed code.
+# Bug description: A bug where jit.script doesn't capture a loop carried dependency in an outer block when it is returned in the inner block and passed to an outer block's function call.
+#                  When using torch.jit.trace on this function, the return value of trace(capture_bug) will be a tuple with a size of 2, where only the first output is correct (outputing what you would expect) and the second output (%16 which should just be a ByteTensor representing a bool) is the error. This reproduces fine in 1.0
+#                  using torch.jit.trace on capture_bug() without any options works as expected and doesn't throw an error, but this is not a solution for the general case since I want to be able to use torch.jit.script here without modifying capture_bug() itself (which could have multiple loops or other constructs)
+# Version: PyTorch version: 0.4.0
+# Labels: oncall: jit, module: onnx
+import numpy as np
+class TestModule(torch.nn.Module):
+    def __init__(self, N, M):
+        super(TestModule, self).__init__()
+        self.N = N
+        self.M = M
+        self.weight = torch.nn.Parameter(torch.randn(N, M))
+
+    def forward(self, input):
+        output = []
+        for i in range(self.N):
+            if i == 0:
+                output_i = input[0].unsqueeze(1) * self.weight[i]
+                output.append(output_i.unsqueeze(0))
+            else:
+                # output_i = torch.cat((output[-1], input[i].unsqueeze(1) * self.weight[i]), dim=1)
+                output_i = torch.nn.functional.relu(input[i])
+                output.append(output_i.unsqueeze(0))
+        return torch.cat(tuple(output), dim=0).sum()
+def main():
+    # N = 1024
+    # M = 64
+    N = 3
+    M = 5
+    module = TestModule(N, M)
+    input_np = np.random.randn(M).astype("float32")
+    inputs = torch.tensor([input_np for i in range(N)]).float()
+    traced = torch.jit.trace(module, (inputs))
+    print(traced(inputs))
+if __name__ == "__main__":
+    main()
+# API: Capturing loop-carried dependencies across nested blocks in JITed code.
+# Bug description: A bug where jit.script doesn't capture a loop carried dependency in an outer block when it is returned in the inner block and passed to an outer block's function call.
+#                  When using torch.jit.trace on this function, the return value of trace(capture_bug) will be a tuple with a size of 2, where only the first output is correct (outputing what you would expect) and the second output (%16 which should just be a ByteTensor representing a bool) is the error. This reproduces fine in 1.0
+#                  using torch.jit.trace on capture_bug() without any options works as expected and doesn't throw an error, but this is not a solution for the general case since I want to be able to use torch.jit.script here without modifying capture_bug() itself (which could have multiple loops or other constructs)
+# Version: PyTorch version: 1.0
+import torch
+@torch.jit.script
+def capture_bug(x):
+    output = []
+    for i in range(20):
+        if i == 0:
+            output_i = x[0].unsqueeze(1)
+            output.append(output_i.unsqueeze(0))
+        else:
+            # output_i = torch.cat((output[-1], x[i].unsqueeze(1)), dim=1)
+            output_i = torch.nn.functional.relu(x[i])
+            output.append(output_i.unsqueeze(0))
+    return torch.cat(tuple(output), dim=0).sum()
+print(capture_bug.graph)
+# API: Capturing loop-carried dependencies across nested blocks in JITed code.
+# Bug description: A bug where jit.script doesn't capture a loop carried dependency in an outer block when it is returned in the inner block and passed to an outer block's function call.
+#                  When using torch.jit.trace on this function, the return value of trace(capture_bug) will be a tuple with a size of 2, where only the first output is correct (outputing what you would expect)

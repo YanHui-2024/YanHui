@@ -1,0 +1,65 @@
+ YOLOv3
+# Bug description: Error: 'List must contain only a single type' when loading Python model into C++
+#                  in the example above
+
+# Title: JIT trace with if-statement fails with RuntimeError: Expected one of ... but found 4 at position 0.
+"""
+Output:
+    Traceback (most recent call last):
+      File "test/tinytest.py", line 21, in <module>
+        x = torch.jit.trace(MyModule(), my_input)
+      File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_tracing.py", line 219, in trace
+        graph = t._create_method_from_graph('forward', traced_graph)
+      File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_tracing.py", line 45, in _create_method_from_graph
+        return self._create_function('forward', graph)
+      File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_tracing.py", line 270, in _create_function
+        return createResolutionCallbackForLuaFile(filename)(methodname)()
+      File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_utils.py", line 261, in createResolutionCallbackForLuaFile
+        method = torch._C._create_function_from_string(code)
+      File "torch/csrc/api/include/torch/ScriptMethod.h":105, in torch::script::impl::method::Impl(_jit::Symbol, _jit::Symbol):
+    error: Expected one of 'i8, i16, i32, i64, f16, f32, f64', but found 4 at position 0.
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+# PR Title: JIT trace with if-statement fails with RuntimeError: Expected one of ... but found 4 at position 0.
+class MyModule(torch.nn.Module):
+    def forward(self, x):
+        if len(x) < 10:
+            return torch.zeros([3])
+        else:
+            return x + 1
+y = torch.jit.trace(MyModule(), my_input)
+# API: torch._C._create_function_from_string(code)
+# Bug description: Expected one of 'i8, i16, i32, i64, f16, f32, f64', but found 4 at position 0.
+
+# Title: [jit] RuntimeError in torch::autograd::engine::evaluate_function()
+"""
+Output:
+ERROR: Traceback (most recent call last):
+  File "<string>", line 31, in <module>
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_tracing.py", line 241, in trace
+    return torch._C._create_method_from_graph('forward', traced_graph)
+RuntimeError: Runtime Error: [jit] RuntimeError in torch::autograd::engine::evaluate_function():
+      Name: MyModule__3
+      def forward(self, x):
+        if len(x) < 10:
+            return torch.zeros([3])
+        else:
+            return x + 1
+
+      at /home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_tracing.py, line 241
+      at /home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py, line 275
+    at /home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_tracing.py:186:4 in forward (self=MyModule__3)
+    at <string>:29:3 in forward (self=MyModule__3, x=tensor([ 0.,  1.,  2.]))
+    at /home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/_ops/quantized/quantize_per_tensor.py:64:5 in forward (self=QuantizationFunction__2, x=tensor([ 0.,  1.,  2.]))
+    at /home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/_ops/quantized/dequantize_per_tensor.py:64:5 in forward (self=QuantizationFunction__0, x=tensor([ 0.,  1.,  2.]))
+    at /home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/_ops/quantized/dequantize_per_channel.py:64:5 in forward (self=QuantizationFunction__1, x=tensor([ 0.,  1.,  2.]))
+    at /home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/_ops/quantized/dequantize_per_channel.py:64:5 in forward (self=QuantizationFunction__1, x=tensor([ 0.,  1.,  2.]))
+    at /home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/_ops/quantized/dequantize_per_channel.py:64:5 in forward (self=QuantizationFunction__1, x=tensor([ 0.,  1.,  2.]))
+    at /home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/_ops/quantized/dequantize_per_channel.py:64:5 in forward (self=QuantizationFunction__1, x=tensor([ 0.,  1.,  2.]))
+    at /home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/_ops/quantized/dequantize_per_channel.py:64:5 in forward (self=QuantizationFunction__1, x=tensor([ 0.,  1.,  2.]))
+    at /home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/_ops/quantized/dequantize_per_channel.py:64:5 in forward (self=QuantizationFunction__1, x=tensor([ 0.,  1.,  2.]))
+    at /home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/_ops/quantized/dequantize_per_channel.py:64:5 in forward (self=QuantizationFunction__1, x=tensor([ 0.,  1.,  2.]))
+    at /home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/_ops/quantized/dequantize_per_channel.py:64:5 in forward (self=QuantizationFunction__1, x=tensor([ 0.,  1.,  2.]))
+    at /home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/_ops/quantized/dequantize_per_channel.py:64:5 in forward (self=QuantizationFunction__1, x=tensor([ 0.,  1.,  2.]))
+    at /home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/tor

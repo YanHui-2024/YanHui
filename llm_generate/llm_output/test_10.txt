@@ -1,0 +1,12 @@
+# API: PyTorch JIT Tensor conversion in C++ function
+# Bug description: Unsupported node kind when the return type of a jitted tensor is used as input to another tensor operation, in PyTorch v1.3
+
+import torch
+f = torch._C._functions.FuncGraph(torch._C.Graph()) # noqa
+g = torch._C._functions.FuncGraph(torch._C.Graph()) # noqa
+
+x = torch._C._create_tensor([[1, 2], [3, 4]], 0) # noqa
+y = f.insertNode(torch.nn.functional.relu).setInput(0, x) # noqa
+g.appendNode(f) # noqa
+z = g.createClone("foo", 1) # noqa
+q = z.output().debugName("o") # noqa

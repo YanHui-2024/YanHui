@@ -1,0 +1,74 @@
+ JIT script
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.0.0
+
+# Title: RuntimeError when trying to convert a jit.script object with if statements
+"""
+Output:
+RuntimeError: Expected kind int or str, but found NoneType
+        while executing at <string>:4:24
+        while executing at <string>:11:84
+        while executing
+          /usr/local/lib/python3.7/dist-packages/torch/_C.py:95: in _jit_script_compile
+            return _C._jit_script_compile(src, self._c)
+        while executing at <string>:4:10
+          torchtest.py(4): in jittest()
+
+      File "<string>", line 11
+        if x > 2:
+            ^
+      SyntaxError: invalid syntax
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit, module: pytorch-lightning (inference)
+# PR Title: RuntimeError when trying to convert a jit.script object with if statements
+class Model(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+    @staticmethod
+    def forward_impl(x, y):
+        return x + y
+        
+    @torch.jit.script_method
+    def jittest(self, x, y):
+        if x > 2:
+            pass
+        else:
+            return self.forward_impl(x, y) # RuntimeError: Expected kind int or str, but found NoneType
+def jittest(x, y):
+    return torch.jit.script(Model())(x, y).jittest(x, y) # This works!
+# API: JIT script method, JIT class
+# Bug description: RuntimeError when trying to convert a jit.script object with if statements
+#                  when using torch.jit.script_method in PyTorch v1.7.1
+
+# Title: Trace fails to generate correct code after @torch.jit.ignore calls for an autograd function.
+"""
+Output:
+RuntimeError: Expected kind int or str, but found NoneType
+        while executing at <string>:82:45
+        while executing at /usr/local/lib64/python3.6/site-packages/torch/_C._jit_script_compile(src, c) [with c=None]
+        while executing at <string>:1:0
+        while executing
+          /usr/local/lib64/python3.6/site-packages/torch/_C.py:95: in _jit_script_compile
+            return _C._jit_script_compile(src, self._c)
+        while executing at <string>:1:0
+          torchtest.py(82): in jittest()
+
+      File "<string>", line 45
+        x = torch.jit.ignore(x).add(y) # this doesn't work
+                                ^
+      SyntaxError: invalid syntax
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit, module: pytorch-lightning (training)
+# PR Title: Trace fails to generate correct code after @torch.jit.ignore calls for an autograd function.
+import torch
+def forward(x):
+    x = torch.jit.ignore(x).add(2.)
+    return x + 1000.
+def jittest():
+    traced_fn = torch.jit.trace(forward, (torch.zeros([5])), check_trace=False)
+    y: float = traced_fn(torch.zeros([3]))
+# API: JIT trace
+# Bug description: Trace fails to generate correct code after @torch.jit.ignore calls for an autograd function.
+#                  when using torch.jit.trace in PyTorch v1.7.0

@@ -1,0 +1,33 @@
+# API: Calling an overridden TorchScript parent method
+class BaseModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        
+    def base_method(self, x) -> Tensor:
+        return x + 1
+    
+    def forward(self, x, y=None) -> Tensor:
+        if y is not None:
+            x = self.base_method(x)
+            out = self._forward(y)
+        else:
+            out = self.base_method(x)
+            
+        return out
+    
+    @T.jit.ignore
+    def _forward(self, x):
+        return x
+        
+class ChildModel(BaseModel):
+    def __init__(self):
+        super().__init__()
+    
+    def forward(self, y) -> Tensor:
+        x = T.randn(10)
+        out = super().forward(x=x, y=y)
+        
+        return out
+    
+child_model = ChildModel()
+scripted_cm = T.jit.script(child_model)

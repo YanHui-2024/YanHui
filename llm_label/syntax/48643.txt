@@ -1,0 +1,29 @@
+# Title: Torchscript does not work with type: ignore comments for mypy
+"""
+Output:
+RuntimeError: expected type comment but found 'def' here:
+def forward(self, input: Tensor) -> Tensor:  # type: ignore[no-redef]
+~~~ <--- HERE
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit
+# PR Title: Torchscript does not work with type: ignore comments for mypy
+from torch import nn, jit, Tensor
+from typing import List
+
+
+class Foo(nn.Module):
+    @jit._overload_method
+    def forward(self, input: List[Tensor]) -> Tensor:
+        pass
+
+    @jit._overload_method  # type: ignore[no-redef]
+    def forward(self, input: Tensor) -> Tensor:
+        pass
+
+    def forward(self, input: Tensor) -> Tensor:  # type: ignore[no-redef]
+        pass
+
+
+foo = Foo()
+jit.script(foo)

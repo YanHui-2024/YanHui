@@ -1,0 +1,13 @@
+# API: Python string
+# Bug description: When using scripting, strings with unicode characters are not preserved
+import torch
+string = "Normanðy"
+print(string)
+
+def foo(s: str):
+    return len(s)
+
+foo_scripted = torch.jit.script(foo)
+
+print(foo(string))
+print(foo_scripted(string))

@@ -1,0 +1,32 @@
+ `torch.isinstance` on List
+# Bug description: `torch.jit.isinstance` is overly admissive when comparing container types in eager mode
+# Issue Number: PyTorch issue# 39597 (https://github.com/pytorch/pytorch/issues/39597)
+
+# Title: TypeError: __getitem__ returned a function instead of a value
+"""
+Output:
+Traceback (most recent call last):
+   File "main.py", line 12, in <module>
+      print(model['name'])
+        ^TypeError: __getitem__ returned a function instead of a value
+"""
+# Version: PyTorch version: 1.6.0
+# Labels: bug
+# PR Title: TypeError: __getitem__ returned a function instead of a value [RESOLVED]
+# Issue Number: none
+import torch
+class Config(torch.jit.ScriptModule):
+    def __init__(self, cfg = None):
+        super().__init__()
+        self._cfg = cfg if cfg else {}
+    def set_cfg(self, key : str, val):
+        self._cfg[key] = val
+    @torch.jit.export
+    def __getitem__(self, index) -> torch.jit.Final[str]:
+        print("hello")
+        return torch.jit.annotate(torch.jit.Final[str], self._cfg[index])  # line 12
+scripted = torch.jit.script(Config())
+print(scripted['name'])
+# API: __getitem__ on ScriptModule
+# Bug description: TypeError: __getitem__ returned a function instead of a value [RESOLVED]
+# Issue Number: none

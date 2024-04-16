@@ -1,0 +1,196 @@
+ 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+x = x.float()
+a[torch.tensor(0)] = 2
+return a
+# API: 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+x = x.float()
+a[0] = 2
+return a
+# API: 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+a[torch.tensor(0)] = 2
+return a
+x = torch.jit.script(fn)
+# API: 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+a[0] = 2
+return a
+x = torch.jit.script(fn)
+# API: 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+a[torch.tensor(0)] = torch.tensor(2)
+return a
+x = torch.jit.script(fn)
+# API: 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+a = zeros_like(x, dtype=torch.uint8)
+a[0] = 2
+return a
+x = torch.jit.script(fn)
+# API: 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+a = zeros_like(x, dtype=torch.uint8)
+a[0], b = 2, 3
+return a + b
+x = torch.jit.script(fn)
+# API: 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+a = zeros_like(x, dtype=torch.uint8)
+a[0], b = 2, 3
+return (a + b).type(torch.float)
+x = torch.jit.script(fn)
+# API: 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+a = zeros_like(x, dtype=torch.uint8)
+a[0], b = 2, 3
+return (a + b).float()
+x = torch.jit.script(fn)
+# API: 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+a = zeros_like(x, dtype=torch.uint8)
+a[0], b = 2, 3
+return (a + b).type(torch.float).t()
+x = torch.jit.script(fn)
+# API: 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+a = zeros_like(x, dtype=torch.uint8)
+a[0], b = 2, 3
+return (a + b).type(torch.float).transpose()
+x = torch.jit.script(fn)
+# API: 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+a = zeros_like(x, dtype=torch.uint8)
+a[0], b = 2, 3
+return (a + b).type(torch.float).t().transpose()
+x = torch.jit.script(fn)
+# API: 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+a = zeros_like(x, dtype=torch.uint8)
+a[0], b = 2, 3
+return (a + b).type(torch.float).t().transpose(1, 0)
+x = torch.jit.script(fn)
+# API: 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+a = zeros_like(x, dtype=torch.uint8)
+a[0], b = 2, 3
+return (a + b).type(torch.float).t().transpose(dim0=-1, dim1=-2)
+x = torch.jit.script(fn)
+# API: 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+a = zeros_like(x, dtype=torch.uint8)
+a[0], b = 2, 3
+return (a + b).type(torch.float).t().transpose(-1, -2)
+x = torch.jit.script(fn)
+# API: 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+a = zeros_like(x, dtype=torch.uint8)
+a[0], b = 2, 3
+return (a + b).type(torch.float).transpose(-1, -2)
+x = torch.jit.script(fn)
+# API: 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+a = zeros_like(x, dtype=torch.uint8)
+a[0], b = 2, 3
+return (a + b).transpose(-1, -2)
+x = torch.jit.script(fn)
+# API: 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+a = zeros_like(x, dtype=torch.uint8)
+a[0], b = 2, 3
+return (a + b).t()
+x = torch.jit.script(fn)
+# API: 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+a = zeros_like(x, dtype=torch.uint8)
+a[0], b = 2, 3
+return (a + b).t().squeeze()
+x = torch.jit.script(fn)
+# API: 
+# Bug description: 
+# PR Title: [jit] `index_put_` on a tensor slice with the element type does not work
+# N/A
+# Cause of error:
+# Fix:
+a = zeros_like(x, dtype=torch.uint8)
+a[0], b = 2, 3
+return (a + b).t().squeeze(-1)
+x = torch.jit.script(fn)
+#

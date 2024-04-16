@@ -1,0 +1,10 @@
+# API: Dict Comprehension
+# Bug description: JIT errors when using a dict comprehension (e.g., {x : x for ...}) as input to a model
+#                  when using torch.jit.script in PyTorch v1.5.1
+class MyModule(nn.Module):
+    def forward(self):
+        x = {i: i for i in range(2)}
+        return x
+
+model = MyModule()
+model_s = torch.jit.script(model)

@@ -1,0 +1,16 @@
+# Title: torch.arange dtype mismatch with and without jit
+"""
+Output:
+torch.int64
+torch.float32
+"""
+# Version: PyTorch version: 1.0.1
+# Labels: oncall: jit
+# PR Title: torch.arange dtype mismatch with and without jit
+import torch
+
+def f():
+    return torch.arange(5)
+
+print(f().dtype)
+print(torch.jit.script(f)().dtype)

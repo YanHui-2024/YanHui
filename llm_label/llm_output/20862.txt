@@ -1,0 +1,53 @@
+ Hooks
+# Bug description: RuntimeError when calling torch.jit.trace in PyTorch v1.1.0
+
+# Title: "torch._C._get_tracing_ops" fails with C++ error: 'PyTorch' has not been declared
+"""
+Output:
+RuntimeError: 'PyTorch' has not been declared
+  File "<string>", line 2, in <module>
+  File "/home/titaiwang/pytorch/torch/_utils.py", line 17, in check_module_exists
+    raise RuntimeError("{} has not been declared".format(module))
+RuntimeError: torchvision has not been declared
+  File "<string>", line 2, in <module>
+  File "/home/titaiwang/pytorch/torch/_utils.py", line 17, in check_module_exists
+    raise RuntimeError("{} has not been declared".format(module))
+RuntimeError: torchvision has not been declared
+  File "<string>", line 2, in <module>
+  File "/home/titaiwang/pytorch/torch/_utils.py", line 17, in check_module_exists
+    raise RuntimeError("{} has not been declared".format(module))
+RuntimeError: torchvision has not been declared
+  File "<string>", line 2, in <module>
+  File "/home/titaiwang/pytorch/torch/_utils.py", line 17, in check_module_exists
+    raise RuntimeError("{} has not been declared".format(module))
+RuntimeError: torchvision has not been declared
+  File "<string>", line 2, in <module>
+  File "/home/titaiwang/pytorch/torch/_utils.py", line 17, in check_module_exists
+    raise RuntimeError("{} has not been declared".format(module))
+RuntimeError: torchvision has not been declared
+  File "<string>", line 2, in <module>
+  File "/home/titaiwang/pytorch/torch/_utils.py", line 17, in check_module_exists
+    raise RuntimeError("{} has not been declared".format(module))
+RuntimeError: torchvision has not been declared
+  File "<string>", line 2, in <module>
+  File "/home/titaiwang/pytorch/torch/_utils.py", line 17, in check_module_exists
+    raise RuntimeError("{} has not been declared".format(module))
+RuntimeError: torchvision has not been declared
+  File "<string>", line 2, in <module>
+  File "/home/titaiwang/pytorch/torch/_utils.py", line 17, in check_module_exists
+    raise RuntimeError("{} has not been declared".format(module))
+RuntimeError: torchvision has not been declared
+  File "<string>", line 2, in <module>
+  File "/home/titaiwang/pytorch/torch/_utils.py", line 17, in check_module_exists
+    raise RuntimeError("{} has not been declared".format(module))
+RuntimeError: torchvision has not been declared
+"""
+# Version: PyTorch version: 1.0.0
+# Labels: oncall: jit, module: onnx, module: amp (automated mixed precision), onnx-triaged
+# PR Title: "torch._C._get_tracing_ops" fails with C++ error: 'PyTorch' has not been declared
+import torch
+from torch.utils import model_zoo
+import copy
+model = torch.nn.Sequential(copy.deepcopy(model_zoo.load_url('https://download.pytorch.org/models/resnet18-5c106cde.pth', map_location='cpu')))
+x = torch.randn((3, 3, 224, 224)) # NCHW
+trace = torch.jit.trace(model, x) # this line will crash

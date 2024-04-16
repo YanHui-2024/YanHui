@@ -1,0 +1,8 @@
+# API: torch.nn.EmbeddingBag.from_pretrained(embeddings, state=None, padding_idx=None)
+# Bug description: `TypeError` when passing in the argument `state` to `torch.nn.EmbeddingBag.from_pretrained()`
+#                  which has an overload with same name but diff parameters.
+#                  `TypeError` only occurs when calling scripted model, and not on eager execution of EmbeddingBag.
+## Cause
+```
+    if not PY2 and py_args.kw_defaults:
+        raise NotSupportedError(ctx_range, _vararg_kwarg_err)

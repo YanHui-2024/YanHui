@@ -1,0 +1,158 @@
+ torch._C.parse_ir
+# Bug description: Cannot parse IR for "prim::Constant[value=annotate(List[int], []))]"
+#                  when using PyTorch v1.10.2
+
+# Title: [JIT] cannot parse IR for "aten::mean(...)"
+"""
+Output:
+Traceback (most recent call last):
+  File "/opt/conda/lib/python3.6/unittest/loader.py", line 487, in _find_test_cases
+    cases = walk_class(obj, testCaseSrc, True)
+  File "/opt/conda/lib/python3.6/unittest/loader.py", line 395, in walk_class
+    cases = (cls(name) for name in names)
+  File "/opt/conda/lib/python3.6/unittest/loader.py", line 178, in __init__
+    self._testMethodName = methodName
+AttributeError: 'str' object has no attribute '_testMethodName'
+"""
+# Version: PyTorch version: 1.10.2
+# Labels: oncall: jit
+# PR Title: 
+ir = """graph():
+    %1 : Tensor?[] = prim::ListConstruct(%7)
+    return (%1)
+"""
+torch._C.parse_ir(ir)
+# API: torch._C.parse_ir
+# Bug description: Cannot parse IR for "aten::mean(...)"
+#                  when using PyTorch v1.10.2
+
+# Title: [JIT] cannot parse IR for "aten::add(...)"
+"""
+Output:
+Traceback (most recent call last):
+  File "/opt/conda/lib/python3.6/unittest/loader.py", line 487, in _find_test_cases
+    cases = walk_class(obj, testCaseSrc, True)
+  File "/opt/conda/lib/python3.6/unittest/loader.py", line 395, in walk_class
+    cases = (cls(name) for name in names)
+  File "/opt/conda/lib/python3.6/unittest/loader.py", line 178, in __init__
+    self._testMethodName = methodName
+AttributeError: 'str' object has no attribute '_testMethodName'
+"""
+# Version: PyTorch version: 1.10.2
+# Labels: oncall: jit
+# PR Title: 
+ir = """graph():
+    %3 : int = prim::Constant[value=0]()
+    %4 : float[] = prim::ListConstruct(%7, %8, %9)
+    return (%4)
+"""
+torch._C.parse_ir(ir)
+# API: torch._C.parse_ir
+# Bug description: Cannot parse IR for "aten::add(...)"
+#                  when using PyTorch v1.10.2
+
+# Title: [JIT] cannot parse IR for "aten::add(...)"
+"""
+Output:
+Traceback (most recent call last):
+  File "/opt/conda/lib/python3.6/unittest/loader.py", line 487, in _find_test_cases
+    cases = walk_class(obj, testCaseSrc, True)
+  File "/opt/conda/lib/python3.6/unittest/loader.py", line 395, in walk_class
+    cases = (cls(name) for name in names)
+  File "/opt/conda/lib/python3.6/unittest/loader.py", line 178, in __init__
+    self._testMethodName = methodName
+AttributeError: 'str' object has no attribute '_testMethodName'
+"""
+# Version: PyTorch version: 1.10.2
+# Labels: oncall: jit
+# PR Title: 
+ir = """graph():
+    %3 : int = prim::Constant[value=0]()
+    return (%3)
+"""
+torch._C.parse_ir(ir)
+# API: torch._C.parse_ir
+# Bug description: Cannot parse IR for "aten::add(...)"
+#                  when using PyTorch v1.10.2
+
+# Title: [JIT] cannot parse IR for "aten::expand_as(...)"
+"""
+Output:
+Traceback (most recent call last):
+  File "/opt/conda/lib/python3.6/unittest/loader.py", line 487, in _find_test_cases
+    cases = walk_class(obj, testCaseSrc, True)
+  File "/opt/conda/lib/python3.6/unittest/loader.py", line 395, in walk_class
+    cases = (cls(name) for name in names)
+  File "/opt/conda/lib/python3.6/unittest/loader.py", line 178, in __init__
+    self._testMethodName = methodName
+AttributeError: 'str' object has no attribute '_testMethodName'
+"""
+# Version: PyTorch version: 1.10.2
+# Labels: oncall: jit
+# PR Title: 
+ir = """graph():
+    %3 : int = prim::Constant[value=0]()
+    return (%3)
+"""
+torch._C.parse_ir(ir)
+# API: torch._C.parse_ir
+# Bug description: Cannot parse IR for "aten::expand_as(...)"
+#                  when using PyTorch v1.10.2
+
+# Title: [JIT] cannot parse IR for "aten::add(...)"
+"""
+Output:
+Traceback (most recent call last):
+  File "/opt/conda/lib/python3.6/unittest/loader.py", line 487, in _find_test_cases
+    cases = walk_class(obj, testCaseSrc, True)
+  File "/opt/conda/lib/python3.6/unittest/loader.py", line 395, in walk_class
+    cases = (cls(name) for name in names)
+  File "/opt/conda/lib/python3.6/unittest/loader.py", line 178, in __init__
+    self._testMethodName = methodName
+AttributeError: 'str' object has no attribute '_testMethodName'
+"""
+# Version: PyTorch version: 1.10.2
+# Labels: oncall: jit
+# PR Title: 
+ir = """graph():
+    %3 : int = prim::Constant[value=0]()
+    return (%3)
+"""
+torch._C.parse_ir(ir)
+# API: torch._C.parse_ir
+# Bug description: Cannot parse IR for "aten::add(...)"
+#                  when using PyTorch v1.10.2
+
+# Title: [JIT] cannot parse IR for "prim::ListConstruct"
+"""
+Output:
+graph():
+    %4 : int[] = prim::ListConstruct(%3, %4, %7)
+    return (%4)
+"""
+ir = """graph():
+    %3 : int[1] = prim::Constant[value={0}]()
+    %4 : float[] = prim::ListConstruct(%3, %8, %9)
+    return (%4)
+"""
+torch._C.parse_ir(ir)
+# API: torch._C.parse_ir
+# Bug description: Cannot parse IR for "prim::ListConstruct"
+#                  when using PyTorch v1.10.2
+
+# Title: [JIT] cannot parse IR for aten::fmod(...)
+"""
+Output:
+Traceback (most recent call last):
+  File "/opt/conda/lib/python3.6/unittest/loader.py", line 487, in _find_test_cases
+    cases = walk_class(obj, testCaseSrc, True)
+  File "/opt/conda/lib/python3.6/unittest/loader.py", line 395, in walk_class
+    cases = (cls(name) for name in names)
+  File "/opt/conda/lib/python3.6/unittest/loader.py", line 178, in __init__
+    self._testMethodName = methodName
+AttributeError: 'str' object has no attribute '_testMethodName'
+"""
+# Version: PyTorch version: 1.10.2
+# Labels: oncall: jit
+# PR Title: 
+ir = """graph

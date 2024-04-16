@@ -1,0 +1,31 @@
+# API: Dict membership checks in JIT Model
+# Bug description: RuntimeError: Dict membership checks not supported at the moment. Use `isinstance(key, type(dict-key))` instead.
+#                  RuntimeError: KeyError when accessing a key of an unordered map. This is expected behavior for dicts and should be handled explicitly using try-except.
+#                  In TorchScript, we only support ordered dict membership checks because of the lack of ordered map implementation in Python.
+#                  The following two lines can pass the sanity check:
+@torch.jit.script
+def fn2(x, y):
+# type: (Dict[int, int], int) -> bool
+if isinstance(y, torch.jit.Future[int]):
+return x[y] == 3
+else:
+return False
+print("fn2: ", fn2({1: 2}, 0))
+print("fn2: ", fn2({1: 2}, 1))
+@torch.jit.script
+def fn(x, y):
+    # type: (Dict[int, int], int) -> int
+    return x.get(y, 3)
+
+@torch.jit.script
+def fn(x, y):
+    # type: (Dict[int, int], int) -> int
+    if y in x:
+        return x[y]
+    else:
+        return 3
+
+d = {1: 2, 3: 4}
+print(fn.graph)
+print(fn(d, 3))
+print(fn(d, 2))

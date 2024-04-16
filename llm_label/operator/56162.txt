@@ -1,0 +1,46 @@
+# Title: Tracer vs eager mode difference on tensor.shape
+"""
+Output:
+graph(%0 : Float(2, 3, 5, strides=[15, 5, 1], requires_grad=0, device=cpu)):
+  %1 : Long(3, strides=[1], device=cpu) = onnx::Shape(%0)
+  %2 : Long(device=cpu) = onnx::Constant[value={1}]()
+  %3 : Long(device=cpu) = onnx::Gather[axis=0](%1, %2) # test/onnx/test_m.py:38:0
+  %4 : Long(requires_grad=0, device=cpu) = onnx::Constant[value={2}]()
+  %5 : Long(requires_grad=0, device=cpu) = onnx::Add(%3, %4) # test/onnx/test_m.py:40:0
+  %6 : Long(requires_grad=0, device=cpu) = onnx::Add(%5, %5) # test/onnx/test_m.py:41:0   ===> %5 proves that both seq_length and real_seq_length have same values/memory
+  return (%6)
+"""
+# Version: PyTorch version: 1.8.1
+# Labels: oncall: jit
+# PR Title: 
+# Tracer vs Eager mode difference in tensor.shape
+import torch
+import onnxruntime
+
+class Model(torch.nn.Module):
+    def forward(self, hidden_states):
+        batch_size, seq_length = hidden_states.shape[:2]
+        real_seq_length = seq_length
+        real_seq_length += 2                                            => real_seq_length and seq_legth should have different values
+        return real_seq_length + seq_length
+
+
+# Call export
+
+# hidden_states is tensor of rank 2
+hidden_states = torch.randn(2, 3, 5)
+model = Model()
+
+import io
+onnx_io = io.BytesIO()
+tracemodel = torch.jit.trace(model, (hidden_states, ))
+torch.onnx.export(model, (hidden_states, ), onnx_io, verbose=True)
+
+# Call onnxruntime runtime and compare outputs on dynamic inputs
+ort_session = onnxruntime.InferenceSession(onnx_io.getvalue())
+
+print(model(hidden_states))
+print(tracemodel(hidden_states))
+print(ort_session.run(None, {
+                                ort_session.get_inputs()[0].name: hidden_states.numpy()
+                            }))

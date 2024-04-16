@@ -1,0 +1,7 @@
+# API: ScriptModule with optimize flag set to False
+# Bug description: the PYTORCH_JIT environment variable should not influence
+#                  the behavior of torch.jit.script
+import torch
+class ConstantTensor(torch.jit.ScriptModule):
+    def __init__(self):
+        super(ConstantTensor, self).__init__(optimize=False)

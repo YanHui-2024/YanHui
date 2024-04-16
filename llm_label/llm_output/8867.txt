@@ -1,0 +1,111 @@
+ JIT representation of script & trace functions/modules in various PyTorch versions
+# Bug description: Repeatable issue on tracing & scripting a custom function/module with two parameters in PyTorch 0.4.1-0.5.x, with the following code:
+def fn(a, b):
+    return a + b
+tm = torch.jit.trace(fn, (torch.zeros(3), torch.ones(3)))
+print('*****Traced function*****')
+sm = torch.jit.script(fn)
+print('*****Script function*****')
+# API: JIT representation of script & trace modules in various PyTorch versions 
+# Bug description: Repeatable issue on tracing & scripting a custom module with two parameters in PyTorch 0.4.1-0.5.x, with the following code:
+class M(torch.nn.Module):
+    def forward(self, a, b):
+        return a + b
+tm = torch.jit.trace(M(), (torch.zeros(3), torch.ones(3)))
+print('*****Traced module*****')
+sm = torch.jit.script(M())
+print('*****Script module*****')
+# API: JIT representation of script & trace functions/modules with lists and dicts in various PyTorch versions 
+# Bug description: Repeatable issue on tracing and scripting a custom function/module with lists and dictionaries as parameters, returning the same in torch.jit.trace and torch.jit.script, in PyTorch 0.4.1-0.5.x with the following code:
+def fn(x):
+    return x[0] + x[-1]
+tm = torch.jit.trace(fn, (torch.zeros(3),))
+print('*****Traced function with lists*****')
+sm = torch.jit.script(fn)
+print('*****Scripted function with lists*****')
+print(tm(x=[1] * 2049 + [2]))
+print(sm([1] * 2049 + [2]))
+tm = torch.jit.trace(fn, ({'x':torch.ones(3), 'y':torch.zeros(3)},))
+print('*****Traced function with dicts*****')
+sm = torch.jit.script(fn)
+print('*****Scripted function with lists*****')
+tm_ = torch.jit.trace(fn, ({'x':torch.ones(3), 'y':torch.zeros(3)},))
+print((tm_(a={'x':2, 'z':torch.ones(10)})[0]))  # Errors on trace
+sm_ = torch.jit.script(fn)
+print(sm_(a={'x':2, 'z':torch.ones(10)})[0])   # Works with script
+# API: JIT representation of script & trace functions/modules with tensors of varying sizes in various PyTorch versions 
+# Bug description: Various issues on tracing and scripting a custom function/module with tensors of varying sizes in PyTorch, 0.4.1-0.5.x with the following code:
+def fn(tensor):
+    return tensor + torch.randn(3)
+tm = torch.jit.trace(fn, (torch.zeros(3),))
+print('*****Traced function with varying size tensors 1*****')
+sm = torch.jit.script(fn)
+print('*****Scripted function with varying size tensors 1*****')
+tm_ = torch.jit.trace(fn, (torch.randn((3)),))
+print('*****Traced function with varying size tensors 2*****')
+sm_ = torch.jit.script(fn)
+print('*****Scripted function with varying size tensors 2*****')
+tm2 = torch.jit.trace(lambda x: fn(x) + fn(x), (torch.randn((3)),))
+print('*****Traced function with varying size tensors 1 (repeated)*****')
+sm2 = torch.jit.script(fn)
+print('*****Scripted function with varying size tensors 1 (repeated)*****')
+try:
+    print(tm((torch.zeros(4))))
+except Exception as e:
+    print("Trace failed.")
+    tm = torch.jit.trace(fn, (torch.zeros(3),))
+    try:
+        print(sm(torch.randn(4)))
+    except Exception as e:
+        sm = torch.jit.script(fn)
+print('*****Traced function with varying size tensors 2 (repeated)*****')
+try:
+    print(tm2((torch.randn(5),)))
+except Exception as e:
+    print("Trace failed.")
+tm = torch.jit.trace(fn, (torch.zeros(3),))  # Try trace again.
+print('*****Traced function with varying size tensors 2 (repeated trace)*****')
+sm = torch.jit.script(fn)
+try:
+    print(tm((torch.randn(5),)))
+except Exception as e:
+    print("Trace failed.")
+sm_ = torch.jit.trace(lambda x: fn(x) + fn(x), (torch.zeros(3),))  # Try trace again.
+print('*****Traced function with varying size tensors 2 (repeated traced of another function)*****')
+sm = torch.jit.script(fn)
+try:
+    print(tm((torch.randn(5),)))
+except Exception as e:
+    sm_ = torch.jit.trace(lambda x: fn(x) + fn(x), (torch.zeros(3),))  # Try trace again.
+print('*****Script function with varying size tensors 1*****')
+try:
+    print(sm((torch.randn(4)),))
+except Exception as e:
+    sm = torch.jit.script(fn)
+    try:
+        print(sm((torch.zeros(3)),))
+    except Exception as e:
+        sm_ = torch.jit.trace(fn, (torch.randn((3)),))
+        try:
+            print(sm_(torch.randn(4)))
+        except Exception as e:
+            sm_2 = torch.jit.script(lambda x: fn(x) + fn(x), (torch.zeros(3),))
+# API: JIT representation of script & trace functions/modules with dictionaries in various PyTorch versions 
+# Bug description: Repeatable issues on tracing and scripting a custom function/module with dictionaries as parameters, returning the same in torch.jit.trace and torch.jit.script, in PyTorch 0.4.1-0.5.x with the following code:
+def fn(dict_):
+    return dict_.get('x', 2) + dict_.get('y') * 2
+tm = torch.jit.trace(fn, ({'x':torch.ones(3), 'y':torch.zeros(10)},))
+print('*****Traced function with dicts*****')
+sm = torch.jit.script(fn)
+print('*****Scripted function with dicts*****')
+tm_ = torch.jit.trace(fn, ({'y':torch.ones(3), 'z':torch.zeros(10)},))
+print((tm_(a={'x':2, 'z':torch.ones(10)})[0]))  # Errors on trace
+sm_ = torch.jit.script(fn)
+print(sm_(a={'x':2, 'z':torch.ones(10)})[0])   # Works with script
+# API: JIT representation of script & trace functions/modules with tensors of varying sizes in various PyTorch versions 
+# Bug description: Various issues on tracing and scripting a custom function/module with tensors of varying sizes in PyTorch, 0.4.1-0.5.x with the following code:
+def fn(tensor):
+    return tensor + torch.randn(3)
+tm = torch.jit.trace(fn, (torch.zeros(3),))
+print('*****Traced function with varying size tensors 1*****')
+sm = torch.

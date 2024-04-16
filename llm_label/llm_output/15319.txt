@@ -1,0 +1,3 @@
+ nn.LSTM, nn.utils.rnn.pack_padded_sequence
+# Bug description: Trace sanity check fails when using packed input to LSTM
+#                  when using torch.jit.trace in PyTorch v1.0.0

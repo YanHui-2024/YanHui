@@ -1,0 +1,78 @@
+# API: Calling forward from scripted model throws RuntimeError
+# Bug description: when calling `forward` of a torchscripted model (without the call to `torch.jit.script`) will throw following error
+@torch.jit.ignore  # ignore this function during scripting so we can test script + forward together
+def script_and_forward(module, arg):
+    script = torch.jit.script(module)
+    return script(arg)
+
+script_and_forward(model, test_data)   # ok
+
+model = torch.jit.script(model)   # this line throws the error
+return model(test_data)  # error when calling this as well after this line
+
+# API: torch.nn.Conv2d Named tuple, which causes an error on serialization/deserialization
+import torch
+torch._C._package_for_onnx(torch.nn.Conv2d)  # throws exception at runtime
+
+In [1]: import torch                        
+
+In [2]: torch._C._package_for_onnx(torch.nn.Conv2d)   # ok                                                                                   
+Out[2]: namedtuple('Module4', 'bias,num_batches_tracked,weight')
+
+In [3]: script = torch.jit.script(model)  
+
+In [4]: module._concrete_type.__repr__()             # ok                                                                                      
+Out[4]: "Tuple[torch._C.Module6,float]"
+
+# API: torch.jit.script on an autograd function with a class instance argument (i.e., not None)
+import torch
+class Foo(object):
+    def __init__(self, x): self.x = x
+def foo_add(foo: Foo, y): return foo.x + y
+s = torch.jit.script(foo_add)  # ok                                                                                                            
+
+In [1]: class Foo(object):
+   ...:     def __init__(self, x): self.x = x
+   ...: def foo_add(foo: Foo, y): return foo.x + y
+
+In [2]: s = torch.jit.script(foo_add)  # ok                                                                                                        
+
+# API: using a class with @torch.jit.ignore on the constructor for scripting
+@torch.jit.ignore
+def load_state_dict(self, state_dict): pass  # or anything else with state_dict as an arg
+
+In [1]: import torch                                                                                                                            
+
+In [2]: class Foo(object):
+   ...:     def __init__(self, x): self.x = x
+   ...: def foo_add(foo: Foo, y): return foo.x + y
+   ...: load_state_dict(foo)  # ok                                                                                                               
+   ...:                                                                                                                                         
+   ...: torchscript = torch.jit.script(Foo)._c                                                                                                   
+   ...:                                                                                                                                         
+   ...: # this fails                                                                                                                              
+   ...: torchscript('load_state_dict')  # error                                                                                                    
+
+# API: using a class with @torch.jit.ignore on the init function for scripting
+@torch.jit.ignore
+def __init__(self, x): self.x = x
+
+In [1]: import torch                                                                                                                            
+
+In [2]: class Foo(object):
+   ...:     def __init__(self, x): self.x = x
+   ...: def foo_add(foo: Foo, y): return foo.x + y
+   ...: load_state_dict(foo)  # ok                                                                                                               
+   ...:                                                                                                                                         
+   ...: torchscript = torch.jit.script(Foo)._c                                                                                                   
+   ...:                                                                                                                                         
+   ...: # this fails 
+   ...: torchscript('load_state_dict')  # error 
+
+# API: using a class with @torch.jit.ignore on the init function for scripting
+@torch.jit.ignore
+def __init__(self, x): self.x = x
+def foo_add(foo: Foo, y): return foo.x + y
+load_state_dict(foo)  # ok                                                                                                               
+# this fails  
+torchscript('load_state_dict')  # error 

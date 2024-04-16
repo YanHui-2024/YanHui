@@ -1,0 +1,47 @@
+ adaptive_avg_pool1d of pytorch.functional module of jit-scripting
+# Bug description: jit does not properly handle IntList[x] params
+#                  when using torch.jit.script in PyTorch None
+
+# Title: [JIT] RuntimeError: Expected a scalar type for stored_type but got Tensor(12, device='cpu').
+"""
+Output:
+Traceback (most recent call last):
+  File "test/torch/jit/integration/test_anomaly.py", line 469, in <module>
+    test_regression_58451(capsys)
+  File "/home/ansley/local/miniconda3/envs/torch/lib/python3.7/site-packages/pytest.py", line 602, in __call__
+    ret = self.obj(*args, **kwargs)
+  File "test/torch/jit/integration/test_anomaly.py", line 458, in test_regression_58451
+    with torch.no_grad():
+      x, meta = model(x, {})
+  File "/home/ansley/local/miniconda3/envs/torch/lib/python3.7/site-packages/pytorch/nn/_modules/module.py", line 509, in _call_impl
+    result = forward_call(*input, **kwargs)
+  File "/home/ansley/local/miniconda3/envs/torch/lib/python3.7/site-packages/pytorch/_jit_internal.py", line 92, in decorator0
+    return fn(*args, **kwargs)
+  File "test/torch/jit/integration/test_anomaly.py", line 451, in forward
+    meta["meta_y_hat"] = x
+RuntimeError: Expected a scalar type for stored_type but got Tensor(12, device='cpu').
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+# PR Title: [JIT] RuntimeError: Expected a scalar type for stored_type but got Tensor(12, device='cpu').
+class LinearActivation(torch.nn.Module):
+    def forward(self, x: torch.Tensor, meta: dict[str, torch.Tensor]) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        return x, meta["meta_y_hat"]  # JIT claims it errors here with RuntimeError: Expected a scalar type for stored_type but got Tensor(12, device='cpu').
+class Test(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.flag = ""
+        self.activation = LinearActivation()
+    def forward(self, x: torch.Tensor, meta: dict[str, torch.Tensor]) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        if self.flag != "":  # this branch should not even be compiled
+            score = x[:, -1:]
+            x, y_hat = self.activation(x[:, :, :-1], meta)  # JIT claims it errors here with RuntimeError: Expected a scalar type for stored_type but got Tensor(12, device='cpu').
+            return torch.cat((x, score), dim=1), y_hat
+        else:
+            x, y_hat = self.activation(x, meta)
+        return x, {"meta_y_hat": y_hat}
+if __name__ == "__main__":
+    model = torch.jit.script(Test())
+# API: RuntimeError: Expected a scalar type for stored_type but got Tensor(12, device='cpu').
+# Labels: oncall: jit
+# PR Title: [JIT] RuntimeError: Expected a scalar type for stored_type but got Tensor(12, device='cpu').

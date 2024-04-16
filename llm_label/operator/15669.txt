@@ -1,0 +1,22 @@
+# Title: [jit] in-place ops don't behave correctly after chunking
+"""
+Output:
+Traceback (most recent call last):
+  File "/Users/suo/scratch/test.py", line 11, in <module>
+    foo(torch.zeros(12))
+  File "/Users/suo/pytorch/torch/nn/modules/module.py", line 489, in __call__
+    result = self.forward(*input, **kwargs)
+RuntimeError: Couldn't find an argument called attr::b
+"""
+# Version: PyTorch version: 1.0.0
+# Labels: oncall: jit
+# PR Title: [jit] in-place ops don't behave correctly after chunking
+import torch
+
+@torch.jit.script
+def foo(x):
+    chunked = torch.chunk(x, 2)
+    foo = chunked[0]
+    foo.add_(5)
+
+foo(torch.zeros(12))

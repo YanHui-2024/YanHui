@@ -1,0 +1,2 @@
+ torch.Tensor
+# Bug description: Runtime error when using fusing abs node on cuda in PyTorch v1.0rc1

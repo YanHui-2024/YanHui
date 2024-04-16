@@ -1,0 +1,52 @@
+ TorchScript
+# Bug description: Tuple index operator doesn't seem to work on a scripted function
+#                  when using torch.jit.script in PyTorch v1.0rc1
+
+# Title: [JIT] @torch.jit.ignored
+"""
+Output:
+Traceback (most recent call last):
+    ...
+RuntimeError: Expected ignored argument to be a value, but got type: str
+"""
+@torch.jit.script
+def g(x: int, y: float, z: Tuple[int, float], w: float) -> None:
+    print("x", x)  # noqa: T484
+    print("y", y)  # noqa: T484
+    print("z", z)  # noqa: T484
+    # error: Expected ignored argument to be a value, but got type: str
+    torch.jit.ignore(type("ignored"))  # noqa: B017
+    return None
+# API: TorchScript
+# Bug description: @torch.jit.ignored doesn't work for string literals in PyTorch v1.0rc1
+
+# Title: [JIT] torch.jit.export doesn't export methods with ignored argments to the JIT IR graph
+"""
+Output:
+Traceback (most recent call last):
+    ...
+RuntimeError: Expected ignored argument to be a value, but got type: str
+"""
+class C(torch.jit.ScriptModule):
+    @torch.jit.export  # noqa: B903
+    def f(self, x: int, y: float, z: Tuple[int, float], w: float) -> None:
+        print("x", x)  # noqa: T484
+        print("y", y)  # noqa: T484
+        print("z", z)  # noqa: T484
+        torch.jit.ignore(type("ignored"))  # noqa: B017
+        return None
+# API: TorchScript
+# Bug description: @torch.jit.export doesn't work for string literals in PyTorch v1.0rc1
+
+# Title: [JIT] unbound type annotation not properly converted to str_attr node (in C++)
+"""
+Output:
+Traceback (most recent call last):
+    ...
+RuntimeError: Expected ignored argument to be a value, but got type: str
+"""
+class E(torch.jit.ScriptModule):
+    def forward(self):
+        pass
+# API: TorchScript
+# Bug description: Class-level annotations not converted to str_attr in PyTorch v1.0rc1

@@ -1,0 +1,41 @@
+ jit: segfaults error
+# Bug description: JIT segfaults when a Python call throws.
+# Labels: needs-verification: other
+
+# Title: __eq__ in jit module not working for set of Tensors
+"""
+Output:
+python3 test_jit.py 
+True
+False
+"""
+# Version: PyTorch version: 1.12.1
+# Labels: oncall: jit
+# PR Title: __eq__ in jit module not working for set of Tensors
+import torch                     
+from typing import Set, List      
+                                 
+class SetOfInt(torch.nn.Module):                       
+    def __init__(self):            # initialize class with list of integers
+        super().__init__()        
+        self._data: Set[int] = {1, 2} 
+                                 
+    def forward(self, x):          # defines the 'forward' function for the module.
+        return self._data == x     # tests if 'x' is equal to '_data'.
+                                 
+class SetOfInt2(torch.nn.Module):             
+    def __init__(self):            # initialize class with list of integers
+        super().__init__()        
+        self._data: List[int] = [1, 2] 
+                                 
+    def forward(self, x):          # defines the 'forward' function for the module.
+        return self._data == x     # tests if 'x' is equal to '_data'.
+                                 
+s_of_i = SetOfInt()                # instantiates class Set of Int with list of integers [1,2].
+y: bool = s_of_i(torch.jit.script({1, 2}))    # calls method 'forward' and returns result which is true in this case.
+print(y)                         # prints out result of 's_of_i(torch.jit.script({1, 2}))'.
+z: bool = s_of_i({3, 4})          # calls method 'forward' and returns result which is false in this case.
+print(z)                         # prints out result of 's_of_i({3, 4})'.
+# API: __eq__ not working for set of Tensors
+# Bug description: __eq__ in jit module not working for set of Tensors
+# Labels: needs-verification: other

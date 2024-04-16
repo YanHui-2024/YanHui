@@ -1,0 +1,74 @@
+# API: BertPreTrainedModel
+# Bug description: Assertion failed at /pytorch/torch/csrc/jit/passes/specialize_autogradzero.cpp:57 during tracing the model with masked LM and NSP labels
+#                  when using torch.jit.trace in PyTorch v1.0.1
+model = BertForPreTraining.from_pretrained('path_to_pretrained_model')
+loss = model(input_ids, token_type_ids, attention_mask, lm_labels, next_sent)
+loss.backward()
+
+
+# API: torch._C._autocast_is_enabled()
+# Bug description: TorchScript compilation fails when _autocast_is_enabled is invoked in JIT mode,
+#                  but it works if executed as a Python script.
+#
+
+import torch
+import torch.nn as nn
+def test_fuse_batch_norm():
+	
+    class ResLike(torch.jit.ScriptModule):
+        def __init__(self, optimize=True):
+            super(ResLike, self).__init__(optimize)
+            self.bn = nn.BatchNorm2d(16)
+    
+        @torch.jit.script_method
+        def forward(self, x, y):
+            return y + torch.relu(self.bn(x))
+    
+    model = ResLike().cuda()
+    model_noopt = ResLike(optimize=False).cuda()
+    model_noopt.load_state_dict(model.state_dict())
+    x = torch.randn(2, 16, 8, 8, device='cuda')
+    y = torch.randn(2, 16, 8, 8, device='cuda')
+    with torch.no_grad():
+        out = model(x, y)
+        graph = model.graph_for(x, y)
+        rep = str(graph)
+    
+        out_noopt = model_noopt(x, y)
+        rep_noopt = str(model_noopt.graph_for(x, y))
+        x = x.half()
+        y = y.half()
+        out_noopt = model_noopt(x,y)
+        print("no jit", out_noopt.abs().max())
+        out_opt = model(x,y)
+        print("jit", out_opt.abs().max())
+    
+
+if __name__ == "__main__":
+    test_fuse_batch_norm()
+
+
+# API: cat
+# Bug description: Torchscript thinks that cat nodes broadcast their inputs
+#                  when using torch.jit.trace in PyTorch v1.0rc1
+import torch                                                    
+                                                                
+@torch.jit.script                                               
+def f(x):                                                       
+    a, b, c, d = x.chunk(4, 1)                                  
+    r = (a * b) + (c * d)                                       
+    return x.sum(), r                                           
+                                                                
+x = torch.randn(2, 10, device='cuda', requires_grad=True)       
+s, r = f(x)                                                     
+grad_x, = torch.autograd.grad(s + r.sum(), x, create_graph=True)
+grad_grad_x = torch.autograd.grad(grad_x.sum() + s + r.sum(), x)
+
+
+# API: Hooks
+# Bug description: RuntimeError when calling torch.jit.trace in PyTorch v1.1.0
+if orig._backward_hooks or orig._forward_hooks or orig._forward_pre_hooks:
+    raise ValueError("Modules that have hooks assigned can't be compiled")
+
+
+# API:

@@ -1,0 +1,81 @@
+ Tensor
+# Bug description: Incompatible results between eager execution and JIT compilation with // operator
+#                  on PyTorch v1.2.0
+
+# Title: [JIT] Errors during inplace operations
+"""
+Output:
+Traceback (most recent call last):
+  File "test.py", line 7, in <module>
+    x = torch.jit.script(M())
+  File "/home/titaiwang/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/__init__.py", line 920, in script
+    return RecursiveScriptModule._construct(fn, args, kwargs)
+  File "/home/titaiwang/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 254, in _construct
+    return func(*args, **kwargs)
+  File "test.py", line 4, in __init__
+    self.conv = nn.Conv1d(in_dim, out_features, kernel_size=kernel, stride=stride)
+  File "/home/titaiwang/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/nn/modules/conv.py", line 1992, in __init__
+    super(_ConvNd, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, transposed, output_padding, groups, bias, padding_mode)
+torch.nn.modules.module.ModuleAttributeError: Got IncompatibleKeys, but want <dict>, because got keys: ['bias', 'weight'] instead of <class 'dict'> in __init__ of MyModel class (at line 31).
+"""
+# Version: PyTorch version: 1.1.0
+# Labels: oncall: jit
+# PR Title: [JIT] Errors during inplace operations
+import torch
+class M(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv = nn.Conv1d(3, 3, kernel_size=5, stride=2)
+    def forward(self, x: torch.Tensor, meta: dict[str, float]):
+        # meta["meta_y_hat"] = x  # uncomment this would make it work
+        return self.conv(x), meta
+if __name__ == "__main__":
+    model = torch.jit.script(M())
+# API: nn.Conv1d, Dict
+# Bug description: During inplace operations on JIT module in PyTorch v1.1.0
+
+# Title: [JIT] Modifying an attribute of a list object is not supported yet in TorchScript
+"""
+Output:
+Error: Compile Error: Code generation failed with:
+   torch::jit::RecursiveTypeNode * n = ctx->resolveType(name);
+error: 'n' does not have a member named 'value'
+   auto val = torch::jit::remove_optional((*n).value());
+                        ~~~~^~~~~~~~~~~~~~
+"""
+# Version: PyTorch version: 1.2.0
+# Labels: oncall: jit
+# PR Title: [JIT] Modifying an attribute of a list object is not supported yet in TorchScript
+class M(torch.nn.Module):
+    def __init__(self, N=5):
+        super().__init__()
+        self.N = N
+        self.lst = []
+    def forward(self, x: torch.Tensor):
+        for _ in range(self.N):
+            self.lst.append([x[0],x[1]])
+        return x[:2]
+if __name__ == "__main__":
+    model = torch.jit.script(M())
+# API: nn.Module, Tensor
+# Bug description: When modifying attributes of a list object in JIT module in PyTorch v1.2.0
+
+# Title: [JIT] Scripting custom autograd Functions that returns a tuple is not supported yet in TorchScript
+"""
+Output:
+Traceback (most recent call last):
+  File "test.py", line 46, in <module>
+    model = torch.jit.script(M())
+torch.nn.modules.module.ModuleAttributeError: Got IncompatibleKeys, but want <dict>, because got keys: ['bias', 'weight'] instead of <class 'dict'> in forward of M class (at line 21).
+"""
+# Version: PyTorch version: 1.2.0
+# Labels: oncall: jit
+# PR Title: [JIT] Scripting custom autograd Functions that returns a tuple is not supported yet in TorchScript
+import torch
+class M(torch.nn.Module):
+    def forward(self, x, meta : dict[str, float]) -> Tuple[torch.Tensor, dict]:
+        return (x + 3), { "out" : 2 }
+if __name__ == "__main__":
+    model = torch.jit.script(M())
+# API: nn.Module, Tensor, Dict
+# Bug description: Scripting custom autograd Functions that returns a tuple is not supported yet in TorchScript in PyTorch v1.2.0

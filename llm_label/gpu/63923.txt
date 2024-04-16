@@ -1,0 +1,115 @@
+# Title: [TensorExpr] torch.jit.freeze causes CUDA compilation error
+"""
+Output:
+Begin 0
+Begin 1
+Traceback (most recent call last):
+  File "debug.py", line 13, in <module>
+    jit_model(x)
+  File "/home/ec2-user/anaconda3/envs/robieta_debug_env/lib/python3.7/site-packages/torch/nn/modules/module.py", line 1065, in _call_impl
+    return forward_call(*input, **kwargs)
+RuntimeError: default_program(18): error: expected a ")"
+
+default_program(18): error: extra text after expected end of number
+
+default_program(18): error: extra text after expected end of number
+
+default_program(21): error: expected a ";"
+
+default_program(21): error: extra text after expected end of number
+
+default_program(21): error: extra text after expected end of number
+
+default_program(22): error: "const_self" has already been declared in the current scope
+
+default_program(22): error: expected a ";"
+
+default_program(22): error: extra text after expected end of number
+
+default_program(22): error: extra text after expected end of number
+
+default_program(23): error: extra text after expected end of number
+
+default_program(23): error: expression must have class type
+
+default_program(23): error: expected a ")"
+
+default_program(23): error: extra text after expected end of number
+
+default_program(23): error: expression must have class type
+
+default_program(23): error: expected a ")"
+
+default_program(23): error: extra text after expected end of number
+
+default_program(23): error: expression must have class type
+
+default_program(23): error: expected a ")"
+
+default_program(23): error: extra text after expected end of number
+
+default_program(23): error: expression must have class type
+
+default_program(23): error: expected a ")"
+
+default_program(23): error: extra text after expected end of number
+
+default_program(23): error: expression must have class type
+
+default_program(23): error: expected a ")"
+
+default_program(23): error: extra text after expected end of number
+
+default_program(23): error: expression must have class type
+
+default_program(23): error: expected a ")"
+
+default_program(21): warning: variable "const_self" was declared but never referenced
+
+28 errors detected in the compilation of "default_program".
+
+nvrtc compilation failed:
+
+#define NAN __int_as_float(0x7fffffff)
+#define POS_INFINITY __int_as_float(0x7f800000)
+#define NEG_INFINITY __int_as_float(0xff800000)
+
+
+template<typename T>
+__device__ T maximum(T a, T b) {
+  return isnan(a) ? a : (a > b ? a : b);
+}
+
+template<typename T>
+__device__ T minimum(T a, T b) {
+  return isnan(a) ? a : (a < b ? a : b);
+}
+
+extern "C" __global__
+void fused_cat_batch_norm(float* t_, float* t__, float* aten_batch_norm, float* aten_cat, float* const_self.blocks.1.0.bn1.running_mean, float* const_self.blocks.1.0.bn1.running_var) {
+{
+  aten_cat[threadIdx.x + 512 * blockIdx.x] = ((((threadIdx.x + 512 * blockIdx.x) / 12544) % 144<72 ? 1 : 0) ? __ldg(t_ + (threadIdx.x + 512 * blockIdx.x) % 1806336) : __ldg(t__ + (threadIdx.x + 512 * blockIdx.x) % 1806336 - 903168));
+  float const_self.blocks.1.0.bn1.running_var_1 = __ldg(const_self.blocks.1.0.bn1.running_var + ((threadIdx.x + 512 * blockIdx.x) / 12544) % 144);
+  float const_self.blocks.1.0.bn1.running_mean_1 = __ldg(const_self.blocks.1.0.bn1.running_mean + ((threadIdx.x + 512 * blockIdx.x) / 12544) % 144);
+  aten_batch_norm[threadIdx.x + 512 * blockIdx.x] = (float)((double)(((((threadIdx.x + 512 * blockIdx.x) / 12544) % 144<72 ? 1 : 0) ? __ldg(t_ + (threadIdx.x + 512 * blockIdx.x) % 1806336) : __ldg(t__ + (threadIdx.x + 512 * blockIdx.x) % 1806336 - 903168
+))) * ((rsqrt((double)(const_self.blocks.1.0.bn1.running_var_1) + 1e-05)) * (double)(const_self.blocks.1.0.bn1.running_var_1)) + ((double)(const_self.blocks.1.0.bn1.running_mean_1) - (double)(const_self.blocks.1.0.bn1.running_mean_1) * ((rsqrt((double)(c
+onst_self.blocks.1.0.bn1.running_var_1) + 1e-05)) * (double)(const_self.blocks.1.0.bn1.running_var_1))));
+}
+}
+"""
+# Version: PyTorch version: 1.8.2
+# Labels: oncall: jit
+# PR Title: [TensorExpr] torch.jit.freeze causes CUDA compilation error
+import torch
+import timm.models.efficientnet
+model = timm.create_model('mixnet_m', pretrained=False, scriptable=True)
+model.to(device="cuda", dtype=torch.float32)
+jit_model = torch.jit.script(model).eval()
+
+# This line causes the failure.
+jit_model = torch.jit.freeze(jit_model)
+
+x = torch.rand((1, 3, 224, 224), device="cuda")
+for i in range(10):
+    print(f"Begin {i}")
+    jit_model(x)

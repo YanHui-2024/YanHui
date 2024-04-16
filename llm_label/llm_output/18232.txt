@@ -1,0 +1,90 @@
+ Dict membership checks in JIT Model
+# Bug description: RuntimeError: Dict membership checks not supported at the moment. Use `isinstance(key, type(dict-key))` instead.
+#                  RuntimeError: KeyError when accessing a key of an unordered map. This is expected behavior for dicts and should be handled explicitly using try-except.
+#                  In TorchScript, we only support ordered dict membership checks because of the lack of ordered map implementation in Python.
+#                  The following two lines can pass the sanity check:
+@torch.jit.script
+def fn2(x, y):
+    # type: (Dict[int, int], int) -> bool
+    if isinstance(y, torch.jit.Future[int]):
+        return x[y] == 3
+    else:
+        return False
+print("fn2: ", fn2({1: 2}, 0))
+print("fn2: ", fn2({1: 2}, 1))
+# API: Dict membership checks in JIT Model
+# Bug description: RuntimeError: Dict membership checks not supported at the moment. Use `isinstance(key, type(dict-key))` instead.
+#                  This is expected behavior for dicts and should be handled explicitly using try-except.
+print("fn2: ", fn2({1: 2}, 3))
+# API: Dict membership checks in JIT Model
+# Bug description: RuntimeError: KeyError when accessing a key of an unordered map. This is expected behavior for dicts and should be handled explicitly using try-except.
+#                  The following two lines can pass the sanity check but will report error:
+@torch.jit.script
+def fn3(x, y):
+    # type: (Dict[int, int], int) -> bool
+    if x.get(y) == 2:
+        return True
+    else:
+        return False
+print("fn3: ", fn3({1: 2}, 0))
+# API: Dict membership checks in JIT Model
+# Bug description: RuntimeError: KeyError when accessing a key of an unordered map. This is expected behavior for dicts and should be handled explicitly using try-except.
+print("fn3: ", fn3({1: 2}, 3))
+# API: Dict membership checks in JIT Model
+# Bug description: RuntimeError: KeyError when accessing a key of an unordered map. This is expected behavior for dicts and should be handled explicitly using try-except.
+print("fn3: ", fn3({1: 2}, 1))
+# API: Dict membership checks in JIT Model
+# Bug description: RuntimeError: KeyError when accessing a key of an unordered map. This is expected behavior for dicts and should be handled explicitly using try-except.
+print("fn3: ", fn3({1: 2}, "foo"))
+# API: Dict membership checks in JIT Model
+# Bug description: RuntimeError: KeyError when accessing a key of an unordered map. This is expected behavior for dicts and should be handled explicitly using try-except.
+print("fn3: ", fn3({1: 2}, None))
+# API: Dict membership checks in JIT Model
+# Bug description: RuntimeError: KeyError when accessing a key of an unordered map. This is expected behavior for dicts and should be handled explicitly using try-except.
+print("fn3: ", fn3({1: 2}, False))
+print("fn3: ", fn3({1: 2}, "foo"))
+# API: Dict membership checks in JIT Model
+# Bug description: RuntimeError: KeyError when accessing a key of an unordered map. This is expected behavior for dicts and should be handled explicitly using try-except.
+print("fn3: ", fn3({1: 2}, None))
+# API: Dict membership checks in JIT Model
+# Bug description: RuntimeError: KeyError when accessing a key of an unordered map. This is expected behavior for dicts and should be handled explicitly using try-except.
+print("fn3: ", fn3({1: 2}, False))
+@torch.jit.script
+def fn4(x, y):
+    # type: (Dict[int, int], int) -> bool
+    if x.get(y, True):
+        return True
+    else:
+        return False
+# API: Dict membership checks in JIT Model
+# Bug description: ValueError: Script dict not supported with dynamic key types for getitem. Only `int` and `str` are currently supported. Use `dict[key]` instead of `script_dict[key]`.
+print("fn4: ", fn4({1: 2, "foo": False}, 0))
+# API: Dict membership checks in JIT Model
+# Bug description: RuntimeError: KeyError when accessing a key of an unordered map. This is expected behavior for dicts and should be handled explicitly using try-except.
+print("fn4: ", fn4({1: 2, "foo": False}, 3))
+@torch.jit.script
+def fn5(x, y):
+    # type: (Dict[int, int], int) -> bool
+    if x.get(y) is not None:
+        return True
+    else:
+        return False
+# API: Dict membership checks in JIT Model
+# Bug description: ValueError: Script dict not supported with dynamic key types for getitem. Only `int` and `str` are currently supported. Use `dict[key]` instead of `script_dict[key]`.
+print("fn5: ", fn5({1: 2, "foo": False}, 0))
+# API: Dict membership checks in JIT Model
+# Bug description: RuntimeError: KeyError when accessing a key of an unordered map. This is expected behavior for dicts and should be handled explicitly using try-except.
+print("fn5: ", fn5({1: 2, "foo": False}, 3))
+@torch.jit.script
+def fn6(x, y):
+    # type: (Dict[int, int], int) -> bool
+    if x.get(y) is not None:
+        return True
+    else:
+        return False
+# API: Dict membership checks in JIT Model
+# Bug description: ValueError: Script dict not supported with dynamic key types for getitem. Only `int` and `str` are currently supported. Use `dict[key]` instead of `script_dict[key]`.
+print("fn6: ", fn6({1: 2, "foo": False}, 0))
+# API: Dict membership checks in JIT Model
+# Bug description: RuntimeError: KeyError when accessing a key of an unordered map. This is expected behavior for dicts and should be handled explicitly using try-except.
+print("fn6: ", fn6({1: 2, "foo": False}, 3))

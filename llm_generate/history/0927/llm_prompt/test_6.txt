@@ -1,0 +1,57 @@
+# API: JIT trace of Dropout with negative input
+# Bug description: Trace sanity check fails when using torch.jit.trace on a model that uses the Dropout op
+#                  when using PyTorch v1.7.0 or v1.8.0 (reproducible)
+import torch
+import torch.nn.functional as F
+
+@torch.jit.trace(torch.zeros(1, 2, 3))
+def dropout_test(x):
+    x = torch.neg(x)
+    return F.dropout(x)
+
+dropout_test(torch.zeros(1, 2, 3, requires_grad=True))
+
+
+# API: JIT Attribute type
+# Bug description: Jitted module can not access its properties of the correct type, which are defined as a torch.jit.Attribute on construction. The properties work properly during model execution but fail when inspecting a property as it is a JIT Attributes that is stored in the model graph and loaded back in again using the .script method.
+import torch
+from typing import Dict
+
+class AttributeModule(torch.nn.Module):
+    def __init__(self):
+        super(torch.nn.Module, self).__init__()
+        self.foo = torch.jit.Attribute(0.1, float)
+
+        # we should be able to use self.foo as a float here
+        assert 0.0 < self.foo
+
+        self.names_ages = torch.jit.Attribute({}, Dict[str, int])
+        self.names_ages["someone"] = 20
+        assert isinstance(self.names_ages["someone"], int)
+
+m = AttributeModule()
+
+
+# API: MaxPool with return_indices: true
+# Bug description: Trace sanity check fails when return_indices=True in module signature
+#                  when using torch.jit.trace in PyTorch v1.6.0
+model = torch.nn.MaxPool1d(2, stride=1, return_indices=True)
+torch.jit.script(model)
+
+
+# API: JIT: tracing
+# Bug description: a RuntimeError on model accepting a custom type of NamedTuple
+#                  when using torch.jit.script in PyTorch v1.7.1
+def func(x):
+    s = 0
+    s += x
+    s += x
+    return s
+x = torch.ones(2,2)
+func = torch.jit.trace(func, x)
+print('x',x) # tensor([[1., 1.], [1., 1.]]) as expected
+_ = func(x)
+print('x',x) # tensor([[2., 2.], [2., 2.]])  surprisingly x have changed while it shouldn't!
+
+
+# API:

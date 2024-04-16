@@ -1,0 +1,24 @@
+# API: Python __eq__ method not exposed as __torch_dispatch__ in TorchScript
+# Bug description: `__eq__` is not exposed as `__torch_dispatch__` when using
+#                  PyTorch v1.6.0. See the comment on the PR for more info.
+class MyObj(object):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+    
+    def __eq__(self, other: 'MyObj') -> bool:
+        # type: (MyObj) -> _TorchScriptOptionalType[bool]
+        return self.x == other.x and self.y == other.y
+    
+    def __repr__(self):
+        return f'{self.__class__.__name__}@{hex(id(self))}'
+
+o1 = MyObj(1, 2)
+o2 = MyObj(1, 2)
+print('o1 is o2:', (o1 == o2)) # `True`
+
+c = torch.jit.CompilationUnit()
+c.define(MyObj.__eq__.__code__)
+
+# Expected result:
+# o1 is o2: True

@@ -1,0 +1,10 @@
+# Title: torch.tensordot(-,-,0) no longer works
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.9.0
+# Labels: high priority, oncall: jit, module: regression
+# PR Title: 
+>>> np.tensordot(np.zeros(()), np.zeros(()), 0)
+array(0.)

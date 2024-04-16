@@ -1,0 +1,106 @@
+ @torch.jit.script
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.7.0
+
+# Title: Error message of trace() with an instance of DataParallel module is confusing (GPU + ASAN)
+"""
+Output:
+---------------------
+Traceback (most recent call last):
+  File "/usr/lib/python3.8/subprocess.py", line 1574, in _execute_child
+    raise child_exception_type(errno_num, err_msg)
+FileNotFoundError: [Errno 2] No such file or directory: 'asan_wrapper'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/snap/pycharm-community/689/helpers/pydev/pydevd.py", line 2134, in <module>
+    main()
+  File "/snap/pycharm-community/689/helpers/pydev/pydevd.py", line 2120, in main
+    globals = debugger.run(setup['file'], None, None, is_module=False)
+  File "/snap/pycharm-community/689/helpers/pydev/pydevd.py", line 1748, in run
+    pydev_imports.execfile(file, globals, locals)  # execute the script
+  File "/home/mattw/anaconda3/envs/torch-env/lib/python3.6/site-packages/spyder_kernels/py3compat.py", line 198, in execfile
+    exec(compile(f.read(), filename, 'exec'), glob, loc)  # TODO: move import inside function
+  File "/home/mattw/PycharmProjects/NLP/model_tester.py", line 30, in <module>
+    parser = argparse.ArgumentParser()
+  File "/usr/lib/python3.8/argparse.py", line 1428, in __init__
+    super(ArgumentParser, self).__init__(**kwargs)
+TypeError: __init__() got an unexpected keyword argument 'description'
+"""
+# Version: PyTorch version: 1.6.0, OS: Ubuntu 18.04.5 LTS (Bionic Beaver), Python 3.7.9, CUDA 10.2, cuDNN 7.6.2, nvidia-driver 440
+# Labels: oncall: jit
+# PR Title: Error message of trace() with an instance of DataParallel module is confusing (GPU + ASAN)
+import argparse
+from torchvision import models
+parser = argparse.ArgumentParser(description='Process some integers.')
+parser.add_argument('--batchsize', type=int, default=10, help="batch size")
+args = parser.parse_args()
+net = models.resnet50()
+net = net.cuda()
+inputs = torch.randn(4, 3, 224, 224).cuda()
+import time
+def f():
+    for i in range(10):
+        net(inputs)
+f_scripted = torch.jit.script(f)
+start = time.time()
+for i in range(50):
+    f()
+end = time.time()
+elapsed = end - start
+print("elapsed is {}".format(elapsed))
+# API: torchvision.models and trace() on an instance of DataParallel module, CUDA+ASAN
+# Bug description: Error message of trace() with an instance of DataParallel module is confusing (GPU + ASAN)
+
+# Title: RuntimeError when using trace for models such as VGG16
+"""
+Output:
+Traceback (most recent call last):
+  File "example.py", line 7, in <module>
+    inputs = torch.rand(4, 3, 224, 224)
+  File "/home/wangy12/anaconda3/envs/pytorch-env/lib/python3.6/site-packages/torch/utils/data/_utils/collate.py", line 89, in _default_convert(obj)
+    return default_collate([default_convert(o) for o in obj])
+  File "/home/wangy12/anaconda3/envs/pytorch-env/lib/python3.6/site-packages/torch/_six.py", line 80, in get_function_from_name_in_module
+    mod = import_module(mod_name)
+  File "/home/wangy12/anaconda3/envs/pytorch-env/lib/python3.6/importlib/__init__.py", line 127, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 986, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 969, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 954, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 908, in _find_and_load
+  File "/home/wangy12/anaconda3/envs/pytorch-env/lib/python3.6/site-packages/torch/nn/modules/_functions.py", line 45, in <module>
+    from torch._C import _cast_Float
+ImportError: libcudnn.so.7: cannot open shared object file: No such file or directory
+"""
+# Version: PyTorch version: 1.6.0, OS: Ubuntu 18.04.5 LTS (Bionic Beaver), Python 3.6.9, CUDA 10.2, cuDNN 7.6.2, nvidia-driver 440
+# Labels: oncall: jit, module: model_zoo, backend: cudnn (torch/cudnn.py)
+import torchvision.models as models
+inputs = torch.rand(4, 3, 224, 224)
+f = torch.jit.trace(models.vgg16(), inputs=inputs)
+# API: trace for a model such as VGG16
+# Bug description: RuntimeError when using trace for models such as VGG16
+
+# Title: "RuntimeError: cannot load state dict" while attempting to trace a DataParallel model
+"""
+Output:
+Traceback (most recent call last):
+  File "/home/wangy12/anaconda3/envs/pytorch-env/lib/python3.6/site-packages/torch/nn/parallel/_functions.py", line 59, in gather_inputs
+    return (data if isinstance(data, Variable) else to_variable(data, volatile=volatile),) + \
+  File "/home/wangy12/anaconda3/envs/pytorch-env/lib/python3.6/site-packages/torch/nn/parallel/_functions.py", line 84, in to_variable
+    return torch._C._VariableFunctions._make_tensor(data.type().requires_grad(), data, type=2)
+RuntimeError: cannot load state dict
+"""
+# Version: PyTorch version: 1.6.0, OS: Ubuntu 18.04.5 LTS (Bionic Beaver), Python 3.6.9, CUDA 10.2, cuDNN 7.6.2, nvidia-driver 440
+# Labels: oncall: jit, module: torch.nn.parallel
+# PR Title: "RuntimeError: cannot load state dict" while attempting to trace a DataParallel model
+import torchvision.models as models
+input_size = (1, 3, 244, 244)
+net = models.resnet50()
+net = net.cuda()
+inputs = torch.rand(input_size).cuda()
+f = torch.jit.trace(net, inputs=inputs)
+# API: trace a DataParallel model
+# Bug description: "RuntimeError: cannot load state dict" while attempting to trace a DataParallel model
+
+# Title: Runtime error when calling a jitted

@@ -1,0 +1,25 @@
+# Title: [JIT][script] Support method-style casts in script
+"""
+Output:
+Traceback (most recent call last):
+  File "method_casts.py", line 3, in <module>
+    @torch.jit.script
+  File "/Users/jamesreed/onnx-fairseq/pytorch/torch/jit/__init__.py", line 351, in script
+    graph = _jit_script_compile(ast, rcb)
+RuntimeError: 
+unknown builtin op:
+@torch.jit.script
+def cast_to_int(x):
+    return x.int()
+           ~~~~~ <--- HERE
+
+
+"""
+# Version: PyTorch version: 0.4.1
+# Labels: oncall: jit
+# PR Title: [JIT][script] Support method-style casts in script
+import torch
+
+@torch.jit.script
+def cast_to_int(x):
+    return x.int()

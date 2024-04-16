@@ -1,0 +1,13 @@
+# API: Optional parameters for Tuple
+# Bug description: Assert error on optional parameter in TorchScript model, when calling into C++ function from JIT-ed Python script module (i.e. a script module that has been scripted using @torch.jit.script).
+#                 (This is different than previous bug title "TorchScript does not support Optional parameters for Tuple", which is about the use of optional parameter in TorchScript.)
+#                 When invoking such script module from Python, it will throw exception: Assert error on optional parameter in TorchScript model, when calling into C++ function from JIT-ed Python script module (i.e. a script module that has been scripted using @torch.jit.script).
+#                 This assert failure is caused by optional parameter of type Tuple in the scripted model. E.g., b(x=None) or b(1, 2, None), where function b is decorated with @torch.jit.script.
+@torch.jit.script
+def b(x: Optional[Tuple[int, int]] = None):
+    if x is None:
+        x = (1, 2)
+    else:
+        x = torch.jit._unwrap_optional(x)
+        
+    return x

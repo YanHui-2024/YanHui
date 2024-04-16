@@ -1,0 +1,18 @@
+# API: Capturing loop-carried dependencies across nested blocks in JITed code.
+# Bug description: A bug where jit.script doesn't capture a loop carried dependency in an outer block when it is returned in the inner block and passed to an outer block's function call.
+#                  When using torch.jit.script on this function, a RuntimeError will be thrown saying that "capture_bug() needs to return output". It seems like this issue is specific to a for loop and it has something to do with capturing the current loop variable into outer blocks when the current block's body returns something. This reproduces fine in 1.0
+#                  using torch.jit.script on capture_bug() without any options works as expected and doesn't throw an error, but this is not a solution for the general case since I want to be able to use torch.jit.script here without modifying capture_bug() itself (which could have multiple loops or other constructs)
+print(capture_bug(torch.randn(3)))
+import torch
+
+@torch.jit.script
+def capture_bug(x):
+    output = 0
+    for i in range(20):
+        if i == 0:
+            output = x.unsqueeze(0)
+        else:
+            output = torch.cat((output, x.unsqueeze(0)), dim=0)
+    return output
+
+print(capture_bug.graph)

@@ -1,0 +1,12 @@
+# API: **dict
+# Bug description: TorchScript can't handle the **dict syntax, which results in an error saying it doesn't have a lineno attribute
+import torch
+
+class A(torch.nn.Module):
+    @torch.jit.export
+    def test(self):
+        s= {"hello": None}
+        return {**s}
+        
+torch.jit.script(A())
+

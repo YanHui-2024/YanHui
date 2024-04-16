@@ -1,0 +1,62 @@
+# API: 
+import torch
+
+cu = torch.jit.CompilationUnit('''
+def fizzbuzz(niter : int):
+    for i in range(niter):
+        if i % 3 == 0 and i % 5 == 0:
+            print('fizzbuzz')
+        elif i % 3 == 0:
+            print('fizz')
+        elif i % 5 == 0:
+            print('buzz')
+        else:
+            print(i)
+    return niter
+''')
+
+print(cu.fizzbuzz.graph)
+
+
+# API: NamedTuple in JIT Module
+# Bug description: A RuntimeError on model accepting a namedtuple in PyTorch v1.2.0
+_GoogLeNetOutputs = namedtuple('GoogLeNetOutputs', ['logits', 'aux_logits2', 'aux_logits1'])
+def fn(x):
+    # type: (Tensor) -> _GoogLeNetOutputs
+    return _GoogleNetOutputs(x, x, x)
+
+print(torch.jit.annotations.get_signature(fn))
+
+
+# API: Scripting optional attributes with List type annotation
+# Bug description: Attribute assignment fails for `Optional[List]` annotated variable using `torch.jit.annotate()` in PyTorch v1.7.1
+import torch
+from typing import Optional, List
+
+
+class ToScript(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.foo = torch.jit.annotate(Optional[List[int]], None)
+        # also doesn't work
+        # self.foo : Optional[List[int]] = None
+
+    def forward(self, x: List[int]):
+        self.foo = x
+        return 1
+
+
+torch.jit.script(ToScript())
+
+
+# API: torch.Tensor.__getitem__(self, int i) -> Tensor
+# Bug description: Unable to jit.script `a[0].item() == 1`
+#                  when using PyTorch v1.0.1
+import torch
+
+@torch.jit.script
+def f(a):
+    return a[0].item() == 1
+
+
+# API:

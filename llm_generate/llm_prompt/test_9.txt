@@ -1,0 +1,82 @@
+# API: if-statements with boolean literals or constants in jit script
+# Bug description: metacompile fails when using a bool literal as condition of an if statement, such as `if True`
+import torch
+
+class A(torch.nn.Module):
+    good: torch.jit.Final[bool]
+    def __init__(self):
+        super().__init__()
+        self.good = True
+    def forward(self, x):
+        #if hasattr(self, 'good'):  # works
+        #if True:  # fails
+        #if self.good is not None:  # works
+        if self.good:  # fails
+            return x
+
+        # imagine below are some code that are scriptable depend on the availability of self.good
+        print("hello") + 2  # shall not be compiled
+
+x = A()
+f = torch.jit.script(x)
+f.forward(torch.randn(3))
+
+
+# API: 
+class MyModule(torch.nn.Module):
+    flag: torch.jit.Final[bool]
+
+    def __init__(self):
+        super().__init__()
+        self.flag = True
+
+    def forward(self) -> torch.Tensor:
+        return torch.ones(3) if self.flag else {}
+
+
+# API: Dict Comprehension
+# Bug description: JIT errors when using a dict comprehension (e.g., {x : x for ...}) as input to a model
+#                  when using torch.jit.script in PyTorch v1.5.1
+class MyModule(nn.Module):
+    def forward(self):
+        x = {i: i for i in range(2)}
+        return x
+
+model = MyModule()
+model_s = torch.jit.script(model)
+
+
+# API: NamedTuple in TorchScript
+# Bug description: a TypeError on model accepting custom type of NamedTuple
+#                  when using torch.jit.script in PyTorch v1.3.1
+import torch as T
+
+from collections import namedtuple
+from typing import Tuple
+GG = namedtuple('GG', ['f', 'g'])
+
+class Foo(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    @T.jit.ignore
+    def foo(self, x, z) -> GG:
+		# Above does NOT work
+
+        # ! type: (Tensor, Tensor) -> GG
+        # Above works
+
+		# ! type: (Tensor, Tensor) -> Tuple[GG, GG]
+		# return GG(x, z), GG(x, z)
+		# Above does NOT work
+
+        return GG(x, z)
+    def forward(self, x, z):
+        y0, y1 = self.foo(x, z)
+        return y0 + y1
+
+foo = T.jit.script(Foo())
+y = foo(T.randn(100, 100), T.randn(100, 100))
+
+
+# API:

@@ -1,0 +1,84 @@
+ torch.reciprocal
+# Bug description: 1 // 0, which should produce an exception, runs fine when using @torch.jit.script in PyTorch v1.0.0
+
+# Title: [JIT] Different behavior on different platforms
+"""
+Output:
+Python 3.7.6 (default, Jan  8 2020, 19:45:28)
+[GCC 9.2.0]
+PyTorch v1.5.1
+Traceback (most recent call last):
+  File "test_jit.py", line 37, in <module>
+    print(model(x))
+  File "/home/user/.conda/envs/torch/lib/python3.7/site-packages/torch/nn/_functions/misc.py", line 1051, in forward
+    return input / self._scale
+RuntimeError: [0904] [Traceback (most recent call last): File "test_jit.py", line 37, in <module> print(model(x)) File "/home/user/.conda/envs/torch/lib/python3.7/site-packages/torch/nn/_functions/misc.py", line 1051, in forward return input / self._scale RuntimeError: (Floating point exception)
+         ]
+Traceback (most recent call last):
+  File "test_jit.py", line 37, in <module>
+    print(model(x))
+  File "/home/user/.conda/envs/torch/lib/python3.7/site-packages/torch/nn/_functions/misc.py", line 1051, in forward
+    return input / self._scale
+RuntimeError: (Floating point exception)
+"""
+# Version: PyTorch version: 1.5.1
+# Labels: oncall: jit
+# PR Title: [JIT] Different behavior on different platforms
+x = torch.tensor([[0., 1.]])
+x_scripted = torch.jit.script(x)
+model = torch.nn.ReLU()
+model_scripted = torch.jit.script(model)
+# API: Floating point exception error in jit scripting
+# Bug description: Floating point exception error when using @torch.jit.script in PyTorch v1.5.1 on different platforms (different hardware, OS, etc.)
+
+# Title: [JIT] RuntimeError when passing a list/tuple to traced function (PyTorch 1.7)
+"""
+Output:
+Traceback (most recent call last):
+  File "test_jit.py", line 42, in <module>
+    scripted(x)
+RuntimeError: [0806] [Traceback (most recent call last): File "test_jit.py", line 37, in <module> x_scripted = torch.jit.script(x) File "/home/user/.conda/envs/torch/lib/python3.7/site-packages/torch/jit/_tracing.py", line 890, in script _check_module(mod_to_script, target_name="scripted") File "/home/user/.conda/envs/torch/lib/python3.7/site-packages/torch/jit/_tracing.py", line 1289, in _check_module for name, obj in mod.__dict__.items() if isinstance(obj, torch.nn.Module) or (inspect.isclass(obj) and issubclass(obj, torch.nn.Module)) else None
+RuntimeError: Modules must be subclasses of torch.nn.Module not list
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit
+# PR Title: [JIT] RuntimeError when passing a list/tuple to traced function (PyTorch 1.7)
+x = torch.rand(2, 3)
+model = torch.nn.ReLU()
+scripted = torch.jit.script(model)
+# API: Modules must be subclasses of torch.nn.Module not list (when passing a list/tuple to traced function)
+# Bug description: Modules must be subclasses of torch.nn.Module not list when using @torch.jit.script in PyTorch v1.7.0
+
+# Title: RuntimeError when trying to freeze graph with TensorRT
+"""
+Output:
+RuntimeError: [0839] [Traceback (most recent call last): File "/home/user/.conda/envs/torch/lib/python3.7/site-packages/torch/fx/graph_module.py", line 234, in freeze raise RuntimeError("Cannot freeze module due to the following reasons: \n\t" + "\n".join(errors))
+RuntimeError: Cannot freeze module due to the following reasons:
+        The tracer does not support creating a complete module that is ready for inference; it must be run with a graph/trace that corresponds to a portion of an overall model. (e.g. a method, forward pass) Please freeze your model appropriately, and rerun with the freeze() method on your trace or graph_module object.
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit, module: TensorRT (Tensor-rt)
+# PR Title: RuntimeError when trying to freeze graph with TensorRT
+import torchvision.models as models
+from fx import symbolic_trace
+model = models.resnet50()
+scripted = torch.jit.script(model)
+graph_module = scripted._c.create_method_from_graph('forward', graph, params, preserved_attrs=['training'])
+# API: TensorRT (Tensor-rt) support for jit module
+# Bug description: TensorRT (Tensor-rt) support for jit module when using @torch.jit.script in PyTorch v1.7.0
+
+# Title: RuntimeError: Node 'prim::dtype' cannot be symbolically traced because it contains no tensors and does not have a __name__ attribute that is identifiable with aten or prim operators.. Please manually wrap the node into an identity_node, so that nn.ModuleBuilder can replace it.
+"""
+Output:
+RuntimeError: [0839] [Traceback (most recent call last): File "/home/user/.conda/envs/torch/lib/python3.7/site-packages/torch/fx/graph_module.py", line 234, in freeze raise RuntimeError("Cannot freeze module due to the following reasons: \n\t" + "\n".join(errors))
+RuntimeError: Cannot freeze module due to the following reasons:
+        prim::dtype is not supported for freezing. Please wrap it with an identity node, so that nn.ModuleBuilder can replace it.
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit
+# PR Title: RuntimeError: Node 'prim::dtype' cannot be symbolically traced because it contains no tensors and does not have a __name__ attribute that is identifiable with aten or prim operators.. Please manually wrap the node into an identity_node, so that nn.ModuleBuilder can replace it.
+x = torch.rand(10) + 0
+y = x[None] * 2
+z = y[:, None, :]
+# API: TensorRT (Tensor-rt) support for jit module
+# Bug description: RuntimeError: Node 'prim::dtype' cannot be symbolically traced because it contains no tensors and does not have a __name__ attribute that is identifiable with aten or prim operators.. Please manually wrap the node into an identity_node, so that nn.ModuleBuilder can replace it when using @torch.jit.script in PyTorch v1.7.0

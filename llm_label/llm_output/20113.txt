@@ -1,0 +1,55 @@
+ torch.norm
+# Bug description: torch.norm ignores argument defaults when used with @torch.jit.script on PyTorch v1.1.0
+
+# Title: Can't pass tuple to scripted function that takes list of tensors
+"""
+Output:
+RuntimeError: Error on calling script_fn (<function main at 0x7fbb4a5c2b80>) with args=([tensor([3]), tensor(4)]), kwargs={}. The following arguments passed into the function are not TorchScriptable: 
+ 'arg #1' : <class 'tuple'>
+
+This usually happens when you pass a iterable or dict instance into a scripted function, or trying to pass in a non-standard object like a function. 
+For instance, this will raise an error:
+ def my_script_mod(my_list): # my_list has type 'list'
+     return my_list[0]       # my_list[0] is of type 'function'
+ script_mod = torch.jit.script(my_script_mod) 
+For this reason, we recommend using a list instead:
+ def my_script_mod(my_list): # my_list has type 'list'
+     return my_list[0]       # my_list[0] is of type 'Tensor'
+ script_mod = torch.jit.script(my_script_mod) 
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit, module: forward-backward-functions, triaged
+# PR Title: Can't pass tuple to scripted function that takes list of tensors
+import torch
+from torch import nn
+class MyModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.m = nn.Linear(10, 1)
+    
+    def forward(self, x: Tuple[torch.Tensor]) -> torch.Tensor:
+        return self.m(x[0]).mean()
+script_mod = torch.jit.script(MyModel())
+# API: nn.Module forward function
+# Bug description: A RuntimeError when trying to use a tuple as argument of jitted model on PyTorch v1.7.0
+
+# Title: scripting a function with nested for loops
+"""
+Output:
+RuntimeError: Error on calling script_fn (<function main at 0x7fe3c482a6e0>) with args=(), kwargs={}. The following arguments passed into the function are not TorchScriptable: 
+ 'arg #1' : <class 'list'>  
+For instance, this will raise an error:
+ def my_script_fn(my_list): # my_list has type 'list'
+     return torch.tensor([x * 2 for x in my_list]) # inner loop is not scriptable
+ script_fn = torch.jit.script(my_script_fn) 
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit, triaged
+# PR Title: scripting a function with nested for loops
+import torch
+def my_script_fn(my_list): # my_list has type 'list'
+     return torch.tensor([x * 2 for x in my_list]) # inner loop is not scriptable
+script_fn = torch.jit.script(my_script_fn) 
+# API: scripting a function with nested for loops
+# Bug description: A RuntimeError when trying to use a list as argument of jitted model on PyTorch v1.7.0
+

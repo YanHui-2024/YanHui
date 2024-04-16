@@ -1,0 +1,109 @@
+ Tensor
+# Bug description: Iterating over a tensor using `for-in` doesn't work when using @torch.jit.script in PyTorch v1.0.1
+
+# Title: [JIT] Unexpected behavior while performing `if else` branching inside a function with no inputs, returning a Tensor
+"""
+Output:
+tensor([[ 5.,  6.],
+        [-2., -3.]])
+tensor([[-1., -2.],
+        [ 5.,  6.]])
+tensor([[0., 0.],
+        [0., 0.]])
+"""
+# Version: PyTorch version: 1.0.1
+# Labels: oncall: jit, module: autograd
+# PR Title: [JIT] Unexpected behavior while performing `if else` branching inside a function with no inputs, returning a Tensor
+import torch
+class TestModule(torch.jit.ScriptModule):
+    def __init__(self):
+        super(TestModule, self).__init__()
+        self.t = torch.randn(2, 2)
+        
+    @torch.jit.script_method
+    def forward(self):
+        if False:
+            x = torch.tensor([5,6])
+        else:
+            x = torch.tensor([-1,-2])
+        return x
+    
+tmod = TestModule()
+print(tmod())
+torch._C._jit_pass_propagate_shapes_on_graph(tmod._c)
+print(tmod())
+torch._C._jit_pass_propagate_shapes_on_graph(tmod._c)
+print(tmod())
+# API: Tensor
+# Bug description: Unexpected behavior while performing `if else` branching inside a function with no inputs, returning a Tensor
+
+# Title: JIT script module with custom method and property
+"""
+Output:
+torch.jit.Error: Script module 'MyModule' (at 0x7f2b9a6e3ea8): Could not find property accessor for attribute 'prop'
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        y = self.prop + x
+"""
+# Version: PyTorch version: 1.0.1
+# Labels: oncall: jit, module: scripting
+# PR Title: JIT script module with custom method and property
+import torch
+def forward(self, x):
+    y = self.prop + x
+class MyModule(torch.jit.ScriptModule):
+    @torch.jit.script_method
+    def __init__(self):
+        super().__init__()
+    
+    @property
+    def prop(self):
+        return torch.tensor([5, 6])
+    
+    @forward.register(torch.Tensor)
+    def _forward_impl(self, x: torch.Tensor) -> torch.Tensor:
+        return forward(x) # Error here pointing to the error above
+m = MyModule()
+print(m())
+# API: Tensor
+# Bug description: JIT script module with custom method and property
+
+# Title: [JIT] Module containing @jit.ignore function can't be compiled or traced
+"""
+Output:
+  File "test/test_module.py", line 16, in <module>
+    ignore_fn = jit.ignore(m)
+  File "/home/titaiwang/pytorch/torch/jit/__init__.py", line 730, in ignore
+    return fn.__get__(obj) if obj is not None else fn()
+  File "test/test_module.py", line 12, in <lambda>
+    ignore_fn = jit.ignore(m)
+TypeError: __get__() takes exactly one argument (0 given)
+"""
+# Version: PyTorch version: 1.0.1
+# Labels: oncall: jit, module: scripting
+# PR Title: [JIT] Module containing @jit.ignore function can't be compiled or traced
+import torch
+@torch.jit.script
+def fn(x):
+    pass
+class M(torch.nn.Module):
+    def forward(self, x):
+        ignore_fn = jit.ignore(m)
+mod = M()
+# API: JIT
+# Bug description: Module containing @jit.ignore function can't be compiled or traced
+
+# Title: [JIT] RuntimeError when trying to access Python module attribute inside script module
+"""
+Output:
+  File "test/test_module.py", line 7, in <module>
+    print(m.my_property)
+RuntimeError: Attempted to access 'my_property' on a Module that is not an instance of ScriptModule or ScriptFunction
+"""
+# Version: PyTorch version: 1.0.1
+# Labels: oncall: jit, module: scripting
+# PR Title: [JIT] RuntimeError when trying to access Python module attribute inside script module
+from torch.jit import script
+mod = script(M())
+print(m.my_property)  # Error here pointing to the error above
+# API: Tensor, Module
+# Bug description: RuntimeError when trying to access Python module attribute inside script module

@@ -1,0 +1,20 @@
+# Title: FusionGroup seems to think that cat nodes broadcast their inputs
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.0rc1
+# Labels: oncall: jit
+# PR Title: FusionGroup seems to think that cat nodes broadcast their inputs
+import torch                                                    
+                                                                
+@torch.jit.script                                               
+def f(x):                                                       
+    a, b, c, d = x.chunk(4, 1)                                  
+    r = (a * b) + (c * d)                                       
+    return x.sum(), r                                           
+                                                                
+x = torch.randn(2, 10, device='cuda', requires_grad=True)       
+s, r = f(x)                                                     
+grad_x, = torch.autograd.grad(s + r.sum(), x, create_graph=True)
+grad_grad_x = torch.autograd.grad(grad_x.sum() + s + r.sum(), x)

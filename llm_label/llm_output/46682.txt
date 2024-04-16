@@ -1,0 +1,19 @@
+ String
+# Bug description: String handling is not supported by JIT on PyTorch 1.6.0
+
+# Title: Missing support in TorchScript for numpy/scipy in TorchScript
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit, module: bootcamp, days
+# PR Title: 
+import torch
+from numpy import array
+def foo(x):
+    return (array([3,4]) * x).sum()
+m = torch.jit.script(foo)
+type(torch.autograd.grad(m(torch.ones(1)), [torch.ones(1)], create_graph=True)[0]).__name__
+# API: numpy.array, torch.autograd
+# Bug description: JIT not supporting numpy/scipy functions in PyTorch 1.7.1

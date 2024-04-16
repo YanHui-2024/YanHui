@@ -1,0 +1,15 @@
+# API: **kwargs
+# Bug description: JIT does not support the **kwargs syntax (e.g., `**kwargs`)
+import torch
+from torch import nn
+
+class MyModel(nn.Module):
+    def __init__(self, a=1):
+        super().__init__()
+    
+    def forward(self, x, **kwargs):
+        return x + 1
+        
+m = MyModel()
+scripted = torch.jit.script(m)
+scripted(torch.tensor([2]))

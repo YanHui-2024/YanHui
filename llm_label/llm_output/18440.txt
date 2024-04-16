@@ -1,0 +1,41 @@
+ range
+# Bug description: Range in JIT doesn't accept more than one parameter
+#                  when calling `torch.jit.script` in PyTorch v1.0.1
+
+# Title: [JIT] Infinite loop after loading trace from file
+"""
+Output:
+Traceback (most recent call last):
+  File "test/trace_load.py", line 58, in <module>
+    run(True)
+  File "test/trace_load.py", line 42, in run
+    torch.jit.save(m, "/tmp/model.pt")
+  File "<string>", line 1, in save
+  File "/Users/talleb/.virtualenvs/pytorch-cpu/lib/python3.8/site-packages/torch/jit/_pickle.py", line 106, in save
+    _save(obj, f, _parent=None)
+  File "Traceback (most recent call last):\n" +
+        "  File \"<string>\", line 207, in _save\n" +
+        # ... truncate stacktrace for brevity here
+    '  File "<string>", line 39, in forward\n' +
+        '  File "<string>", line 45,\n' +
+            "    ^ -- iterating over \'var\' --\n" +
+    '  File "/Users/talleb/.virtualenvs/pytorch-cpu/lib/python3.8/site-packages/torch/jit/_pickle.py", line 21, in __iter__\n' +
+        '    return iter(self._storage)\n' +
+    '  RuntimeError: Infinite loop while looking for name of <function main.<locals>.Linear at 0x7fc53f4c9850>\n' +
+        '  <stacktrace truncated>\n')
+RuntimeError: Infinite loop while looking for name of <function main.<locals>.Linear at 0x7fc53f4c9850>
+"""
+# Version: PyTorch version: 1.2.0
+# Labels: oncall: jit, module: onnx
+# PR Title: [JIT] Infinite loop after loading trace from file
+import torch
+def run(trace_optimized):
+    m = Linear()
+    torch.jit.script(m).save("/tmp/model.pt")  # trace optimization is off by default for script, which will result in an infinite loop here on save with Python 3.7+
+    # torch.jit.save(m, "/tmp/model.pt")  # this works just fine
+    m = torch.jit.load("/tmp/model.pt", map_location="cpu")
+    input = torch.randn(5, 3)
+    out = m(input)
+run(True)  # using trace optimization
+# API: RuntimeError
+# Bug description: Infinite loop while looking for name of a method inside the class which is traced by `torch.jit.save` when it has an untraced, nested method with the same name as the top level method.

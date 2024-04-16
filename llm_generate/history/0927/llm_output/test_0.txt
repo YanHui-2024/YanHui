@@ -1,0 +1,83 @@
+# API: torch.autograd.Function
+# Bug description: Backpropagation is not executed when tracing scripting
+import torch
+from torch import nn, Tensor
+class MyFn(torch.autograd.Function):
+def forward(self, a : Tensor) -> Tensor:
+return a + 100
+def backward(self, grad_output : Tensor) -> Tensor:
+print("Backpropagation is executed")
+return grad_output + 100
+a = torch.randn((2, 3), requires_grad=True).cuda()
+fn = MyFn().apply
+b = fn(a)
+loss = (b ** 2).sum()
+loss.backward()
+print("Backpropagation is not executed")
+
+# API: pytorch.trochvision
+# Bug description: Trace failure, error message shown as: INTERNAL ASSERT FAILED at "..\\torch\\csrc\\jit\\python\\script_init.cpp":480, please report a bug to PyTorch.
+import torchvision
+import torch
+from torch import nn, Tensor
+class MyFn(torch.autograd.Function):
+def forward(self,a: Tensor) -> Tensor:
+return a + 100
+def backward(self, grad_output : Tensor) -> Tensor:
+print("Backpropagation is executed")
+return grad_output + 100
+a = torch.randn((2,3), requires_grad=True).cuda()
+fn = MyFn().apply
+b = fn(a)
+loss = (b**2).sum()
+loss.backward()
+print("Backpropagation is not executed")
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit, module: onnx
+# PR Title: RuntimeError: input_values.size() == param_count_list.size()INTERNAL ASSERT FAILED at "..\\torch\\csrc\\jit\\python\\script_init.cpp":480, please report a bug to PyTorch.
+import torchvision
+import torch
+from torch import nn, Tensor
+class MyFn(torch.autograd.Function):
+    @staticmethod
+def forward(self,a: Tensor) -> Tensor:
+        return a + 100
+def backward(self, grad_output : Tensor) -> Tensor:
+print("Backpropagation is executed")
+return grad_output + 100
+a = torch.randn((2,3), requires_grad=True).cuda()
+fn = MyFn().apply
+b = fn(a)
+loss = (b**2).sum()
+loss.backward()
+print("Backpropagation is not executed")
+# DigitModel 
+# @inproceedings{
+#   anonymous2022unsupervised,
+#   title={Unsupervised Federated Learning is Possible},
+#   author={Anonymous},
+#   booktitle={Submitted to The Tenth International Conference on Learning Representations},
+#   year={2022},
+#   url={https://openreview.net/forum?id=WHA8009laxu},
+#   note={under review}
+# }
+import torch 
+from torch import nn, Tensor
+class DigitModel(nn.Module):
+def __init__(self, class_num=10) -> None:
+        super(DigitModel, self).__init__()
+        
+    def forward(self, x: Tensor) -> Tensor:
+
+# API: torchvision.io.read_video
+# Bug description: If the traceback is here
+#                  Error message shown as : INTERNAL ASSERT FAILED at "..\\torch\\csrc\\jit\\python\\script_init.cpp":480, please report a bug to PyTorch.
+"""
+# Version: PyTorch version: 1.6.0
+# Labels: oncall: jit, module: io
+# PR Title: Trace failure
+import torchvision.io as TvIo
+video_path = 'D:/BaiduNetdiskDownload/FedUL/dataset/test_data/0421-0319/video-0421-0319-08-34-02.mp4'
+image, _, info = TvIo.read_video(video_path)
+"""

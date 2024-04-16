@@ -1,0 +1,14 @@
+Apple M2 Max labeling: 
+44m53s 80 files
+33.6625s / generation
+
+Nvidia A6000 labeling:
+28m51s 64 files
+27.046875s / generation
+
+7m6s 11 files
+38.72727272727273s / generation
+
+Apple M2 Max labeling:
+11m59s 48 files
+14.979166666666666s / generation

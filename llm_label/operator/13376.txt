@@ -1,0 +1,17 @@
+# Title: `len(Tensor)` doesn't work in script
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.0rc1
+# Labels: oncall: jit
+# PR Title: `len(Tensor)` doesn't work in script
+import torch
+
+tensor = torch.IntTensor(4, 2).zero_()
+print(len(tensor))  # prints 4
+
+@torch.jit.script
+def foo(tensor):
+    print(len(tensor)) # this is dispatching to aten::len(Tensor[])
+foo(tensor)  # prints 1

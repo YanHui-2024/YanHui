@@ -1,0 +1,21 @@
+# API: onnx
+# Bug description: onnx::checker::check_model fails for Model with prim::Constant which is not a scalar value as attribute
+import numpy as np
+import onnx
+from torch import nn
+class Model(nn.Module):
+def forward(self, x):
+return 1.0 + x*x
+m = Model()
+# g2 = m.to_onnx("test.onnx", (3, 4), export_params=False) # this works fine
+g = m.to_onnx("test.onnx", (torch.zeros(1,2).type(torch.float64), ), export_params=False)
+onnx.checker.check_model(g) # onnx::checker::check_model fails for Model with prim::Constant which is not a scalar value as attribute
+import torch
+
+class Model(torch.nn.Module):
+    def forward(self, x):
+        return torch.ones(x.numel())
+
+x = torch.randn(2, 3, 4)
+g = torch.jit.trace(Model(), (x, ))
+print(g.graph)

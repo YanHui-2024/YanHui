@@ -1,0 +1,3 @@
+# API: Basic Types (Dicts) in JIT Model
+# Bug description: Dictionary is not supported by the torch.jit module in PyTorch v1.4.0
+my_list : List[int] = list()

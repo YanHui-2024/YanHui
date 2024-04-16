@@ -1,0 +1,13 @@
+# API: JITed module
+# Bug description: Schema not found for node. File a bug report. in PyTorch version 1.0rc1
+import torch
+
+
+@torch.jit.script
+def fun(a):
+	return a[None, :]
+
+
+if __name__ == '__main__':
+	a = torch.tensor([0])
+	fun(a)

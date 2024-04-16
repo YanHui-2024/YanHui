@@ -1,0 +1,128 @@
+ keyword argument
+    return a == b or a + key == b
+if __name__ == '__main__':
+    x = torch.jit.script(compare)
+    assert x(torch.ones(2), torch.zeros(2))
+    assert not x(torch.ones(2), torch.ones(2), key=1)
+# API: keyword argument, kwargs
+# Bug description: N/A
+
+# Title: JIT: ScalarTensor fails for bool inputs in comparison
+"""
+Output:
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test_torch_script_op_bool2int.py", line 8, in <module>
+    a = torch.jit.trace(f, torch.ones(5), check_tolerance=1e-5)
+  File "/home/ansley/miniconda3/envs/torch/lib/python3.6/site-packages/torch/jit/_recursive.py", line 349, in trace
+    raise RuntimeError(msg) from e
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test_torch_script_op_bool2int.py", line 8, in <module>
+    a = torch.jit.trace(f, torch.ones(5), check_tolerance=1e-5)
+  File "/home/ansley/miniconda3/envs/torch/lib/python3.6/site-packages/torch/jit/_recursive.py", line 349, in trace
+    raise RuntimeError(msg) from e
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test_torch_script_op_bool2int.py", line 8, in <module>
+    a = torch.jit.trace(f, torch.ones(5), check_tolerance=1e-5)
+RuntimeError: unsupported argument type for prim::BoolComparison (Slice(None, None, None), Slice(None, None, None)) [test_torch_script_op_bool2int] (trace returned empty graph).
+Traceback of the original code (most recent call last):
+  File "test_torch_script_op_bool2int.py", line 10, in <module>
+    a = torch.jit.trace(f, torch.ones(5), check_tolerance=1e-5)
+RuntimeError: unsupported argument type for prim::BoolComparison (Slice(None, None, None), Slice(None, None, None)) [test_torch_script_op_bool2int]
+"""
+# Version: PyTorch version: 1.11.0
+# Labels: oncall: jit
+# PR Title: JIT: ScalarTensor fails for bool inputs in comparison
+import torch
+from torch._six import container_abcs, string_classes, int_classes
+class BoolFunc(torch.nn.Module):
+    def forward(self, x):
+        return (x > 0)[:1]
+f = BoolFunc()
+a = torch.jit.trace(f, torch.ones(5), check_tolerance=1e-5)
+# API: bool type, torch.jit.trace with bool type, prim::BoolComparison
+# Bug description: RuntimeError when using prim::BoolComparison with bool Tensor and scripted model
+
+# Title: PrimConstantTensor is missing in the TorchScript IR.
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.0.1
+# Labels: oncall: jit
+# PR Title: PrimConstantTensor is missing in the TorchScript IR.
+import torch
+from torch._utils_internal import get_source_lines_and_file
+a = torch.tensor(2)
+# API: prim::Constant (int)
+# Bug description: Constant Int value is missing in the scripted graph of the model
+
+# Title: Error message when using a jit tracing with an `if` statement
+"""
+Output:
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "/home/ansley/.local/lib/python3.6/site-packages/torch/jit/_recursive.py", line 470, in trace
+    raise RuntimeError(msg) from e
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "/home/ansley/.local/lib/python3.6/site-packages/torch/jit/_recursive.py", line 470, in trace
+    raise RuntimeError(msg) from e
+RuntimeError: prim::If does not have a body for true branch, please call torch._C._freeze_module(scripted_model._c) to freeze the module first
+Traceback of original code (most recent call last):
+  File "test.py", line 9, in <module>
+    a = torch.jit.trace(f, x)
+RuntimeError: prim::If does not have a body for true branch, please call torch._C._freeze_module(scripted_model._c) to freeze the module first
+"""
+# Version: PyTorch version: 1.0.1
+# Labels: oncall: jit
+# PR Title: Error message when using a jit tracing with an `if` statement
+import torch
+from torch._utils_internal import get_source_lines_and_file
+@torch.jit.script
+def f(x):
+    y = 2 * x + 0.5
+    if (y > 1).all():
+        return y + 1
+    else:
+        return 3 * y
+x = torch.ones([4, 3])
+# API: if statement, prim::ConstantTensor[bool]
+# Bug description: RuntimeError when using an `if` statement in a jit traced module
+
+# Title: JIT script error message
+"""
+Output:
+RuntimeError: missing a definition of operator "aten::detach", which is implicit in the schema aten::sub_(Tensor self, int dim=-1) -> Tensor.
+Traceback of original code (most recent call last):
+  File "<stdin>", line 63, in <module>
+RuntimeError: missing a definition of operator "aten::detach", which is implicit in the schema aten::sub_(Tensor self, int dim=-1) -> Tensor.
+"""
+# Version: PyTorch version: 1.0.1
+# Labels: oncall: jit
+# PR Title: JIT script error message
+import torch
+from torch._utils_internal import get_source_lines_and_file
+from torch.nn.modules.batchnorm import _BatchNorm
+from torch.autograd import Function
+class BatchNorm(torch.jit.ScriptModule):
+    def __init__(self, eps=1e-5, momentum=0.1, affine=True, track_running_stats=True):
+        super().__init__()
+        self.register_buffer('invstd', torch.ones(1))
+        self.register_buffer('rmu', torch.zeros([2]))  # runtime mean and variance
+        self.num_batches_tracked = torch.tensor(0, dtype=torch.long)
+        if affine:
+            self.weight = torch.nn.Parameter(torch.ones(1))
+            self.bias = torch.nn.Parameter(torch.zeros(1))
+    @torch.jit.ignore
+    def _check_input_dim(self, x):
+        if x.ndim != 4:
+            raise ValueError('expected 4D input (got {}D)'.format(x.ndim))
+    @torch.jit.script_method
+    def forward(self, x: torch.Tensor):
+        y = self._check_input_dim(x)
+        mu = x.mean([0, 2, 3], keepdim=True)
+        var = (x - mu).pow(2).sum([0, 2, 3], keepdim=True) / torch.max(self.num_batches_tracked, torch.tensor(1))
+        y

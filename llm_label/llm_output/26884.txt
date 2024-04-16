@@ -1,0 +1,42 @@
+ Scripting, training attribute
+# Bug description: training attribute is not passed on to scripted model
+"""
+## Test case 4
+# Title: JIT fails to resolve a custom type from torch._six with Python 3.7
+"""
+Output:
+ERROR: Failed due to exception: RuntimeError: Unable to resolve name 'OrderedDict' (type: 'type', location '__torch_jit__.core') in 'OrderedDict'
+   File "<string>", line 1, in __call__ (src/OperatorRegistry.cpp:20)
+   File "C:\Users\USER\Anaconda3\envs\cuda101\lib\site-packages\torch\jit\_recursive.py", line 458, in _to_tensor
+     ret = type(value)(*args, **kwargs)
+ TypeError: type argument expected tuple or list of tuples, got OrderedDict instead
+"""
+# Version: PyTorch version: 1.1.0
+# Labels: oncall: jit
+# PR Title: JIT fails to resolve a custom type from torch._six with Python 3.7
+import numpy as np
+from torch import nn
+import sys, os
+sys.path.insert(1,'/'.join([os.getcwd(), '..','..'])) # 2 directories up from current. This is a hack to allow ptsransformer to be imported
+sys.path.append('./')
+from ptsransformer import TransformerBlock, PTTransformer, PositionalEncoding
+#
+class Tst(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.pos_enc = nn.Sequential(PositionalEncoding(512))  # This is causing issues. The PositionalEncoding type is registered in TransformerBlock, but it cannot be resolved for some reason...
+    
+    def forward(self, src):
+        x=src
+        return x
+#
+model = Tst()  # Testing with a very simple model.
+x = torch.randn((3,4096)).cuda().long()  
+# x = [max_seq_len, bs] for batched inference using the transformer as a black-box (e.g., in NMT)
+# x = [bs, max_seq_len] for unbatched inference using the transformer as a black-box (e.g., when doing beam search)
+# x = torch.randn((3,1024)).cuda()  #  This works fine
+with torch.no_grad():
+    traced_model = torch.jit.trace(model, x)
+torch.jit.save(traced_model, 'temp')
+# API: Scripting
+# Bug description: TypeError: type argument expected tuple or list of tuples, got OrderedDict instead

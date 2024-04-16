@@ -1,0 +1,158 @@
+ torch.nn.Module, autograd on scripted module
+# Bug description: JIT PTX error when loading a TorchScript model that performs torch.exp(x**2), with pytorch 1.7.0 and nightly
+
+# Title: RuntimeError: The following operation failed in the TorchScript interpreter.
+"""
+Output:
+Traceback (most recent call last):
+  File "test.py", line 49, in <module>
+    x = torch.rand(10)
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+        return self.x * x_i + y
+      ~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 35, in forward
+       

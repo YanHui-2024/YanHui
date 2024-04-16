@@ -1,0 +1,41 @@
+# Title: [JIT] C++ frontend is unable to support std::vector<std::vector<Tensor>>
+"""
+Output:
+    std::string path = "./model.pt";
+    std::shared_ptr<torch::jit::script::Module> module = torch::jit::load(path);
+
+    std::vector<torch::Tensor> one_frame = {
+            torch::rand({4, 4}),
+            torch::rand({4, 4}),
+            torch::rand({4, 4}),
+            torch::rand({4, 4}),
+
+    };
+
+    std::vector<torch::jit::IValue> frames;
+    frames.push_back(one_frame);
+    frames.push_back(one_frame);
+    std::vector<torch::jit::IValue> inputs;
+    inputs.push_back(frames);
+
+    auto result = module->forward(inputs);
+    log_info("finished inference")
+
+"""
+# Version: PyTorch version: 1.0.0
+# Labels: oncall: jit
+# PR Title: [JIT] C++ frontend is unable to support std::vector<std::vector<Tensor>>
+import torch
+class Model(torch.jit.ScriptModule):
+    def __init__(self):
+        super(Model, self).__init__()
+
+    @torch.jit.script_method
+    def forward(self, x_list_list):
+        # type: (List[List[Tensor]]) -> Tensor
+
+        return x_list_list[0][0]
+
+
+m = Model()
+m.save("./model.pt")

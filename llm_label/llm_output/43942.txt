@@ -1,0 +1,53 @@
+ N/A
+# Bug description: Trace sanity check fails when using torch.jit.script in PyTorch v1.6.0
+
+# Title: [jit] return type Any does not work for ternary operators
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.8.2, 1.9.0, 1.10.0, 1.11.0
+# Labels: oncall: jit, days
+# PR Title: [jit] return type Any does not work for ternary operators
+class MyModule(torch.nn.Module):
+    def forward(self) -> Any:
+        if self.training:
+            return 'xx'
+        else:
+            return {}
+# API: N/A
+# Bug description: Trace sanity check fails when using torch.jit.script in PyTorch v1.8.2, 1.9.0, 1.10.0, 1.11.0
+
+# Title: [jit] return type Any does not work for ternary operators
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.6.0
+# Labels: oncall: jit, days
+# PR Title: [jit] return type Any does not work for ternary operators
+class MyModule(torch.nn.Module):
+    def forward(self) -> Tuple[Any]:
+        if self.training:
+            return ('xx', )
+        else:
+            return {}
+# API: N/A
+# Bug description: Trace sanity check fails when using torch.jit.script in PyTorch v1.6.0
+
+# Title: [jit] return type Any does not work for ternary operators
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.8.2, 1.9.0, 1.10.0, 1.11.0
+# Labels: oncall: jit, days
+# PR Title: [jit] return type Any does not work for ternary operators
+class MyModule(torch.nn.Module):
+    def forward(self) -> Tuple[Any]:
+        if self.training:
+            return ('xx', )
+        else:
+            return {}
+# API: N/A
+# Bug description: Trace sanity check fails when using torch.jit.script in PyTorch v1.8.2, 1.9.0, 1.10.0, 1.11.0

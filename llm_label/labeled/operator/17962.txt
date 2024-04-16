@@ -1,0 +1,6 @@
+# API: BertPreTrainedModel
+# Bug description: Assertion failed at /pytorch/torch/csrc/jit/passes/specialize_autogradzero.cpp:57 during tracing the model with masked LM and NSP labels
+#                  when using torch.jit.trace in PyTorch v1.0.1
+model = BertForPreTraining.from_pretrained('path_to_pretrained_model')
+loss = model(input_ids, token_type_ids, attention_mask, lm_labels, next_sent)
+loss.backward()

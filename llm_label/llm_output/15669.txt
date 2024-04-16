@@ -1,0 +1,2 @@
+ torch.chunk
+# Bug description: in-place ops don't behave correctly after chunking when using @torch.jit.script in PyTorch v1.0.0

@@ -1,0 +1,56 @@
+ onnx
+# Bug description: onnx::checker::check_model fails for Model with prim::Constant which is not a scalar value as attribute
+import numpy as np
+import onnx
+from torch import nn
+class Model(nn.Module):
+    def forward(self, x):
+        return 1.0 + x*x
+m = Model()
+# g2 = m.to_onnx("test.onnx", (3, 4), export_params=False) # this works fine
+g = m.to_onnx("test.onnx", (torch.zeros(1,2).type(torch.float64), ), export_params=False)
+onnx.checker.check_model(g) # onnx::checker::check_model fails for Model with prim::Constant which is not a scalar value as attribute
+# API: onnx-triaged
+# PR Title: onnx::checker::check_model fails for Model with prim::Constant which is not a scalar value as attribute
+import numpy as np
+import onnx
+from torch import nn
+class Model(nn.Module):
+    def forward(self, x):
+        return 1.0 + x*x
+m = Model()
+g2 = m.to_onnx("test.onnx", (3, 4), export_params=False) # this works fine
+# g = m.to_onnx("test.onnx", (torch.zeros(1,2).type(torch.float64), ), export_params=False) # onnx::checker::check_model fails for Model with prim::Constant which is not a scalar value as attribute
+# onnx.checker.check_model(g)
+# API:
+# Bug description:
+# PR Title:
+
+# Title: Module state dict is empty when the module has been traced
+"""
+Output:
+Traceback (most recent call last):
+  File "test_jit.py", line 60, in <module>
+    sd = m._buffers
+KeyError: '_buffers'
+"""
+# Version: PyTorch version: 1.12.0, CUDA version: 10.1
+# Labels: oncall: jit
+# PR Title: Module state dict is empty when the module has been traced
+import torch
+class SimpleRNNModel(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.hidden_size = 10
+        self.batch_size = 4
+        self.lstm = torch.nn.LSTM(32, self.hidden_size)
+        self.linear = torch.nn.Linear(self.hidden_size, 2)
+    def forward(self, x):
+        lstm_out, (h_n, c_n) = self.lstm(x)
+        out = self.linear(h_n)
+        return out
+sd = SimpleRNNModel().state_dict()
+print(sd)
+# API:
+# Bug description:
+# PR Title: Module state dict is empty when the module has been traced

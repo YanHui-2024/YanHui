@@ -1,0 +1,29 @@
+# Title: [JIT] Bad error message when tracing a function with unsupported return type
+"""
+Output:
+Traceback (most recent call last):
+  File "retval.py", line 3, in <module>
+    @torch.jit.trace(torch.rand(3, 4))
+  File "/Users/jamesreed/onnx-fairseq/pytorch/torch/jit/__init__.py", line 446, in wrapper
+    module._create_method_from_trace('forward', func, tuple(args))
+RuntimeError: Only tensors and tuples of tensors are supported as inputs to traced functions (toIValue at /Users/jamesreed/onnx-fairseq/pytorch/torch/csrc/jit/pybind_utils.h:62)
+frame #0: torch::jit::toIValue(pybind11::handle) + 725 (0x10f0ee125 in _C.cpython-36m-darwin.so)
+frame #1: torch::jit::toStack(pybind11::tuple const&) + 54 (0x10f0edd66 in _C.cpython-36m-darwin.so)
+frame #2: torch::jit::tracer::createGraphByTracing(pybind11::function, std::__1::vector<torch::jit::IValue, std::__1::allocator<torch::jit::IValue> >, at::optional<unsigned long>) + 1443 (0x10f213973 in _C.cpython-36m-darwin.so)
+frame #3: torch::jit::script::initJitScriptBindings(_object*)::$_13::operator()(torch::jit::script::Module&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, pybind11::function, pybind11::tuple) const + 1660 (0x10f29368c in _C.cpython-36m-darwin.so)
+frame #4: void pybind11::detail::argument_loader<torch::jit::script::Module&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, pybind11::function, pybind11::tuple>::call_impl<void, torch::jit::script::initJitScriptBindings(_object*)::$_13&, 0ul, 1ul, 2ul, 3ul, pybind11::detail::void_type>(torch::jit::script::initJitScriptBindings(_object*)::$_13&&&, pybind11::detail::index_sequence<0ul, 1ul, 2ul, 3ul>, pybind11::detail::void_type&&) + 318 (0x10f292f9e in _C.cpython-36m-darwin.so)
+frame #5: std::__1::enable_if<std::is_void<void>::value, pybind11::detail::void_type>::type pybind11::detail::argument_loader<torch::jit::script::Module&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, pybind11::function, pybind11::tuple>::call<void, pybind11::detail::void_type, torch::jit::script::initJitScriptBindings(_object*)::$_13&>(torch::jit::script::initJitScriptBindings(_object*)::$_13&&&) + 49 (0x10f2925c1 in _C.cpython-36m-darwin.so)
+frame #6: void pybind11::cpp_function::initialize<torch::jit::script::initJitScriptBindings(_object*)::$_13, void, torch::jit::script::Module&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, pybind11::function, pybind11::tuple, pybind11::name, pybind11::is_method, pybind11::sibling>(torch::jit::script::initJitScriptBindings(_object*)::$_13&&, void (*)(torch::jit::script::Module&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, pybind11::function, pybind11::tuple), pybind11::name const&, pybind11::is_method const&, pybind11::sibling const&)::'lambda'(pybind11::detail::function_call&)::operator()(pybind11::detail::function_call&) const + 233 (0x10f2924a9 in _C.cpython-36m-darwin.so)
+frame #7: void pybind11::cpp_function::initialize<torch::jit::script::initJitScriptBindings(_object*)::$_13, void, torch::jit::script::Module&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, pybind11::function, pybind11::tuple, pybind11::name, pybind11::is_method, pybind11::sibling>(torch::jit::script::initJitScriptBindings(_object*)::$_13&&, void (*)(torch::jit::script::Module&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, pybind11::function, pybind11::tuple), pybind11::name const&, pybind11::is_method const&, pybind11::sibling const&)::'lambda'(pybind11::detail::function_call&)::__invoke(pybind11::detail::function_call&) + 24 (0x10f2923a8 in _C.cpython-36m-darwin.so)
+frame #8: pybind11::cpp_function::dispatcher(_object*, _object*, _object*) + 6919 (0x10eaf3da7 in _C.cpython-36m-darwin.so)
+<omitting python frames>
+frame #22: start + 1 (0x7fff5ec53015 in libdyld.dylib)
+"""
+# Version: PyTorch version: 0.4.1
+# Labels: oncall: jit
+# PR Title: [JIT] Bad error message when tracing a function with unsupported return type
+import torch
+
+@torch.jit.trace(torch.rand(3, 4))
+def foo(x):
+    pass

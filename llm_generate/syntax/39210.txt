@@ -1,0 +1,16 @@
+# API: JIT Support for List indexing in 1.5.0
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.12.1
+from typing import List
+
+import torch as th
+
+class Mod(th.nn.Module):                                                                                                                                                                                                                    
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, s: str, l: List[str]):
+        return l.index(s)
+
+mod = Mod()
+th.jit.script(mod)

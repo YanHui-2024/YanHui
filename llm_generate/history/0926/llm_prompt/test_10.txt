@@ -1,0 +1,69 @@
+# API: torch.nn.Module
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.12.1
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+    
+    def f(self, x):
+        return x
+    
+module = Model()
+traced_module = torch.jit.trace_module(module, {"f": torch.randn(3)})
+torch.jit.freeze(traced_module.eval(), preserved_attrs=["f"])
+
+
+# API: JIT Module
+# Bug description: Assertion error while using jit scripting to save a model with a tensor of bool type variable
+#                  when using torch.jit.script in PyTorch v1.2.0
+import torch as th                                                                                                
+                                                                                                                  
+class TestMod(th.nn.Module):                                                                                      
+    def __init__(self):                                                                                           
+        super().__init__()                                                                                        
+        self.register_buffer("bool_tensor", th.zeros(3,).bool())                                                  
+                                                                                                                  
+    def forward(self, x):                                                                                         
+        return x[~self.bool_tensor]                                                                               
+                                                                                                                  
+mod = TestMod()                                                                                                   
+smod = th.jit.script(mod)
+
+
+# API: nn.LSTM, nn.utils.rnn.pack_padded_sequence
+# Bug description: Trace sanity check fails when using packed input to LSTM
+#                  when using torch.jit.trace in PyTorch v1.0.0
+import torch
+import torch.nn as nn
+
+a = torch.randn((8, 5, 30))
+a_lengths = torch.randint(low=1, high=a.shape[1], size=(len(a),))
+a_lengths, _ = torch.sort(a_lengths, descending=True)
+
+b = torch.randn((16, 5, 30))
+b_lengths = torch.randint(low=1, high=b.shape[1], size=(len(b),))
+b_lengths, _ = torch.sort(b_lengths, descending=True)
+
+lstm = nn.LSTM(30, 25, batch_first=True)
+
+def feed_rnn(X: torch.Tensor, sorted_lengths: torch.Tensor) -> torch.Tensor:
+    X = nn.utils.rnn.pack_padded_sequence(X, sorted_lengths, batch_first=True)
+    X, hidden_states = lstm(X)
+    # pad_packed_sequence returns a tuple of sequences and lengths
+    X, sorted_lengths = nn.utils.rnn.pad_packed_sequence(X, batch_first=True)
+    return X
+
+func = torch.jit.trace(feed_rnn, (b, b_lengths), check_inputs=[(b, b_lengths), (a, a_lengths)])
+
+
+# API: torch.jit
+# Bug description: TorchScript model loads parameters in CPU even though
+#                  they are originally defined on a GPU (which might not exist)
+'''
+This following load of torchscript model does not enforce parameters 
+to be mapped to a CPU when it is originally mapped to a GPU
+'''
+torch.load('<torchscript-file-path>', map_location=torch.device('cpu')) # fails when no GPU is available
+
+
+# API:

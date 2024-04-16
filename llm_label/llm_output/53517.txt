@@ -1,0 +1,19 @@
+ Ellipsis in JITed code
+# Bug description: Error when using fx.symbolic_trace on function having an ellipsis (...)
+
+# Title: C10_INT32 and C10_BOOL tensor types are not recognised as TensorTypeNode by PyTorch JIT
+"""
+Output:
+Traceback (most recent call last):
+  File "test.py", line 5, in <module>
+    print(torch._C._jit_is_tensor_type_on_gpu(_jitInternalType(1))) # ok
+AttributeError: module 'torch._C' has no attribute '_jit_is_tensor_type_on_gpu'
+"""
+# Version: PyTorch version: 1.8.0
+# Labels: oncall: jit
+# PR Title: C10_INT32 and C10_BOOL tensor types are not recognised as TensorTypeNode by PyTorch JIT
+import torch
+print(torch._C._jit_is_tensor_type_on_gpu(_jitInternalType(1))) # ok
+print(torch.jit._recursive.is_int32_type(torch._C._empty_scalar_tensor()))  # ok
+# API: C10_INT32 and C10_BOOL in JIT
+# Bug description: RuntimeError on is_int32_type by PyTorch version v1.8.0

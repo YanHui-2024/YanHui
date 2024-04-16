@@ -1,0 +1,2 @@
+ torch.jit.Attribute
+# Bug description: JIT fails with script classes as torch.jit.Attribute in PyTorch v1.1.0

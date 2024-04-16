@@ -1,0 +1,55 @@
+ (torch.jit.)Chunk, torch.(nn.)Linear, torch.jit.fuse_linear, torch.jit.graph_fuser
+# Bug description: a RuntimeError on module when using torch.jit.graph_fuser in PyTorch v1.0rc1
+
+# Title: [torchvision] Error handling for wrong input shape
+"""
+Output:
+Traceback (most recent call last):
+  File "/workspace/pytorch/test-v2/repros/models_with_errors.py", line 83, in <module>
+    resnet18(pretrained=False)
+  File "/workspace/pytorch/torchvision/.local/lib/python3.6/site-packages/torchvision/model_utils.py", line 540, in model_zoo
+    return ModelZoo.load_url(url, model_dir=None)
+  File "/workspace/pytorch/torchvision/.local/lib/python3.6/site-packages/torchvision/model_utils.py", line 194, in load_url
+    return urllib.request.urlopen(url)
+  File "/workspace/pytorch/miniconda3/envs/pytorch/lib/python3.6/urllib/request.py", line 223, in urlopen
+    return opener.open(url, data, timeout)
+  File "/workspace/pytorch/miniconda3/envs/pytorch/lib/python3.6/urllib/request.py", line 510, in open
+    response = meth(req, response)
+  File "/workspace/pytorch/miniconda3/envs/pytorch/lib/python3.6/urllib/request.py", line 620, in http_response
+    'http', request, response, code, msg, hdrs)
+  File "/workspace/pytorch/miniconda3/envs/pytorch/lib/python3.6/urllib/request.py", line 537, in error
+    return self._call_chain(*args)
+  File "/workspace/pytorch/miniconda3/envs/pytorch/lib/python3.6/urllib/request.py", line 491, in _call_chain
+    result = func(*args)
+  File "/workspace/pytorch/miniconda3/envs/pytorch/lib/python3.6/urllib/request.py", line 638, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 404: Not Found
+"""
+# Version: PyTorch version: 1.0rc1+cpu
+# Labels: oncall: jit
+# PR Title: [torchvision] Error handling for wrong input shape
+import torch
+from torchvision import models, transforms, datasets
+from model_zoo import resnet18
+resnet18(pretrained=False)
+# API: (torch.jit.)Chunk, torch.(nn.)Linear, torch.jit.fuse_linear, torch.jit.graph_fuser
+# Bug description: a RuntimeError on module when using resnet18() from model_zoo in PyTorch v1.0rc1+cpu
+
+# Title: [JIT] Exporting to ONNX with a non 2D input raises an exception and does not generate any file
+"""
+Output:
+Traceback (most recent call last):
+    ...
+RuntimeError: Expected input 0 (got_numel = 3) to have the same size along dimension 0 as expected input 1 (got_numel = 48) for tensor with name="input0" shape=[3,3].
+"""
+# Version: PyTorch version: 1.6.0a0+adccfde
+# Labels: oncall: jit, module: onnx, module: amp (automated mixed precision), onnx-triaged
+# PR Title: [JIT] Exporting to ONNX with a non 2D input raises an exception and does not generate any file
+import torch
+from model_zoo import resnet18
+model = resnet18(pretrained=False)
+x = torch.randn((3, 48))
+x2 = x[:, None]
+torch._C._jit_try_export(model, [x, x2]) # JIT claims it errors here
+# API: (torch.jit.)Chunk, torch.(nn.)Linear, torch.jit.fuse_linear, torch.jit.graph_fuser
+# Bug description: a RuntimeError on module when using resnet18() from model_zoo in PyTorch v1.6.0a0+adccfde

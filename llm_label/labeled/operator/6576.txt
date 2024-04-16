@@ -1,0 +1,12 @@
+# API: JIT trace of Dropout with negative input
+# Bug description: Trace sanity check fails when using torch.jit.trace on a model that uses the Dropout op
+#                  when using PyTorch v1.7.0 or v1.8.0 (reproducible)
+import torch
+import torch.nn.functional as F
+
+@torch.jit.trace(torch.zeros(1, 2, 3))
+def dropout_test(x):
+    x = torch.neg(x)
+    return F.dropout(x)
+
+dropout_test(torch.zeros(1, 2, 3, requires_grad=True))

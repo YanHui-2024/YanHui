@@ -1,0 +1,93 @@
+# API: Power function in JIT module
+# Bug description: Torch.pow error in script module
+def pow_0(self,
+          exponent: float):
+    def backward(grad_output):
+        grad_self = torch.where(torch.tensor(exponent == 0.0), torch.zeros_like(self), grad_output * exponent * torch.pow(self, exponent - 1))
+        return grad_self, None
+    return torch.pow(self, exponent), backward
+
+
+# API: torch.jit.Attribute
+# Bug description: JIT fails with script classes as torch.jit.Attribute in PyTorch v1.1.0
+@torch.jit.script
+class BoundingBoxList:
+    def __init__(self, bbox, image_size: Tuple[int, int], mode: str):
+        self.size = image_size
+        self.mode = mode
+        self.bbox = bbox
+
+class Foo(torch.jit.ScriptModule):
+    def __init__(self, bbox):
+        super(Foo, self).__init__(False)
+        self.words = torch.jit.Attribute(bbox, BoundingBoxList)
+
+    @torch.jit.script_method
+    def forward(self, input):
+        # type: (str) -> int
+        return self.words.convert("xyxy")
+
+f = Foo(BoundingBoxList(torch.rand(3, 4), (2, 3), "xyxy"))
+
+
+# API: ParameterList
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.12.1
+import torch
+from torch import nn as nn
+
+class M(torch.nn.Module):
+    def __init__(self):
+        super(M, self).__init__()
+        self.weights = torch.nn.ParameterList([nn.Parameter(torch.randn(1)) for i in range(10)])
+
+    def forward(self, x):
+        return x
+
+m = M()
+torch.jit.trace(m, torch.randn(1))
+
+
+# API: torch.nn.utils.rnn
+# Bug description: The lengths returned in a PackedSequence are different depending on the tracing state, resulting in a checker failure
+class ExperimentalLSTM(torch.nn.Module):
+    def __init__(self, input_dim, hidden_dim):
+        super().__init__()
+
+    def forward(self, input):
+        # type: (Tensor)
+        packed = torch.nn.utils.rnn.pack_padded_sequence(
+            input=input, lengths=torch.tensor([1, 2]), enforce_sorted=False
+        )
+        return packed
+        # packed is
+        # PackedSequence
+        #     data
+        #     batch_sizes
+        #     sorted_indices
+        #     unsorted_indices (this is the only different one, it's None in script)
+
+        # output, lengths = torch.nn.utils.rnn.pad_packed_sequence(
+        #     sequence=packed, total_length=2
+        # )
+        # # lengths is flipped, so is output
+        # return output[0]
+
+lstm = ExperimentalLSTM(input_dim=2, hidden_dim=2)
+lstm = lstm.eval()
+
+batch_size = 2
+
+input = torch.arange(batch_size * 2 * 2).view(batch_size, 2, 2).float()
+script_lstm = torch.jit.script(lstm)
+script_out = script_lstm(input)
+torch._C._jit_set_inline_everything_mode(False)
+# print(script_lstm.graph)
+print("script result\n{}".format(script_out))
+
+print("\n")
+eager_out = lstm(input)
+print("eager result\n{}".format(eager_out))
+
+
+# API:

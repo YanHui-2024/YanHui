@@ -1,0 +1,7 @@
+# API: Basic type checking on assignment in JITed code
+# Bug description: Type annotation is lost when reassigned to a new variable in JITed code
+@torch.jit.script
+def fn():
+    x: int = 1
+    x = "foo"
+    return x

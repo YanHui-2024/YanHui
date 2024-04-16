@@ -1,0 +1,16 @@
+# API: JIT Overloading
+# Bug description: The following code fails to compile for the reason given in Traceback (in PyTorch v1.7.0):
+#                  It would be nice if we could suppress type comments with an annotation, like:
+#                      @jit._overload_method(ignore_name=True) ?
+#                  Note that I can remove the name and comment without warnings when decorating `forward` in `Foo`
+# PR Title: Torchscript does not work with type: ignore comments for mypy
+from torch import nn, jit, Tensor
+
+
+class Bar(nn.ModuleDict):
+    def forward(self, input: Tensor) -> Tensor:  # type: ignore[override]
+        pass
+
+
+bar = Bar()
+jit.script(bar)

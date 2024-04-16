@@ -1,0 +1,11 @@
+# API: torch.chunk
+# Bug description: in-place ops don't behave correctly after chunking when using @torch.jit.script in PyTorch v1.0.0
+import torch
+
+@torch.jit.script
+def foo(x):
+    chunked = torch.chunk(x, 2)
+    foo = chunked[0]
+    foo.add_(5)
+
+foo(torch.zeros(12))

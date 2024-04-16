@@ -1,0 +1,59 @@
+ torch.nn.Linear
+# Bug description: AttributeError when accessing in_features of a scripted model that has an nn.Linear component.
+#                  The attribute is available when the model is in eager mode, but not ScriptMode.
+
+# Title: [JIT] Cannot trace with no_grad to avoid memory leaks in training
+"""
+Output:
+>>> jit.trace(m, x, strict=False).apply(torch.no_grad())
+Traceback (most recent call last):
+  File "/home/james/anaconda3/lib/python3.7/site-packages/torch/jit/__init__.py", line 1205, in __call__
+    return self._script_method.__get__(self)(*args, **kwargs)
+RuntimeError: JIT tracing does not work with no_grad. Please use "with torch.no_grad():" instead.
+"""
+# Version: PyTorch version: 1.0.1
+# Labels: oncall: jit, triaged
+# PR Title: [JIT] Cannot trace with no_grad to avoid memory leaks in training
+import torch
+class Model(torch.jit.ScriptModule):
+    def __init__(self):
+        super().__init__()
+        self.linear = nn.Linear(3, 1)
+m = Model()
+x = torch.randn(5, 3)
+print(m(x))
+# API: torch.nn.Sequential, torch.nn.Linear, torch.jit.trace, torch.no_grad, torch.nn.Module.__call__
+# Bug description: JIT trace can not be done with no_grad
+
+# Title: [JIT] Cannot access nn.Embedding.num_embeddings in ScriptModule
+"""
+Output:
+Traceback (most recent call last):
+  File "/home/qbx2/anaconda3/lib/python3.7/site-packages/torch/jit/__init__.py", line 1099, in __getattr__
+    return ScriptModule.__getattr__(self, attr)
+  File "/home/qbx2/anaconda3/lib/python3.7/site-packages/torch/jit/__init__.py", line 965, in __getattr__
+    return Module.__getattr__(self, attr)
+  File "/home/qbx2/anaconda3/lib/python3.7/site-packages/torch/nn/modules/module.py", line 504, in __getattr__
+    type(self).__name__, name))
+AttributeError: 'WeakScriptModuleProxy' object has no attribute 'num_embeddings'
+During handling of the above exception, another exception occurred:
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/home/qbx2/anaconda3/lib/python3.7/site-packages/torch/jit/__init__.py", line 1096, in __getattr__
+    return getattr(self.__dict__["_original"](), attr)
+AttributeError: 'NoneType' object has no attribute 'num_embeddings'
+"""
+# Version: PyTorch version: 1.0.1
+# Labels: oncall: jit, triaged
+# PR Title: [JIT] Cannot access nn.Embedding.num_embeddings in ScriptModule
+import torch.nn as nn
+import torch.jit as jit
+class TestModel(torch.jit.ScriptModule):
+  def __init__(self):
+    super().__init__()
+    self.embed = nn.Embedding(10, 3)
+m = TestModel()
+print(m.embed.num_embeddings)
+# API: torch.nn.Sequential, torch.nn.Linear, torch.jit.trace, torch.no_grad, torch.nn.Module.__call__
+# Bug description: AttributeError when accessing num_embeddings of a scripted model that has an nn.Embedding component.
+#                  The attribute is available when the model is in eager mode, but not ScriptMode.

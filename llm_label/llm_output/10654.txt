@@ -1,0 +1,57 @@
+ torch.jit.trace
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v0.4.1
+
+# Title: Module list with custom autograd function crashing on backward pass
+"""
+Output:
+RuntimeError: Attempted to convert a source expression of floating point type [float] to a target type of [None].
+
+The problem is that the forward output of the CustomFunction is not the same as the
+backward input (both need to be float).
+
+CustomFunction should return either both Tensor or Tuple[Tensor, None], while your function returned float.
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit-frontend
+# PR Title: Module list with custom autograd function crashing on backward pass
+import torch
+from collections import namedtuple
+Point = namedtuple('Point', 'x y')
+class MyModule(torch.nn.Module):
+    def __init__(self, x1, y1, z):
+        super().__init__()
+        self.x1 = x1
+        self.y1 = y1
+        self.z2 = z
+    def forward(self, input):
+        return Point(input+self.x1, input+self.y1)
+class MyCustomFunction(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, input, offset):
+        ctx.save_for_backward(input, offset)
+        return input + offset  # returns Tensor instead of Tuple[Tensor, None]!
+    @staticmethod
+    def backward(ctx, gradOutput):
+        input, offset, = ctx.saved_tensors
+        print('gradInput: ', input)
+        if isinstance(offset, torch.autograd.Variable):
+            return Variable(offset.data)  # type: ignore[attr-defined]
+        else:
+            return gradOutput  # type: ignore[return-value]
+class TestFunction2(torch.nn.Module):
+    def __init__(self, x1, y1, z):
+        super().__init__()
+        self.x1 = x1
+        self.y1 = y1
+        self.z2 = z
+    def forward(self, input):
+        off_set = torch.randn(input.shape[0])  # type: ignore[attr-defined]
+        return MyModule(MyCustomFunction().apply(input+self.x1, off_set), input+self.y1, self.z2)
+if __name__ == "__main__":
+    example_input = torch.randn((32))  # type: ignore[attr-defined]
+    m = TestFunction2(10, 15, 'z')
+    print('forward result: ', m(example_input))
+# API: autograd.functional
+# Bug description: Module list with custom autograd function crashing on backward pass
+#                  when using torch.jit.trace in PyTorch v1.7.0

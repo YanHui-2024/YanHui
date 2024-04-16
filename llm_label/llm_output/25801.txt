@@ -1,0 +1,3 @@
+ torch.argmax()
+# Bug description: Unhighlighted code when using a list of ints
+#                  when using torch.argmax in PyTorch v1.2.0

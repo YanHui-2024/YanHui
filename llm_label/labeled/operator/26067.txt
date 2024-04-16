@@ -1,0 +1,23 @@
+# API: torch.nn.Module.add_module
+# Bug description: RuntimeError on model accepting a custom type of NamedTuple as input when using torch.jit.trace in PyTorch v1.2.0 and below
+class MyModule(torch.nn.Module):
+    # __constants__ = ['sub'] # adding just this line works
+    def __init__(self, sub):
+        super(MyModule, self).__init__()
+        # either of the following lines fails
+        self.add_module('sub', sub)
+        # or
+        self.sub = sub
+    
+    def forward(self, x):
+        x = x.relu()
+        if self.sub is not None:
+            x = self.sub(x)
+        return x+1
+
+m1 = MyModule(torch.nn.ReLU())
+m2 = MyModule(None)
+print(m1(torch.rand(5)))
+print(m2(torch.rand(5)))
+print(torch.jit.script(m1).code) # succeeds
+print(torch.jit.script(m2).code) # fails

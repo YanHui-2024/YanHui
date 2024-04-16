@@ -1,0 +1,85 @@
+# API: Dict membership checks in JIT Model
+# Bug description: RuntimeError: Dict membership checks not supported at the moment. Use `isinstance(key, type(dict-key))` instead.
+#                  RuntimeError: KeyError when accessing a key of an unordered map. This is expected behavior for dicts and should be handled explicitly using try-except.
+#                  In TorchScript, we only support ordered dict membership checks because of the lack of ordered map implementation in Python.
+#                  The following two lines can pass the sanity check:
+@torch.jit.script
+def fn2(x, y):
+# type: (Dict[int, int], int) -> bool
+if isinstance(y, torch.jit.Future[int]):
+return x[y] == 3
+else:
+return False
+print("fn2: ", fn2({1: 2}, 0))
+print("fn2: ", fn2({1: 2}, 1))
+@torch.jit.script
+def fn(x, y):
+    # type: (Dict[int, int], int) -> int
+    return x.get(y, 3)
+
+@torch.jit.script
+def fn(x, y):
+    # type: (Dict[int, int], int) -> int
+    if y in x:
+        return x[y]
+    else:
+        return 3
+
+d = {1: 2, 3: 4}
+print(fn.graph)
+print(fn(d, 3))
+print(fn(d, 2))
+
+
+# API: JIT Support for List indexing in 1.5.0
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.12.1
+from typing import List
+
+import torch as th
+
+class Mod(th.nn.Module):                                                                                                                                                                                                                    
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, s: str, l: List[str]):
+        return l.index(s)
+
+mod = Mod()
+th.jit.script(mod)
+
+
+# API: Dict in JIT Model
+# Bug description: a KeyError on model with custom activation
+#                  when accessing the property of Dict using torch.jit.script in PyTorch v1.11
+import torch
+from torch.fx import symbolic_trace
+from collections import namedtuple
+from typing import Dict, NamedTuple, Optional, Tuple
+
+class Point(NamedTuple):
+    x: Optional[torch.Tensor] = None
+    y: Optional[torch.Tensor] = None
+
+class M(torch.nn.Module):
+    def __init__(self):
+        super(M, self).__init__()
+
+    def forward(self, point: Point):
+        return point
+
+p = Point(x=torch.rand(3), y=torch.rand(3))
+scripted = torch.jit.script(M())
+
+
+# API: List
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.12.1
+@torch.jit.script
+def fn():
+    a = [1, 2, 3, 4]
+    return a[::-1]
+fn()
+
+
+# API:

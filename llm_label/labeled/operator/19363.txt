@@ -1,0 +1,14 @@
+# API: torch.nn.Linear
+# Bug description: AttributeError when accessing in_features of a scripted model that has an nn.Linear component.
+#                  The attribute is available when the model is in eager mode, but not ScriptMode.
+import torch.nn as nn
+import torch.jit as jit
+
+class TestModule(jit.ScriptModule):
+  def __init__(self):
+    super().__init__()
+    self.linear = nn.Linear(16, 16)
+
+
+m = TestModule()
+print(m.linear.in_features)

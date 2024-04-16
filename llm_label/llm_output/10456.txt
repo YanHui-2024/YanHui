@@ -1,0 +1,78 @@
+ torch.cat
+# Bug description: Crashes when using autocast on FusedConcat node and then tracing it to a graph
+#                  when using torch.jit.script in PyTorch v0.4.1
+
+# Title: [jit] RuntimeError with multiple jit.trace of the same function
+"""
+Output:
+RuntimeError: The following error occurred during execution: <runtime error> : uninitialized variable 0
+Traceback (most recent call last):
+  File "test/tinytest.py", line 25, in <module>
+    scripted = torch.jit.script(M())
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/__init__.py", line 1124, in script
+    return cls._jit_pass_compile(fn, named)
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/__init__.py", line 1092, in _jit_pass_compile
+    return self._recursive_script(fn)
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/__init__.py", line 1076, in _recursive_script
+    scripted = cls._run_compile(sub)
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/__init__.py", line 1069, in _run_compile
+    return self._script(fn)
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/__init__.py", line 1052, in _script
+    with torch.enable_grad(): return self._compile(scripted)
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/__init__.py", line 1037, in _compile
+    return torch._C._eval_script(fn)
+RuntimeError: The following error occurred during execution: <runtime error> : uninitialized variable 0
+Traceback (most recent call last):
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 217, in create_script_module_impl
+    return torch._C._create_inference_graph(fn)
+RuntimeError: The following error occurred during execution: <runtime error> : uninitialized variable 0
+Traceback (most recent call last):
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 217, in create_script_module_impl
+    return torch._C._create_inference_graph(fn)
+RuntimeError: The following error occurred during execution: <runtime error> : uninitialized variable 0
+Traceback (most recent call last):
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 217, in create_script_module_impl
+    return torch._C._create_inference_graph(fn)
+RuntimeError: The following error occurred during execution: <runtime error> : uninitialized variable 0
+Traceback (most recent call last):
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 217, in create_script_module_impl
+    return torch._C._create_inference_graph(fn)
+RuntimeError: The following error occurred during execution: <runtime error> : uninitialized variable 0
+Traceback (most recent call last):
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 217, in create_script_module_impl
+    return torch._C._create_inference_graph(fn)
+RuntimeError: The following error occurred during execution: <runtime error> : uninitialized variable 0
+Traceback (most recent call last):
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 217, in create_script_module_impl
+    return torch._C._create_inference_graph(fn)
+RuntimeError: The following error occurred during execution: <runtime error> : uninitialized variable 0
+Traceback (most recent call last):
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 217, in create_script_module_impl
+    return torch._C._create_inference_graph(fn)
+RuntimeError: The following error occurred during execution: <runtime error> : uninitialized variable 0
+Traceback (most recent call last):
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 217, in create_script_module_impl
+    return torch._C._create_inference_graph(fn)
+RuntimeError: The following error occurred during execution: <runtime error> : uninitialized variable 0
+Traceback (most recent call last):
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 217, in create_script_module_impl
+    return torch._C._create_inference_graph(fn)
+RuntimeError: The following error occurred during execution: <runtime error> : uninitialized variable 0
+Traceback (most recent call last):
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 217, in create_script_module_impl
+    return torch._C._create_inference_graph(fn)
+RuntimeError: The following error occurred during execution: <runtime error> : uninitialized variable 0
+Traceback (most recent call last):
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 217, in create_script_module_impl
+    return torch._C._create_inference_graph(fn)
+RuntimeError: The following error occurred during execution: <runtime error> : uninitialized variable 0
+Traceback (most recent call last):
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 217, in create_script_module_impl
+    return torch._C._create_inference_graph(fn)
+RuntimeError: The following error occurred during execution: <runtime error> : uninitialized variable 0
+Traceback (most recent call last):
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 217, in create_script_module_impl
+    return torch._C._create_inference_graph(fn)
+RuntimeError: The following error occurred during execution: <runtime error> : uninitialized variable 0
+Traceback (most recent call last):
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 217, in create_script_

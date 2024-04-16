@@ -1,0 +1,6 @@
+# API: Special Op(aten::normal_) in JIT Model
+# Bug description: a RuntimeError on model having aten::normal_ as an input to nn.Linear layer
+#                  when using torch.jit.script in PyTorch v1.7.1
+class Noise(nn.Module):
+    def forward(self, image):
+        return image.new_empty(2, 1, 3, 4).normal_()

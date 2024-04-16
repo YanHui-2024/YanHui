@@ -1,0 +1,18 @@
+# API: JIT Attribute type
+# Bug description: Jitted module can not access its properties of the correct type, which are defined as a torch.jit.Attribute on construction. The properties work properly during model execution but fail when inspecting a property as it is a JIT Attributes that is stored in the model graph and loaded back in again using the .script method.
+import torch
+from typing import Dict
+
+class AttributeModule(torch.nn.Module):
+    def __init__(self):
+        super(torch.nn.Module, self).__init__()
+        self.foo = torch.jit.Attribute(0.1, float)
+
+        # we should be able to use self.foo as a float here
+        assert 0.0 < self.foo
+
+        self.names_ages = torch.jit.Attribute({}, Dict[str, int])
+        self.names_ages["someone"] = 20
+        assert isinstance(self.names_ages["someone"], int)
+
+m = AttributeModule()

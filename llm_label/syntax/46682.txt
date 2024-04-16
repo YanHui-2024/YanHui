@@ -1,0 +1,20 @@
+# Title: Missing support in TorchScript: "in" operator to check if a string contains substring
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.6.0
+# Labels: oncall: jit, module: bootcamp, days
+# PR Title: 
+import torch
+from torch import nn
+
+class MyModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+    def forward(self):
+        return "a" in "abcd"
+
+m = MyModel()
+scripted = torch.jit.script(m)
+scripted()

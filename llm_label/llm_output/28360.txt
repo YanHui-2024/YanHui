@@ -1,0 +1,80 @@
+ JIT: tracing
+# Bug description: a RuntimeError on model accepting a custom type of NamedTuple
+#                  when using torch.jit.script in PyTorch v1.7.1
+
+# Title: Traced model containing Conv layer fails to execute correctly if the input is not in cpu memory but pinned memory
+"""
+Output:
+Traceback (most recent call last):
+  File "test/tinytest.py", line 29, in <module>
+    scripted = torch.jit.script(M())
+  File "/home/titaiwang/pytorch/torch/jit/_recursive.py", line 398, in create_script_module_impl
+  File "/home/titaiwang/pytorch/torch/jit/_trace.py", line 207, in trace_and_get_graph_from_model
+RuntimeError: The following operations failed to execute: prim::DifferentiableGraphFns::addmm
+
+Traceback (most recent call last):
+  File "test/tinytest.py", line 34, in <module>
+    print(scripted)
+  File "/home/titaiwang/pytorch/torch/jit/_trace.py", line 1257, in forward
+    outputs = self._concrete_args_call(*args, **kwargs)
+RuntimeError: The following operations failed to execute: prim::DifferentiableGraphFns::addmm
+"""
+# Version: PyTorch version: 1.4.0
+# Labels: high priority, module: cuda, oncall: jit, triaged
+# PR Title: Traced model containing Conv layer fails to execute correctly if the input is not in cpu memory but pinned memory
+import torch
+from torch.fx import symbolic_trace
+
+class M(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.cv1 = torch.nn.Conv2d(3, 3, 5, 2, 1)
+
+    def forward(self, x):
+        return self.cv1(x)
+
+m = M().eval()
+x = torch.randn(10, 3, 20, 20).cuda().pin_memory() # pinning memory can't solve the issue
+scripted = torch.jit.trace(m, x)
+print(scripted)
+# API: torch.nn.Conv2d, CUDA memory and pinned memory allocation
+# Bug description: a RuntimeError on model accepting a custom type of NamedTuple
+#                  when using torch.jit.script in PyTorch v1.7.1
+
+# Title: Conversion from fp16 to int8 not working for quantized conv2d and linear modules
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.4.0
+# Labels: high priority, module: torch.nn.quantized, oncall: jit, triaged
+# PR Title: Conversion from fp16 to int8 not working for quantized conv2d and linear modules
+import numpy as np
+import torch.nn as nn
+from torch.fx import symbolic_trace
+class M(torch.nn.Module):
+    def __init__(self, groups=1):
+        super().__init__()
+        self.groups = groups
+        # self.cv2 = torch.nn.Conv2d(3, 8, kernel_size=(5, 5), stride=(2, 2))
+        # self.cv1 = torch.nn.Conv2d(8, 3, kernel_size=(7, 7), stride=(2, 2), groups=groups)
+        # or
+        self.cv2 = torch.nn.Conv2d(3, 8, kernel_size=(5, 5), stride=(2, 2))
+        self.cv1 = nn.quantized.Conv2d(8, 3, kernel_size=(7, 7), stride=(2, 2), groups=groups)
+    def forward(self, x):
+        x = self.cv2(x)
+        x = self.cv1(x)
+        return x
+model = M().eval()
+scripted = torch.jit.script(model)
+# print("original:", scripted)
+x = torch.randn((1, 3, 20, 20), dtype=torch.float32)
+with torch.cuda.amp.autocast(), torch.no_grad():
+    y = model(x).cpu()
+# print("after conversion:", scripted)
+y_hat = scripted(x.half())
+print(np.mean((y - y_hat).abs().numpy()), np.max((y - y_hat).abs().numpy()))
+print(scripted.int8_calibration(torch.randn([1, 3, 20, 20], dtype=torch.float)))
+# API: torch.nn.quantized.Conv2d, CUDA memory and pinned memory allocation
+# Bug description: a RuntimeError on model accepting a custom type of NamedTuple
+#                  when using torch.jit.script in PyTorch v1.7.1

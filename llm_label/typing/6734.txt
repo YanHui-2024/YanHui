@@ -1,0 +1,15 @@
+# Title: [JIT] jit does not properly handle IntList[x] params
+"""
+Output:
+unknown builtin op:
+@torch.jit.script
+def func(x):
+    return torch.nn.functional.adaptive_avg_pool1d(x, output_size=1)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ <--- HERE
+"""
+# Version: None
+# Labels: oncall: jit
+# PR Title: [JIT] jit does not properly handle IntList[x] params
+@torch.jit.script
+def func(x):
+  return torch.nn.functional.adaptive_avg_pool1d(x, output_size=1)

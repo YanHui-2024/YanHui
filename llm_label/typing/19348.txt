@@ -1,0 +1,67 @@
+# Title: [JIT] isinstance(m, nn.Linear) returns False in ScriptModules
+"""
+Output:
+$ python test.py
+SomeScriptModule(
+  (linear): WeakScriptModuleProxy()
+  (conv2d): WeakScriptModuleProxy()
+  (conv3d): WeakScriptModuleProxy()
+  (gru): GRU(16, 16)
+  (lstm): LSTM(16, 16)
+) <class '__main__.SomeScriptModule'>
+??????
+WeakScriptModuleProxy() <class 'torch.jit.WeakScriptModuleProxy'>
+??????
+WeakScriptModuleProxy() <class 'torch.jit.WeakScriptModuleProxy'>
+??????
+WeakScriptModuleProxy() <class 'torch.jit.WeakScriptModuleProxy'>
+??????
+GRU(16, 16) <class 'torch.nn.modules.rnn.GRU'>
+m is GRU
+LSTM(16, 16) <class 'torch.nn.modules.rnn.LSTM'>
+m is LSTM
+"""
+# Version: PyTorch version: 1.0.1
+# Labels: oncall: jit, low priority
+# PR Title: [JIT] isinstance(m, nn.Linear) returns False in ScriptModules
+import torch.nn as nn
+import torch.jit as jit
+
+
+class SomeScriptModule(jit.ScriptModule):
+    def __init__(self):
+        super().__init__()
+
+        self.linear = nn.Linear(16, 16)
+        self.conv2d = nn.Conv2d(3, 8, 3)
+        self.conv3d = nn.Conv3d(3, 8, 3)
+        self.gru = nn.GRU(16, 16)
+        self.lstm = nn.LSTM(16, 16)
+
+        for m in self.modules():
+            print(m, type(m))
+
+            if isinstance(m, nn.Linear):
+                print(f'm is Linear')
+                continue
+
+            if isinstance(m, nn.Conv2d):
+                print(f'm is Conv2d')
+                continue
+
+            if isinstance(m, nn.Conv3d):
+                print(f'm is Conv3d')
+                continue
+
+            if isinstance(m, nn.GRU):
+                print(f'm is GRU')
+                continue
+
+            if isinstance(m, nn.LSTM):
+                print(f'm is LSTM')
+                continue
+
+            print('??????')
+
+
+SomeScriptModule()

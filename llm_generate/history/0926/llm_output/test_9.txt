@@ -1,0 +1,20 @@
+# API: JITed function in __init__() does not work
+import torch
+from torch import fx
+
+class FooModel(torch.nn.Module):
+    def __init__(self, foo):
+        super().__init__()
+        self.register_buffer('foo', foo)
+    
+    def forward(self, x):
+        return x + self.foo
+    
+    @staticmethod
+    def bar():
+        return 0.
+    
+model = FooModel(torch.zeros(()))
+scripted = torch.jit.script(FooModel) # ok
+print(scripted(torch.ones(2, 3)))
+# scripted_foo = torch.jit.script(FooModel.bar) # not ok

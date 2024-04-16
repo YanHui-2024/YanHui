@@ -1,0 +1,32 @@
+ Tensor
+# Bug description: Tracing fails when the jitted operator takes a tuple of tensors as input, but works with a list of tensors.
+
+# Title: JIT-scripted module incompatible between C++ and Python when I try to use an attribute with name starting with underscore
+"""
+Output:
+Traceback (most recent call last):
+  File "traced_test.py", line 20, in <module>
+    print(torch.jit.script(test)())
+RuntimeError: [JIT] Error compiling the script with Python interface
+<class 'AttributeError'> AttributeError('\'TorchBindTest\' object has no attribute \'foo\'' (<class \'TorchBindTest\'>, _stackless.frame object at 0x7f59d8612a48>)
+    raised from /pytorch/torch/csrc/jit/python/python_tracer.cpp:239
+"""
+# Version: PyTorch version: 1.11.0
+# Labels: oncall: jit, module: python-interface
+# PR Title: JIT-scripted module incompatible between C++ and Python when I try to use an attribute with name starting with underscore
+class TorchBindTest(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self._foo = 10
+    def forward(self):
+        return self._foo + 30, 42
+# print(torch.jit.script(test)()) # works
+@torch.jit.script
+def test():
+    t = TorchBindTest()
+    t._foo = 15
+    outs = t()
+    return outs[0] + 2, outs[1] * 3
+print(test()) # fails here
+# API: TorchBindTest
+# Bug description: JIT-scripted module incompatible between C++ and Python when I try to use an attribute with name starting with underscore

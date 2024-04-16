@@ -1,0 +1,52 @@
+# Title: [JIT][ONNX] aten::add and aten::sub ST overloads don't have alpha, so they don't match the ONNX symbolic
+"""
+Output:
+aten::size(Tensor self, int dim) -> int
+aten::add(Tensor self, Tensor other, *, Scalar alpha=<default>) -> Tensor
+aten::add(Tensor self, Scalar other, Scalar alpha=<default>) -> Tensor
+aten::add(int[] a, int[] b) -> int[]
+aten::add(float[] a, float[] b) -> float[]
+aten::add(Tensor[] a, Tensor[] b) -> Tensor[]
+aten::add(int a, int b) -> int
+aten::size(Tensor self, int dim) -> int
+aten::add(Tensor self, Tensor other, *, Scalar alpha=<default>) -> Tensor
+aten::add(Tensor self, Scalar other, Scalar alpha=<default>) -> Tensor
+aten::add(int[] a, int[] b) -> int[]
+aten::add(float[] a, float[] b) -> float[]
+aten::add(Tensor[] a, Tensor[] b) -> Tensor[]
+aten::add(int a, int b) -> int
+Traceback (most recent call last):
+  File "test_sub.py", line 14, in <module>
+    torch.onnx._export(SomeModule(), (torch.rand(3, 4),), f, verbose=True, example_outputs=example_outputs)
+  File "/Users/jamesreed/onnx-fairseq/pytorch/torch/onnx/__init__.py", line 22, in _export
+    return utils._export(*args, **kwargs)
+  File "/Users/jamesreed/onnx-fairseq/pytorch/torch/onnx/utils.py", line 257, in _export
+    example_outputs, propagate)
+  File "/Users/jamesreed/onnx-fairseq/pytorch/torch/onnx/utils.py", line 210, in _model_to_graph
+    graph = _optimize_graph(graph, operator_export_type)
+  File "/Users/jamesreed/onnx-fairseq/pytorch/torch/onnx/utils.py", line 138, in _optimize_graph
+    graph = torch._C._jit_pass_onnx(graph, operator_export_type)
+  File "/Users/jamesreed/onnx-fairseq/pytorch/torch/onnx/__init__.py", line 52, in _run_symbolic_function
+    return utils._run_symbolic_function(*args, **kwargs)
+  File "/Users/jamesreed/onnx-fairseq/pytorch/torch/onnx/utils.py", line 480, in _run_symbolic_function
+    return fn(g, *inputs, **attrs)
+  File "/Users/jamesreed/onnx-fairseq/pytorch/torch/onnx/symbolic.py", line 82, in wrapper
+    assert len(arg_descriptors) == len(args)
+"""
+# Version: PyTorch version: 0.4.1
+# Labels: oncall: jit
+# PR Title: [JIT][ONNX] aten::add and aten::sub ST overloads don't have alpha, so they don't match the ONNX symbolic
+import torch
+
+class SomeModule(torch.jit.ScriptModule):
+
+    @torch.jit.script_method
+    def forward(self, x : torch.Tensor):
+        bs = x.size(0)
+        return bs + 1
+
+example_outputs = (torch.LongTensor([SomeModule()(torch.rand(3, 4))]),)
+
+import io
+f = io.BytesIO()
+torch.onnx._export(SomeModule(), (torch.rand(3, 4),), f, verbose=True, example_outputs=example_outputs)

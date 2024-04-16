@@ -1,0 +1,62 @@
+# API: Capturing loop-carried dependencies across nested blocks in JITed code.
+# Bug description: A bug where jit.script doesn't capture a loop carried dependency in an outer block when it is returned in the inner block and passed to an outer block's function call.
+#                  When using torch.jit.script on this function, a RuntimeError will be thrown saying that "capture_bug() needs to return output". It seems like this issue is specific to a for loop and it has something to do with capturing the current loop variable into outer blocks when the current block's body returns something. This reproduces fine in 1.0
+#                  using torch.jit.script on capture_bug() without any options works as expected and doesn't throw an error, but this is not a solution for the general case since I want to be able to use torch.jit.script here without modifying capture_bug() itself (which could have multiple loops or other constructs)
+print(capture_bug(torch.randn(3)))
+import torch
+
+@torch.jit.script
+def capture_bug(x):
+    output = 0
+    for i in range(20):
+        if i == 0:
+            output = x.unsqueeze(0)
+        else:
+            output = torch.cat((output, x.unsqueeze(0)), dim=0)
+    return output
+
+print(capture_bug.graph)
+
+
+# API: Modulo
+# Bug description: SyntaxError on model using modulo operation with torch.jit.script in PyTorch v1.5.0
+@torch.jit.script
+def mm(a,b):
+    a %= b
+    return a
+
+
+# API: isinstance and type(obj)
+# Bug description: isinstance complains on a Tensor inside of a dict
+#                  when using torch.jit in PyTorch v1.5.0
+isinstance(foo, Dict[str, Tensor])
+
+
+# API: Optional[Module]
+# Bug description: Scripting leads to a nullptr dereference error on an Optional field during __init__.
+import torch
+from typing import Optional
+
+class MyModule(torch.nn.Module):
+    submod: Optional[torch.nn.Linear]
+
+    def __init__(self):
+        super(MyModule, self).__init__()
+        self.submod = None
+
+    def init_params(self, input):
+        # NOTE: This function is called *before* forward (by another caller function),
+        # not *by* forward, so it's not scripted.
+        # In fact, you can remove this `init_params` function and see the same segfault.
+        self.submod = torch.nn.Linear(input[-1], 5)
+    
+    def forward(self, input):
+        submod = self.submod
+        assert submod is not None
+        return submod(input)
+    
+m = MyModule()
+print(torch.jit.script(m))
+
+
+# API:

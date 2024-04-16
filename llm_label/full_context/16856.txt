@@ -1,0 +1,197 @@
+# Title: REGR: Accessing dict in JITed code in 1.11
+"""
+Output:
+python test.py
+Traceback (most recent call last):
+  File "test.py", line 43, in <module>
+    x, xs = model.forward(torch.ones(10, 10), {})
+RuntimeError: The following operation failed in the TorchScript interpreter.
+Traceback of TorchScript (most recent call last):
+  File "test.py", line 36, in forward
+            x = torch.cat((x, score), dim=1)  # removing this line makes it work
+        else:
+            x, meta = self.activation(x, meta)
+                      ~~~~~~~~~~~~~~~ <--- HERE
+        meta["meta_y_hat"] = x  # removing this line makes it work
+        return meta["meta_y_hat"], meta
+  File "test.py", line 13, in forward
+        meta["meta_y_hat"] = x
+        # return x, meta # would make it work
+        return meta["meta_y_hat"], meta  # JIT claims it errors here
+               ~~~~~~~~~~~~~~~~~ <--- HERE
+RuntimeError: KeyError: meta_y_hat
+"""
+# Version: PyTorch version: 1.11.0
+# Labels: oncall: jit
+# PR Title: REGR: Accessing dict in JITed code in 1.11
+from typing import Final
+import torch
+class LinearActivation(torch.nn.Module):
+    def forward(
+        self, x: torch.Tensor, meta: dict[str, torch.Tensor]
+    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        meta = meta.copy()
+        meta["meta_y_hat"] = x
+        # return x, meta # would make it work
+        return meta["meta_y_hat"], meta  # JIT claims it errors here
+class Test(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.flag: Final = ""
+        self.activation = LinearActivation()
+    def forward(
+        self, x: torch.Tensor, meta: dict[str, torch.Tensor]
+    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        meta = meta.copy()
+        if self.flag != "":  # this branch should not even be compiled
+            # assert False # would make it work
+            score = x[:, -1:]
+            x, meta = self.activation(
+                x[:, :, :-1],  # replacing this with x, would make it work
+                meta,
+            )
+            x = torch.cat((x, score), dim=1)  # removing this line makes it work
+        else:
+            x, meta = self.activation(x, meta)
+        meta["meta_y_hat"] = x  # removing this line makes it work
+        return meta["meta_y_hat"], meta
+if __name__ == "__main__":
+    model = torch.jit.script(Test())
+    x, xs = model.forward(torch.ones(10, 10), {})
+# API: Dict in JIT Model
+# Bug description: a KeyError on model with custom activation
+#                  when accessing the property of Dict using torch.jit.script in PyTorch v1.11
+
+# Title: Support default values on NamedTuple fields
+"""
+Output:
+Traceback (most recent call last):
+  File "test/tinytest.py", line 22, in <module>
+    scripted = torch.jit.script(M())
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_script.py", line 947, in script
+    return torch.jit._recursive.create_script_module(
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 398, in create_script_module
+    return create_script_module_impl(nn_module, concrete_type, stubs_fn)
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 459, in create_script_module_impl
+    create_methods_and_properties_from_stubs(concrete_type, method_stubs, property_stubs)
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/_recursive.py", line 341, in create_methods_and_properties_from_stubs
+    concrete_type._create_methods_and_properties(property_defs, property_rcbs, method_defs, method_rcbs, method_defaults)
+  File "/home/ansley/local/miniconda3/envs/pytorch/lib/python3.8/site-packages/torch/jit/annotations.py", line 351, in try_ann_to_type
+    return torch._C._resolve_type_from_object(ann, loc, fake_rcb)
+RuntimeError: 
+Default values are currently not supported on NamedTuple fields in TorchScript. Fields with default values: [xy]:
+  File "test/tinytest.py", line 17
+    def forward(self, point: Point):
+                             ~~~~~ <--- HERE
+        return point
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit
+# PR Title: 
+import torch
+from torch.fx import symbolic_trace
+from collections import namedtuple
+from typing import Dict, NamedTuple, Optional, Tuple
+class Point(NamedTuple):
+    x: Optional[torch.Tensor] = None
+    y: Optional[torch.Tensor] = None
+class M(torch.nn.Module):
+    def __init__(self):
+        super(M, self).__init__()
+    def forward(self, point: Point):
+        return point
+p = Point(x=torch.rand(3), y=torch.rand(3))
+scripted = torch.jit.script(M())
+# API: NamedTuple in JIT Model
+# Bug description: a RuntimeError on model accepting a custom type of NamedTuple
+#                  when using torch.jit.script in PyTorch v1.7.1
+
+# Title: torch.jit.trace doesn't work with autocast on Conv node.
+"""
+Output:
+ERROR: Graphs differed across invocations!
+        Graph diff:
+                  graph(%self.1 : __torch__.MyModule,
+                        %x : Tensor):
+                    %cv1 : __torch__.torch.nn.modules.conv.Conv2d = prim::GetAttr[name="cv1"](%self.1)
+                    %4 : int = prim::Constant[value=15]()
+                +   %9 : Tensor = prim::Constant[value=0.01 *  6.7810  6.4636  5.3894 [ CUDAHalfType{3} ]](), scope: __module.cv1 # /home/titaiwang/pytorch/torch/nn/modules/conv.py:459:0
+                +   %10 : Tensor = prim::Constant[value=<Tensor>](), scope: __module.cv1 # /home/titaiwang/pytorch/torch/nn/modules/conv.py:459:0
+                ?             ^
+                +   return (%22)
+                ?             ^
+        First diverging operator:
+        Node diff:
+                - %cv1 : __torch__.torch.nn.modules.conv.___torch_mangle_2.Conv2d = prim::GetAttr[name="cv1"](%self.1)
+                ?                                                        ^
+                + %cv1 : __torch__.torch.nn.modules.conv.___torch_mangle_4.Conv2d = prim::GetAttr[name="cv1"](%self.1)
+                ?                                                        ^
+"""
+# Version: PyTorch version: 1.12.1
+# Labels: oncall: jit, module: onnx, module: amp (automated mixed precision), onnx-triaged
+# PR Title: torch.jit.trace doesn't work with autocast on Conv node.
+import torch
+
+class MyModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.cv1 = torch.nn.Conv2d(3, 3, 5, 2, 1)
+
+    def forward(self, x):
+        x = self.cv1(x)
+        return x
+
+x = torch.randn(10, 3, 20, 20) * 2
+m = MyModule().eval()
+x = x.cuda()
+m = m.cuda()
+
+with torch.no_grad():
+    print("outside result: ", torch.jit.trace(m, x))
+    with torch.cuda.amp.autocast(enabled = True, dtype=torch.float16):
+        print("inside result: ", torch.jit.trace(m, x))
+# API: torch.nn.Conv2d
+# Bug description: Trace sanity check fails when using autocast on Conv node
+#                  when using torch.jit.trace in PyTorch v1.12.1
+
+# Title: Type cannot be accurately recovered from this IValue for unordered_map
+"""
+Output:
+Terminate c10::Error(Type cannot be accurately recovered from this IValue. (incompleteInferTypeFrom at ../aten/src/ATen/core/type.cpp:149) frame #0: c10::Error::Error(c10::SourceLocation, std::string const&) + 0x45 ( in ../lib/third_party/libc10.so) frame #1: c10::incompleteInferTypeFrom(c10::IValue const&) + 0x3b4 ( in ../lib/third_party/libcaffe2.so) frame #2: c10::isSubvalueOf(c10::IValue const&, std::shared_ptr<c10::Type>) + 0x25 ( in ../lib/third_party/libcaffe2.so) frame #3: <unknown function> + 0x5b54d0 ( in ../lib/third_party/libcaffe2.so) frame #4: c10::isSubvalueOf(c10::IValue const&, std::shared_ptr<c10::Type>) + 0x15e ( in ../lib/third_party/libcaffe2.so) frame #5: torch::jit::script::Method::checkInputsAgainstSchema(std::vector<c10::IValue, std::allocator<c10::IValue> >&) + 0x268 ( in ../lib/libml_libtorch_estimator.so) frame #6: torch::jit::script::Module::forward(std::vector<c10::IValue, std::allocator<c10::IValue> >) + 0x71 ( in ../lib/libml_libtorch_estimator.so) frame #7: std::map<std::string, at::Tensor, std::less<std::string>, std::allocator<std::pair<std::string const, at::Tensor> > > ml::libtorch_estimator::infer<at::Tensor>(bool) + 0x228 ( in ../lib/libml_libtorch_estimator.so) frame #8: load_and_run_model(std::string) + 0x1643 ( in ./bin/inference) frame #9: main + 0x154 ( in ./bin/inference) frame #10: __libc_start_main + 0xf5 ( in /lib/x86_64-linux-gnu/libc.so.6) frame #11: ./bin/inference() [] ) {
+  libstdc++.so.6.0.19 5e6d6 eh_terminate.cc:42 __cxxabiv1::__terminate(void (*)())
+  libstdc++.so.6.0.19 5e703
+  libstdc++.so.6.0.19 5e922
+  libcaffe2.so 5b4dbb c10::incompleteInferTypeFrom(c10::IValue const&)
+  libcaffe2.so 5b5275 c10::isSubvalueOf(c10::IValue const&, std::shared_ptr<c10::Type>)
+  libcaffe2.so 5b54d0 c10::isSubvalueOf(c10::IValue const&, std::shared_ptr<c10::Type>)::{lambda(c10::IValue const&)#1}::operator()(c10::IValue const&) const
+  libcaffe2.so 5b53ae c10::isSubvalueOf(c10::IValue const&, std::shared_ptr<c10::Type>)
+  libml_libtorch_estimator.so 1c448 torch::jit::script::Method::checkInputsAgainstSchema(std::vector<c10::IValue, std::allocator<c10::IValue> >&)
+  libml_libtorch_estimator.so 141d1 torch::jit::script::Module::forward(std::vector<c10::IValue, std::allocator<c10::IValue> >)
+  libml_libtorch_estimator.so 10b48 std::map<std::string, at::Tensor, std::less<std::string>, std::allocator<std::pair<std::string const, at::Tensor> > > ml::libtorch_estimator::infer<at::Tensor>(bool)
+  inference 40c483 load_and_run_model(std::string)
+  inference 40e184 main
+  libc-2.19.so 21f45 libc-start.c:321 __libc_start_main
+  inference 40ad77 _start
+}
+terminate called after throwing an instance of 'c10::Error'
+  what():  Type cannot be accurately recovered from this IValue. (incompleteInferTypeFrom at ../aten/src/ATen/core/type.cpp:149)
+frame #0: c10::Error::Error(c10::SourceLocation, std::string const&) + 0x45 ( in ../lib/third_party/libc10.so)
+frame #1: c10::incompleteInferTypeFrom(c10::IValue const&) + 0x3b4 ( in ../lib/third_party/libcaffe2.so)
+frame #2: c10::isSubvalueOf(c10::IValue const&, std::shared_ptr<c10::Type>) + 0x25 ( in ../lib/third_party/libcaffe2.so)
+frame #3: <unknown function> + 0x5b54d0 ( in ../lib/third_party/libcaffe2.so)
+frame #4: c10::isSubvalueOf(c10::IValue const&, std::shared_ptr<c10::Type>) + 0x15e ( in ../lib/third_party/libcaffe2.so)
+frame #5: torch::jit::script::Method::checkInputsAgainstSchema(std::vector<c10::IValue, std::allocator<c10::IValue> >&) + 0x268 ( in ../lib/libml_libtorch_estimator.so)
+frame #6: torch::jit::script::Module::forward(std::vector<c10::IValue, std::allocator<c10::IValue> >) + 0x71 ( in ../lib/libml_libtorch_estimator.so)
+frame #7: std::map<std::string, at::Tensor, std::less<std::string>, std::allocator<std::pair<std::string const, at::Tensor> > > ml::libtorch_estimator::infer<at::Tensor>(bool) + 0x228 ( in ../lib/libml_libtorch_estimator.so)
+frame #8: load_and_run_model(std::string) + 0x1643 ( in ./bin/inference)
+frame #9: main + 0x154 ( in ./bin/inference)
+frame #10: __libc_start_main + 0xf5 ( in /lib/x86_64-linux-gnu/libc.so.6)
+frame #11: ./bin/inference() []
+"""
+# Version: PyTorch version: 1.0.1
+# Labels: oncall: jit
+# PR Title: Type cannot be accurately recovered from this IValue for unordered_map
+@torch.jit.script_method
+    def forward(self, list_of_frame_dictionaries):
+        # type: (List[Dict[str, Tensor]]) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor] # noqa
+# API:

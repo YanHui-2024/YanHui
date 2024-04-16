@@ -1,0 +1,58 @@
+# Title: torch.jit.Final does not work in Pytorch1.7 + Python3.6
+"""
+Output:
+Traceback (most recent call last):
+  File "/a.py", line 24, in <module>
+    b = torch.jit.script(b)
+  File "/usr/local/lib/python3.6/site-packages/torch/jit/_script.py", line 898, in script
+    obj, torch.jit._recursive.infer_methods_to_compile
+  File "/usr/local/lib/python3.6/site-packages/torch/jit/_recursive.py", line 352, in create_script_module
+    return create_script_module_impl(nn_module, concrete_type, stubs_fn)
+  File "/usr/local/lib/python3.6/site-packages/torch/jit/_recursive.py", line 410, in create_script_module_impl
+    create_methods_and_properties_from_stubs(concrete_type, method_stubs, property_stubs)
+  File "/usr/local/lib/python3.6/site-packages/torch/jit/_recursive.py", line 304, in create_methods_and_properties_from_stubs
+    concrete_type._create_methods_and_properties(property_defs, property_rcbs, method_defs, method_rcbs, method_defaults)
+RuntimeError: 
+Module 'A' has no attribute 'dim' :
+  File "/a.py", line 21
+    def forward(self, x):
+        return self.a(x) + self.a.dim
+                           ~~~~~~~~~~ <--- HERE
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit, days
+# PR Title: 
+# Dockerfile
+FROM python:3.6-slim-buster
+USER root
+WORKDIR /root
+RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install torch==1.7.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+COPY a.py /
+RUN python3 /a.py
+
+# a.py:
+import torch
+from torch import nn
+
+class A(nn.Module):
+    dim: torch.jit.Final[int] = 4
+
+    def __init__(self):
+        super().__init__()
+        self.l = nn.Linear(10, 10)
+
+    def forward(self, x):
+        return self.l(x)
+
+
+class B(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.a = A()
+
+    def forward(self, x):
+        return self.a(x) + self.a.dim
+
+b = B()
+b = torch.jit.script(b)

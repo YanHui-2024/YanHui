@@ -1,0 +1,19 @@
+# Title: Scripting torch.nn.MaxPool fails when return_indices=True
+"""
+Output:
+RuntimeError:
+Return value was annotated as having type Tensor but is actually of type Tuple[Tensor, Tensor]:
+  File "/opt/anaconda3/lib/python3.8/site-packages/torch/nn/modules/pooling.py", line 227
+    def forward(self, input: Tensor) -> Tensor:
+        return F.max_pool3d(input, self.kernel_size, self.stride,
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            self.padding, self.dilation, self.ceil_mode,
+                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            self.return_indices)
+                            ~~~~~~~~~~~~~~~~~~~ <--- HERE
+"""
+# Version: PyTorch version: 1.6.0
+# Labels: oncall: jit, module: nn, module: typing, module: pooling
+# PR Title: 
+model = torch.nn.MaxPool1d(2, stride=1, return_indices=True)
+torch.jit.script(model)

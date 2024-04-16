@@ -1,0 +1,110 @@
+
+# Bug description: metacompiling a model with ternary operators fails to jit-compile
+#                  when using torch.jit in PyTorch v1.7.1
+
+# Title: [jit] metacompile does not work for List
+"""
+Output:
+list: __torch__.List = prim::ListConstruct[](
+        :__torch__.foo,
+        )
+    - list : __torch__.List = prim::ListConstruct[](
+            :__torch__.bar)
+        ?     ^
+    +   return %4 # /usr/local/lib64/python3.8/site-packages/torch/nn/modules/activation.py:139:0
+        ?                      ~~~~~~~~~~~~~~~~~~~ <--- HERE
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit, days, TSRootCause:TypeRefinement, TSUsability
+# PR Title: [jit] metacompile does not work for List
+class MyModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+    def forward(self) -> torch.Tensor:
+        return []
+# API:
+# Bug description: metacompiling a model with Lists fails to jit-compile
+#                  when using torch.jit in PyTorch v1.7.1
+
+# Title: [jit] metacompile fails on if-statement with no else block, which checks an attribute of a NamedTuple
+"""
+Output:
+if-statement has type Tensor but is expected to be a NoneType:
+        %10 : __torch__.foo = prim::GetAttr[name="foo"]
+        (%self)
+    - if (%26)  # /home/titaiwang/pytorch/test.py:73:4
+        -> with () -> Tensor {}:
+            %19 : __torch__.bar = prim::GetAttr[name="bar"]
+            %28 : NoneType = prim::Constant()
+            %30 : int = prim::Constant[value=0]()
+            %44 : Tensor = aten::add%[(Tensor, Tensor) -> (Tensor)](%19, %28, %30)
+        ?     ^
+    +   return %45 # /home/titaiwang/pytorch/test.py:76:0
+        ?                  ~~~~~~~~~~~~~~~~ <--- HERE
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit, days, TSRootCause:TypeRefinement, TSUsability
+# PR Title: [jit] metacompile fails on if-statement with no else block, which checks an attribute of a NamedTuple
+from typing import Final
+import torch
+class LinearActivation(torch.nn.Module):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x
+class Test(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.flag = False
+        self.activation = LinearActivation()
+        Point = NamedTuple("Point", [('x', torch.Tensor), ('y', torch.Tensor)])
+    def forward(self, point: Point) -> torch.Tensor:
+        if self.flag:
+            x = 1
+        else:
+            score = point[:, -1]
+            x = self.activation(point[:, : -1])
+        return x + score
+# API: namedtuple
+# Bug description: metacompiling a model with NamedTuples fails to jit-compile
+#                  when using torch.jit in PyTorch v1.7.1
+
+# Title: [jit] Metacompiler crashes on if-statement when the second branch has a return statement, and the first does not
+"""
+Output:
+if-expression's false branch has type Tensor but true branch has type NoneType:
+        %10 : __torch__.foo = prim::GetAttr[name="foo"]
+        (%self)
+    - if (%26)  # /home/titaiwang/pytorch/test.py:75:4
+        -> with () -> Tensor {}:
+            %19 : __torch__.bar = prim::GetAttr[name="bar"]
+            %28 : NoneType = prim::Constant()
+            %30 : int = prim::Constant[value=0]()
+    ?     ^
+    +   return %28 # /home/titaiwang/pytorch/test.py:76:0 <--- HERE
+        ?                          ~~~~~~~~~~~~~~~~
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit, days, TSRootCause:TypeRefinement, TSUsability
+# PR Title: [jit] Metacompiler crashes on if-statement when the second branch has a return statement, and the first does not
+from typing import Final
+import torch
+class LinearActivation(torch.nn.Module):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x
+class Test(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.flag = False
+        self.activation = LinearActivation()
+        Point = NamedTuple("Point", [('x', torch.Tensor), ('y', torch.Tensor)])
+    def forward(self, point: Point) -> torch.Tensor:
+        if not self.flag:
+            x = 1
+            y = 2
+            score = 3
+        else:
+            x = 4
+            score = None
+        return x + score
+# API: namedtuple, if-statement
+# Bug description: metacompiling a model with NamedTuples fails to jit-compile
+#                  when using torch.jit in PyTorch v1.7.1

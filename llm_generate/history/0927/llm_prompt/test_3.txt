@@ -1,0 +1,40 @@
+# API: builtin function on JIT mode
+# Bug description: inconsistent results of string `split` func on JIT mode
+import torch
+from typing import List
+def simple_split(txt: str) -> List[str]:
+	return txt.split()
+ss = simple_split
+jit_ss = torch.jit.script(ss)
+ss('simple     split example') == jit_ss('simple     split example')
+
+
+# API: torch.normal / torch.distributions
+# Bug description: Tracer throws runtime exception for torch.normal in PyTorch v0.4.1
+def fn(mean, std):
+    return torch.normal(mean, std)
+
+compiled_fn = torch.jit.trace(fn, (torch.zeros(2, 3), torch.ones(2, 3)))
+
+
+# API: torch.nn.functional.softmax
+# Bug description: Bad error message when creating a class instance in script functions
+#                  in PyTorch v1.0.0
+import torch
+import torch.nn as nn
+
+@torch.jit.script
+def f(x):
+    return nn.Softmax(dim=-1)(x)
+
+
+# API: ScriptModule with optimize flag set to False
+# Bug description: the PYTORCH_JIT environment variable should not influence
+#                  the behavior of torch.jit.script
+import torch
+class ConstantTensor(torch.jit.ScriptModule):
+    def __init__(self):
+        super(ConstantTensor, self).__init__(optimize=False)
+
+
+# API:

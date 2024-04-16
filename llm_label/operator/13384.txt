@@ -1,0 +1,20 @@
+# Title: Fuser can incorrectly fuse comparison ops at the end of fusion groups
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.0rc1
+# Labels: oncall: jit
+# PR Title: Fuser can incorrectly fuse comparison ops at the end of fusion groups
+import torch
+
+def f(x, y, z):
+    return ((x + y) / z) >= z
+
+inputs = [torch.randn(2, 2, device='cuda') for _ in range(3)]
+real_output = f(*inputs)
+fs = torch.jit.script(f)
+output = fs(*inputs)
+print(fs.graph_for(*inputs))
+print(output)
+print(real_output)

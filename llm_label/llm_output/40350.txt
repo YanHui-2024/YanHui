@@ -1,0 +1,23 @@
+ jit.trace(example_input) and onnx.export(args)
+# Bug description: PyTorch throws a warning when using the type string of an argument as the input of the trace or export functions 
+#                 (i.e. use example_inputs=x, args=(x,)).
+#                 This works without warnings (i.e. use example_inputs=(x,) or args=x)
+
+# Title: JIT compilation incompatibility with Python native type checker (no longer exists in 1.5?)
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.4.0
+# Labels: oncall: jit, module: onnx
+# PR Title: JIT compilation incompatibility with Python native type checker (no longer exists in 1.5?)
+import torch
+import unittest
+class Test(unittest.TestCase):
+    def test_type_error(self):
+        class MyModule(torch.jit.ScriptModule):
+            @torch.jit.script_method
+            def forward(self, x: int) -> float:
+                return 1
+        with self.assertRaisesRegex(RuntimeError, "Can't have a UnionType"):
+            torch.jit.trace(MyModule(), None)

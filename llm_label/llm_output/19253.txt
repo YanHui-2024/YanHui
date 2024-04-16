@@ -1,0 +1,2 @@
+ Power function in JIT module
+# Bug description: Torch.pow error in script module

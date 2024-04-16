@@ -1,0 +1,48 @@
+ if-statements with boolean literals or constants in jit script
+# Bug description: metacompile fails when using a bool literal as condition of an if statement, such as `if True`
+
+# Title: [jit] Unused return values are not correctly ignored during compilation
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit
+# PR Title: [jit] Unused return values are not correctly ignored during compilation
+import torch
+def unreachable():
+    a = 'unused!'
+    b = 'unused'
+    return 1
+class A(torch.nn.Module):
+    def forward(self, x: int) -> int:
+        #if x == 0:
+            #return 123
+        if unreachable() == 1:
+            return -1
+        else:
+            return x + 10
+f = torch.jit.script(A())
+f(-1)
+# API: Unused return values are not correctly ignored during compilation in jit script
+# Bug description: metacompile fails when unreachable code is present after a function call whose result is not used
+
+# Title: [jit] if-statements with boolean literals or constants do not work as expected
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.7.0
+# Labels: oncall: jit
+# PR Title: [jit] if-statements with boolean literals or constants do not work as expected
+import torch
+@torch.jit.script
+def foo(x):
+    if x == 0:
+        return True
+    else:
+        return False
+f = A()
+f(-1)
+# API: if-statements with boolean literals or constants do not work as expected in jit script
+# Bug description: metacompile fails when using a bool literal as condition of an if statement, such as `if True`

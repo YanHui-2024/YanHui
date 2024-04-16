@@ -1,0 +1,103 @@
+# API: List Comprehension
+# Bug description: List comprehension doesn't work with torch.jit.trace in PyTorch v1.1.0
+@torch.jit.script
+def f():
+    x = [i for i in range(5)]
+    print(x)
+
+
+# API: NamedTuple in JIT Model
+# Bug description: a RuntimeError on model accepting a custom type of NamedTuple
+#                  when using torch.jit.script in PyTorch v1.7.1
+from typing import Final
+
+import torch
+
+
+class LinearActivation(torch.nn.Module):
+    def forward(
+        self, x: torch.Tensor, meta: dict[str, torch.Tensor]
+    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        meta = meta.copy()
+        meta["meta_y_hat"] = x
+        # return x, meta # would make it work
+        return meta["meta_y_hat"], meta  # JIT claims it errors here
+
+
+class Test(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.flag: Final = ""
+        self.activation = LinearActivation()
+
+    def forward(
+        self, x: torch.Tensor, meta: dict[str, torch.Tensor]
+    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        meta = meta.copy()
+        if self.flag != "":  # this branch should not even be compiled
+            # assert False # would make it work
+            score = x[:, -1:]
+            x, meta = self.activation(
+                x[:, :, :-1],  # replacing this with x, would make it work
+                meta,
+            )
+            x = torch.cat((x, score), dim=1)  # removing this line makes it work
+        else:
+            x, meta = self.activation(x, meta)
+        meta["meta_y_hat"] = x  # removing this line makes it work
+        return meta["meta_y_hat"], meta
+
+
+if __name__ == "__main__":
+    model = torch.jit.script(Test())
+    x, xs = model.forward(torch.ones(10, 10), {})
+
+
+# API: 
+# this works
+def fn(x):
+    a = zeros_like(x, dtype=torch.uint8)
+    a[torch.tensor(0)] = torch.tensor(2)
+    return a
+
+# this works
+def fn(x):
+    a = zeros_like(x, dtype=torch.uint8)
+    a[0] = 2
+    return a
+
+# this  doesn't work
+def fn(x):
+    a = zeros_like(x, dtype=torch.uint8)
+    a[torch.tensor(0)] = 2
+    return a
+
+x = torch.jit.script(fn)
+
+
+# API: Class-based tensor in JIT Model
+# Bug description: A crash in the torch.jit.script on a class with tensor property when trying to access that property
+#                  in __repr__ method of this class
+# Related issues: https://github.com/pytorch/pytorch/issues/49722, https://github.com/pytorch/pytorch/issues/50418
+# Minimal Reproducible Code:
+# import torch
+import torch
+from typing import List
+class Boxes():
+    def __init__(self, tensor):
+        self.tensor = tensor
+    @classmethod
+    def cat(cls, box_lists: List):
+        return cls(torch.cat([x.tensor for x in box_lists]))
+
+def f(t: torch.Tensor):
+    b = Boxes(t)
+    c = Boxes(torch.tensor([3, 4]))
+    return Boxes.cat([b, c])
+
+if __name__ == "__main__":
+    f_script = torch.jit.script(f)
+
+
+# API:

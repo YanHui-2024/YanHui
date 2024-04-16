@@ -1,0 +1,306 @@
+# API: torch._C._jit_pass_remove_dropout
+# Bug description: RemoveDropout is a pass that removes Dropout Node from the graph
+import torch
+from torch import nn
+
+class SimpleNet(nn.Module):
+    def __init__(self, input_features, hidden_dim, output_dim):
+        super(SimpleNet, self).__init__()
+        dropout = 0.25
+        self.dropout = nn.Dropout(p=dropout)
+        self.fc1 = nn.Linear(input_features, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, output_dim)
+    def forward(self, x):
+        out = self.dropout(x)
+        out = torch.relu(self.fc1(out))
+        out = self.dropout(torch.relu(self.fc2(out)))
+        return out
+model_to_trace = SimpleNet(5, 64, 10)
+traced_script_module = torch.jit.trace(model_to_trace, (torch.randn([32, 5]),))
+output = traced_script_module(torch.randn([32, 5]))
+print(output)
+
+# API: torch._C._mkldnn_prepare
+# Bug description: mkldnn_enabled: false
+if (bool(0)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.Tensor()
+    b = torch.Tensor()
+    mkldnn_enabled_orig = torch._C._get_mkldnn_enabled()
+    torch._C._set_mkldnn_enabled(True)
+if (bool(1)):
+    a = torch.T

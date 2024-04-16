@@ -1,0 +1,38 @@
+ torch.jit.trace
+# Bug description: Broadcasting rand_like inside fusion group produces wrong results
+#                  when using torch.jit.trace in PyTorch v1.0rc1
+
+# Title: JIT tracing error with no gradient function (torch version < 1.5)
+"""
+Output:
+RuntimeError: The autograd engine was not enabled for a tensor. It is possible to have traced functions that do not require gradients, and you can call set_grad_enabled(False) to disable them. If you want to trace the function, please pass in an argument to enable the grad engine:
+  %4 : Tensor = prim::CallMethod[named="_autograd_enable_grad"](%t1.2)
+Traceback (most recent call last):
+  File "test.py", line 73, in <module>
+    x=torch.rand(2048, requires_grad=True).to("cuda")
+  File "/home/sai/.local/lib/python3.6/site-packages/torch/tensor.py", line 1661, in __init__
+    _C._TensorInit(self, device, dtype, storage_offset, size, stride, requires_grad)
+RuntimeError: Expected set_grad_enabled param to be a bool, but got <class 'torch.cuda.amp.autocast.autocast'>
+"""
+# Version: PyTorch version: 1.4.0
+# Labels: oncall: jit
+# PR Title: JIT tracing error with no gradient function (torch version < 1.5)
+import torch
+from torch.cuda import amp
+class Foo(torch.nn.Module):
+    def forward(self, x):
+        out = torch.randn(x.shape[0], requires_grad=True).to("cuda") * 2 + x
+        out.sum().backward()
+        return out.detach(), out.grad
+class Bar(torch.nn.Module):
+    def forward(self, x):
+        with amp.autocast():
+            a = Foo()(x)
+        return a
+with torch.no_grad():
+    model = Bar().eval().to("cuda")
+batch_size=4096*1024+1 # too big to fit in memory, but small enough so it doesn't take forever!
+x = torch.rand(batch_size, requires_grad=True).to("cuda") * 2 + x
+y, dy = model(x) # this line fails with RuntimeError: Expected set_grad_enabled param to be a bool, but got <class 'torch.cuda.amp.autocast.autocast>
+# API: torch.jit.trace
+# Bug description: JIT tracing error with no gradient function (torch version < 1.5)

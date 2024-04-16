@@ -1,0 +1,9 @@
+# Title: [JIT] Support keyword-only arguments in Torchscript
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.0.1
+# Labels: oncall: jit
+# PR Title: [JIT] Support keyword-only arguments in Torchscript
+def compare(a, b, *, key=None):

@@ -1,0 +1,14 @@
+# Title: [jit] return type Any does not work for ternary operators
+"""
+Output:
+N/A
+"""
+# Version: PyTorch version: 1.6.0
+# Labels: oncall: jit, days
+# PR Title: [jit] return type Any does not work for ternary operators
+class MyModule(torch.nn.Module):
+    def forward(self) -> Any:
+        if self.training:
+            return 'xx'
+        else:
+            return {}

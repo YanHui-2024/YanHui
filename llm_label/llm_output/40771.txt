@@ -1,0 +1,62 @@
+ Python.function: math.round and torch.jit.ScriptFunction: torch.jit.script
+# Bug description: round is not supported in TorchScript with the same semantics as python
+
+# Title: [jit] trace can't compile a script that imports __future__.annotations
+"""
+Output:
+ERROR: Graphs differed across invocations!
+        Graph diff:
+                graph(%self.1 : __torch__.MyModule,
+                      %x : Tensor):
+                    %cv1_1 : __torch__.torch.nn.modules.conv.___torch_mangle_3.Conv2d = prim::GetAttr[name="cv1"](%self.1)
+                ?             ^
+                +   %9 : float[] = prim::Constant[value=[0., 6.7810, 6.4636, 5.3894]](), scope: __module.cv1 # /home/titaiwang/pytorch/torch/nn/modules/conv.py:459:0
+                +   %10 : float[] = prim::Constant[value=[6., 7.8, 3.]](), scope: __module.cv1 # /home/titaiwang/pytorch/torch/nn/modules/conv.py:459:0
+                +   %nv : float = prim::NumToTensor[size=2]()
+                    %cvi : Tensor = prim::GetAttr[name="ci"](%self.1)
+                    %cv2 : __torch__.torch.nn.modules.conv.___torch_mangle_7.ConvTranspose3d = prim::GetAttr[name="cv2"](%self.1)
+                +   %48 : int[] = prim::Constant[value=[0, 5, -1]]()
+        First diverging operator:
+        Node diff:
+                - %nv : float = prim::NumToTensor[size=2]()
+                    %cv1_1 : __torch__.torch.nn.modules.conv.___torch_mangle_3.Conv2d = prim::GetAttr[name="cv1"](%self.1)
+                ?             ^
+                + %9 : float[] = prim::Constant[value=[0., 6.7810, 6.4636, 5.3894]](), scope: __module.cv1 # /home/titaiwang/pytorch/torch/nn/modules/conv.py:459:0
+                + %10 : float[] = prim::Constant[value=[6., 7.8, 3.]](), scope: __module.cv1 # /home/titaiwang/pytorch/torch/nn/modules/conv.py:459:0
+                + %nv : float = prim::NumToTensor[size=2]()
+        First diverging operator:
+        Node diff:
+                - %9 : float[] = prim::Constant[value=[0., 6.7810, 6.4636, 5.3894]](), scope: __module.cv1 # /home/titaiwang/pytorch/torch/nn/modules/conv.py:459:0
+                ?             ^
+                + %9 : float[] = prim::Constant[value=[0., 6.7810, 6.4636, 5.3894]](), scope: __module.cv1 # /home/titaiwang/pytorch/torch/nn/modules/conv.py:459:0
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit, module: onnx, module: amp (automated mixed precision), bug_type: regressor
+# PR Title: [jit] trace can't compile a script that imports __future__.annotations
+import torch
+from __future__ import annotations
+class MyModule(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.ci = (0, 5, -1)
+    def forward(self, x: torch.Tensor, y: int):
+        return x, y
+scripted_module = torch.jit.trace(MyModule(), (torch.rand((2, 3)), 6))
+# API: __future__.annotations and trace in TorchScript
+# Bug description: trace doesn't handle the future import of annotations correctly
+
+# Title: [jit] torch.jit.script with autocast not working
+"""
+Output:
+RuntimeError: "AutocastFP16Tensor", "AutocastBFloat16Tensor", or "AutocastHalfTensor" expected as the input of "aten::native_batch_norm" but got "torch.FloatTensor". Note that autocast should be disabled in the exported model with torch.autograd.set_grad_enabled(False)
+"""
+# Version: PyTorch version: 1.9.0
+# Labels: oncall: jit, module: amp (automated mixed precision), bug_type: regressor
+# PR Title: [jit] torch.jit.script with autocast not working
+import torch
+with torch.autocast(device_type='cuda', dtype=torch.float16):
+    a = torch.tensor([2., 3.]).to('cuda')
+s = torch.jit.script(a)
+print(s())
+# API: autocast, torch.autocast, and torch.Tensor
+# Bug description: autocast doesn't work in JIT mode

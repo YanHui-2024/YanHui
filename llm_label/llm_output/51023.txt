@@ -1,0 +1,76 @@
+ Basic type checking on assignment in JITed code
+# Bug description: Type annotation is lost when reassigned to a new variable in JITed code
+
+# Title: torch.jit.trace fails on complex pytorch model
+"""
+Output:
+RuntimeError: Graphs differed across invocations!
+        Graph diff:
+              graph(%self.1 : __torch__.MyModule,
+                    %x : Tensor):
+                %cv2 : __torch__.torch.nn.modules.conv.Conv2d = prim::GetAttr[name="cv2"](%self.1)
+                %5 : int = prim::Constant[value=0]()
+                %6 : Tensor = aten::mul(%5, %x)
+                          ~~~~~~~~~~~~~~~ <--- HERE
+              return (%7)
+        First diverging operator:
+        Node diff:
+              - %cv2 : __torch__.torch.nn.modules.conv.___torch_mangle_4.Conv2d = prim::GetAttr[name="cv2"](%self.1)
+                      ^ ~~~~~~~~~~~~~~~~~~~~~~~
+              + %cv2 : __torch__.torch.nn.modules.conv.___torch_mangle_6.Conv2d = prim::GetAttr[name="cv2"](%self.1)
+                      ^ ~~~~~~~~~~~~~~~~~~~~~~~
+"""
+# Version: PyTorch version: 1.7.1
+# Labels: oncall: jit, module: onnx, TSUsability:Basic, module: autocast (automated mixed precision), module: amp (automated mixed precision)
+import torch
+from typing import Optional, List
+class Net(torch.nn.Module):
+    def __init__(self, num_classes=1000):
+        super(Net, self).__init__()
+        self.conv1 = torch.nn.Conv2d(in_channels=3, out_channels=64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+        self.relu = torch.nn.ReLU()
+        self.maxpool1 = torch.nn.MaxPool2d(kernel_size=(3, 3), stride=(2, 2), dilation=(1, 1), ceil_mode=False)
+        self.conv2 = torch.nn.Conv2d(in_channels=64, out_channels=192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        self.relu1 = torch.nn.ReLU()
+        self.maxpool2 = torch.nn.MaxPool2d(kernel_size=(3, 3), stride=(2, 2), dilation=(1, 1), ceil_mode=False)
+    def forward(self, x):
+        out = self.conv1(x)
+        out = self.relu(out)
+        out = self.maxpool1(out)
+        out = self.conv2(out)
+        out = self.relu1(out)
+        out = self.maxpool2(out)
+Net()
+# API: Complex type annotation in JITed code
+# Bug description: torch.jit.trace fails on complex pytorch model
+
+# Title: jit.trace with mixed precision not working as expected
+"""
+Output:
+Traceback (most recent call last):
+  File "test/mixed_precision_issue35.py", line 27, in <module>
+    x = torch.randn(16, 3)
+  File "/home/titaiwang/.local/lib/python3.8/site-packages/torch/tensor.py", line 1975, in __init__
+    with enable_python_mode():
+RuntimeError: 'with' outside function is not supported (this might be normal if you are in a script)
+"""
+# Version: PyTorch version: 1.7.0+cu100
+import torch
+from torch import nn
+class ModuleA(nn.Module):
+    def forward(self, x):
+        return x * 2
+class ModuleB(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.m = ModuleA()
+    def forward(self, x):
+        with torch.cuda.amp.autocast(enabled=True):
+            return self.m(x) * 2
+mb = ModuleB()
+with torch.no_grad():
+    x = torch.randn(16, 3).to('cuda')
+    trace = torch.jit.trace(mb, [x])
+    # N/A: this script is the code from the issue description
+# API: Mixed precision mode in JITed model
+# Bug description: jit.trace with mixed precision not working as expected
