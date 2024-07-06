@@ -1,0 +1,10 @@
+3   libtorch_cpu.dylib                  0x0000000107310000 __dso_handle + 0
+4   libtorch_cpu.dylib                  0x000000010a02f223 _ZN5torch3jit16ScriptTypeParser17parseArgsFromDeclERKNS0_4DeclEb + 547
+5   libtorch_cpu.dylib                  0x000000010a03179e _ZN5torch3jit16ScriptTypeParser18parseSchemaFromDefERKNS0_3DefEb + 270
+6   libtorch_cpu.dylib                  0x0000000109fbd060 _ZN5torch3jit5to_ir7emitDefERKNS0_3DefEPKNS0_4SelfEPNS0_5BlockE + 80
+7   libtorch_cpu.dylib                  0x0000000109fbc6b4 _ZN5torch3jit5to_irC2ERKNS0_3DefENSt3__110shared_ptrINS0_8ResolverEEEPKNS0_4SelfERNS0_8FunctionE + 756
+8   libtorch_cpu.dylib                  0x0000000109fbc0e5 _ZNSt3__110__function6__funcIZNK5torch3jit15CompilationUnit6defineERKN3c108optionalINS5_13QualifiedNameEEERKNS3_3DefERKNS_10shared_ptrINS3_8ResolverEEEPKNS3_4SelfERKNS_13unordered_mapINS_12basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEEEPNS3_8FunctionENS_4hashISS_EENS_8equal_toISS_EENSQ_INS_4pairIKSS_SU_EEEEEEbE3$_0NSQ_IS16_EEFvRNS3_13GraphFunctionEEEclES19_ + 517
+9   libtorch_cpu.dylib                  0x000000010a0adc1b _ZN5torch3jit13GraphFunction14ensure_definedEv + 171
+10  libtorch_cpu.dylib                  0x0000000109fb81a9 _ZN5torch3jit15CompilationUnit6defineERKN3c108optionalINS2_13QualifiedNameEEERKNSt3__16vectorINS0_3DefENS8_9allocatorISA_EEEERKNS9_INS8_10shared_ptrINS0_8ResolverEEENSB_ISI_EEEEPKNS0_4SelfEb + 169
+11  libtorch_cpu.dylib                  0x0000000109fb58c3 _ZN5torch3jit15CompilationUnit6defineERKN3c108optionalINS2_13QualifiedNameEEERKNSt3__112basic_stringIcNS8_11char_traitsIcEENS8_9allocatorIcEEEERKNS8_10shared_ptrINS0_8ResolverEEEPKNS0_4SelfE + 627
+12  libtorch_cpu.dylib                  0x000000010a14b9b2 _ZN5torch3jit7compileERKNSt3__112basic_stringIcNS1_11char_traitsIcEENS1_9allocatorIcEEEE + 418

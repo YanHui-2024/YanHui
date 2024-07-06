@@ -1,0 +1,1 @@
+FileCheck().check_source_range(source_token).run(error_message)

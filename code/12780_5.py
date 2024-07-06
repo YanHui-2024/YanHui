@@ -1,0 +1,1 @@
+[ Variable[CPUFloatType]{1} ]]

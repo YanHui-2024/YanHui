@@ -1,6 +1,9 @@
+# Model: nn.Module
 # API: Dict in JIT Model
-# Bug description: a KeyError on model with custom activation
-#                  when accessing the property of Dict using torch.jit.script in PyTorch v1.11
+# Data: torch.rand(3)
+# Triggerred: KeyError
+# From: torch.jit.script
+# Reason: Accessing the property of Dict of model with custom activation
 import torch
 from torch.fx import symbolic_trace
 from collections import namedtuple

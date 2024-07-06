@@ -1,10 +1,12 @@
-# API: NamedTuple in JIT Model
-# Bug description: a RuntimeError on model accepting a custom type of NamedTuple
-#                  when using torch.jit.script in PyTorch v1.7.1
+# Model: LinearActivation
+# API: torch.jit.script
+# Data: torch.ones(10, 10)
+# Triggerred: RuntimeError
+# From: model.forward
+# Reason: accepting a custom type of NamedTuple
 from typing import Final
 
 import torch
-
 
 class LinearActivation(torch.nn.Module):
     def forward(

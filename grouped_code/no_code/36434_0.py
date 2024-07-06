@@ -1,0 +1,8 @@
+Apr 07 19:57:46   test_sub_cuda_int64 (__main__.TestTorchDeviceTypeCUDA) ... skip (0.029s)
+Apr 07 19:57:46   test_sub_cuda_int8 (__main__.TestTorchDeviceTypeCUDA) ... skip (0.028s)
+Apr 07 19:57:46   test_sub_cuda_uint8 (__main__.TestTorchDeviceTypeCUDA) ... skip (0.028s)
+Apr 07 19:57:46   test_sub_typing_cuda (__main__.TestTorchDeviceTypeCUDA) ... ok (0.077s)
+Apr 07 19:57:46   test_sum_all_cuda_bool (__main__.TestTorchDeviceTypeCUDA) ... skip (0.029s)
+Apr 07 19:57:46   test_sum_all_cuda_float64 (__main__.TestTorchDeviceTypeCUDA) ... skip (0.029s)
+Apr 07 19:57:46   test_sum_out_cuda_float64 (__main__.TestTorchDeviceTypeCUDA) ... skip (0.029s)
+Apr 07 19:57:54   test_svd_cuda_float64 (__main__.TestTorchDeviceTypeCUDA) ... ok (8.023s)

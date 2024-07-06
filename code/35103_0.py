@@ -1,0 +1,1 @@
+C++ exception with description "(ops.size()) == (1) INTERNAL ASSERT FAILED at /home/nshulga/git/pytorch/test/cpp/jit/test_custom_operators.cpp:17, please report a bug to PyTorch.  (testCustomOperators at /home/nshulga/git/pytorch/test/cpp/jit/test_custom_operators.cpp:17)

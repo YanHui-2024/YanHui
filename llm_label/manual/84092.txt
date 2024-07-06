@@ -1,6 +1,9 @@
-# API: torch.nn.Conv2d
-# Bug description: Trace sanity check fails when using autocast on Conv node
-#                  when using torch.jit.trace in PyTorch v1.12.1
+# Model: Conv2d
+# API: torch.jit.script
+# Data: torch.randn(10, 3, 20, 20) * 2
+# Triggerred: RuntimeError
+# From: torch.jit.trace
+# Reason: Trace sanity check fails when using autocast on Conv node
 import torch
 
 class MyModule(torch.nn.Module):

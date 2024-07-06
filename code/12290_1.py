@@ -1,0 +1,7 @@
+x = f(w)
+x', y' = broadcast(x, y)
+ax, bx = chunk(x')
+ay, by = chunk(y')
+a = g(ax, ay)
+b = g(bx, by)
+c = h(a, b)

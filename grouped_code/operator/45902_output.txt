@@ -1,0 +1,2 @@
+torch._C._freeze_module(script_module._c)
+RuntimeError: node->kind() == prim::GetAttr INTERNAL ASSERT FAILED at "../torch/csrc/jit/passes/freeze_module.cpp":22, please report a bug to PyTorch. Expected prim::GetAttr nodes

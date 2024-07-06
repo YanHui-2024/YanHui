@@ -1,0 +1,1 @@
+RuntimeError: invalid argument 2: input and output sizes should be greater than 0, but got input (H: 28, W: 28) output (H: 0, W: 0) at /home/disk0/.pytorch/pytorch/aten/src/THNN/generic/SpatialUpSamplingBilinear.c:19

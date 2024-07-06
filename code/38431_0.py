@@ -1,0 +1,1 @@
+python test/test_jit.py TestBackends

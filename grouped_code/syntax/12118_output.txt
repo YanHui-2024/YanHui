@@ -1,0 +1,1 @@
+zsh: segmentation fault  python3 tmp.py

@@ -1,0 +1,6 @@
+member of "the torch: : jit: : detail: : AttributePolicy: : all_slots" may not be initialized
+member "torch::jit::detail::BufferPolicy::all_slots" may not be initialized  
+member "torch::jit::detail::ModulePolicy::all_slots" may not be initialized	
+member "torch::jit::detail::ParameterPolicy::all_slots" may not be initialized	
+D:\deeplearning\deeplearning\learn\libtorch\include\torch\csrc\jit\api\module.h	501	
+错误	MSB3721	命令“"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\bin\nvcc.exe"  --use-local-env -ccbin "D:\vs2019\VC\Tools\MSVC\14.26.28801\bin\HostX64\x64" -x cu  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\include"     --keep-dir x64\Release -maxrregcount=0  --machine 64 --compile -cudart static     -DNDEBUG -D_CONSOLE -D_UNICODE -DUNICODE -Xcompiler "/EHsc /W3 /nologo /O2 /FdD:\deeplearning\x64\Release\dir\vc142.pdb /FS /Zi  /MD /GR" -o D:\deeplearning\x64\Release\dir\PSROIAlign_cuda.cu.obj "D:\deeplearning\deeplearning\PSROIAlign_cuda.cu"”已退出，返回代码为 1。	deeplearning	D:\vs2019\MSBuild\Microsoft\VC\v160\BuildCustomizations\CUDA 10.2.targets	764	

@@ -1,0 +1,1 @@
+RuntimeError: Cannot create dict for key type 'bool', only int, float, Tensor and string keys are supported

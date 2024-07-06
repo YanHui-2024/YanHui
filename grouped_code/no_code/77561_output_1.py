@@ -1,0 +1,1 @@
+aot_model_compiler --model=crash-file --model_name=name --model_version=1 --input_dims='1,3,224,224;2,2' --input_types='float;float'
